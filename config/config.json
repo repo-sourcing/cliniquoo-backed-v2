@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "admin",
+    "password": "iYSm4lmcJFcRQxzdUpBI",
+    "database": "dentoStaging",
+    "host": "dento-database.c0yzbq0zlxuk.ap-south-1.rds.amazonaws.com",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "password",
+    "database": "dento",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "admin",
+    "password": "iYSm4lmcJFcRQxzdUpBI",
+    "database": "dento",
+    "host": "dento-database.c0yzbq0zlxuk.ap-south-1.rds.amazonaws.com",
+    "dialect": "mysql"
+  }
+}
