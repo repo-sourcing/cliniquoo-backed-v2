@@ -1,8 +1,7 @@
 const service = require("./service");
-const userModel = require("../user/model");
+const sequelize = require("../../config/db");
 exports.create = async (req, res, next) => {
   try {
-    req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
 
     res.status(201).json({
@@ -32,6 +31,26 @@ exports.getAll = async (req, res, next) => {
       limit,
       offset: skip,
     });
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+exports.getBill = async (req, res, next) => {
+  try {
+    const { clinicId, patientId } = req.query;
+    const data = await service.get({
+      attributes: [
+        [sequelize.fn("sum", sequelize.col("amount")), "totalAmount"],
+      ],
+      where: {
+        clinicId,
+        patientId,
+      },
+    });
 
     res.status(200).send({
       status: "success",
@@ -41,20 +60,29 @@ exports.getAll = async (req, res, next) => {
     next(error);
   }
 };
+exports.getByDate = async (req, res, next) => {
+  try {
+    const data = await service.get();
 
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
     const data = await service.update(req.body, {
       where: {
         id,
-        userId: req.requestor.id,
       },
     });
 
     res.status(203).send({
-      status: "success",
-      message: "edit patient successfully",
+      status: 203,
       data,
     });
   } catch (error) {
@@ -75,7 +103,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete patient successfully",
+      message: "delete Post successfully",
       data,
     });
   } catch (error) {

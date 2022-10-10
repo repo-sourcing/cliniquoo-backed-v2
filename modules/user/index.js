@@ -15,15 +15,14 @@ const {
   search,
 } = require("./controller");
 
-router.route("/").get(getAll);
+router
+  .route("/")
+  .get(getAll)
+  .patch(auth.authMiddleware, upload.single("profilePic"), update);
 router.get("/getMe", auth.authMiddleware, getMe);
 router.post("/sendOTP", sendOTP);
 router.post("/verifyUser", verifyUser);
 router.post("/signup", upload.single("profilePic"), signup);
-router
-  .route("/:id")
-  .patch(upload.single("profilePic"), update)
-  .get(getOne)
-  .delete(remove);
+router.route("/:id").get(getOne).delete(remove);
 router.get("/search/:name", search);
 module.exports = router;

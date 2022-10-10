@@ -11,7 +11,11 @@ const User = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    uid: {
+    emailUid: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    mobileUid: {
       type: Sequelize.STRING,
       allowNull: false,
     },
@@ -50,40 +54,6 @@ const User = sequelize.define(
 
     FcmToken: {
       type: Sequelize.TEXT,
-    },
-    clinicName: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
-    clinicMobile: {
-      type: Sequelize.BIGINT,
-      unique: true,
-      allowNull: false,
-      validate: {
-        not: {
-          args: ["[a-z]", "i"],
-          msg: "Please enter a valid number",
-        },
-        len: {
-          args: [10, 10],
-          msg: "length of the phone number is 10",
-        },
-      },
-    },
-    location: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
-    dayOff: {
-      type: Sequelize.TEXT,
-      get: function () {
-        return this.getDataValue("dayOff")
-          ? JSON.parse(this.getDataValue("dayOff"))
-          : [];
-      },
-      set: function (val) {
-        return this.setDataValue("dayOff", JSON.stringify(val.split(",")));
-      },
     },
   },
   {

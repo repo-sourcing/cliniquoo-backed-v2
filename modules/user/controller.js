@@ -3,7 +3,9 @@ const service = require("./service");
 
 const { Op } = require("sequelize");
 const firebase = require("../../utils/firebaseConfige");
+const Clinic = require("../clinic/model");
 const jwt = require("jsonwebtoken");
+
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -19,7 +21,21 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const data = await service.get();
+    const limit = req.query.limit * 1 || 100;
+    const page = req.query.page * 1 || 1;
+    const skip = (page - 1) * limit;
+    const sort = req.query.sort || "createdAt";
+    const sortBy = req.query.sortBy || "DESC";
+    delete req.query.limit;
+    delete req.query.page;
+    delete req.query.sort;
+    delete req.query.sortBy;
+    const data = await service.get({
+      where: req.query,
+      order: [[sort, sortBy]],
+      limit,
+      offset: skip,
+    });
 
     res.status(200).send({
       status: "success",
@@ -50,7 +66,7 @@ exports.getOne = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const id = req.params.id;
+    const id = req.requestor.id;
     delete req.body.uid;
     delete req.body.mobile;
     if (req.file) {
@@ -87,6 +103,7 @@ exports.remove = async (req, res, next) => {
 
 // Temp
 exports.sendOTP = async (req, res, next) => {
+  console.log("hello");
   const mobile = req.body.mobile;
   const token = jwt.sign(
     {
@@ -115,9 +132,9 @@ exports.verifyUser = async (req, res, next) => {
       // console.log("user from firebase token\n", jwtUser);
       const [avlUser] = await service.get({
         where: {
-          uid: jwtUser.uid,
+          $or: { mobileUid: jwtUser.uid, emailUid: jwtUser.uid },
         },
-        attributes: ["id", "mobile", "uid"],
+        attributes: ["id", "mobile"],
       });
       // console.log("available user", avlUser);
       // Sign a JWT Token for login/signup
@@ -159,12 +176,12 @@ exports.verifyUser = async (req, res, next) => {
           req.body.firebase_token,
           process.env.JWT_SECRETE
         );
-        // console.log(jwtUser);
+        console.log(jwtUser);
         const [avlUser] = await service.get({
           where: {
-            uid: jwtUser.uid,
+            [Op.or]: [{ mobileUid: jwtUser.uid }, { emailUid: jwtUser.uid }],
           },
-          attributes: ["id", "mobile", "uid"],
+          attributes: ["id", "mobile"],
         });
         // console.log("available user", avlUser);
         // Sign a JWT Token for login/signup
@@ -226,7 +243,7 @@ exports.signup = async (req, res, next) => {
     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
     // console.log(jwtUser);
 
-    req.body.uid = jwtUser.id;
+    req.body.emailUid = jwtUser.id;
     req.body.profilePic = req.file ? req.file.location : null;
     const data = await service.create(req.body);
 
@@ -251,33 +268,14 @@ exports.getMe = async (req, res, next) => {
       where: {
         id: req.requestor.id,
       },
+      include: [Clinic],
     });
 
-    const following = await friendModel.count({
-      where: {
-        senderId: req.requestor.id,
-        status: { [Op.ne]: "block" },
-      },
-    });
-    const followers = await friendModel.count({
-      where: {
-        receiverId: req.requestor.id,
-        status: { [Op.ne]: "block" },
-      },
-    });
-    const posts = await postModel.count({
-      where: {
-        userId: req.requestor.id,
-      },
-    });
     res.status(200).send({
       status: "success",
       message: "getMe successfully",
       data: {
         data,
-        followers,
-        following,
-        posts,
       },
     });
   } catch (error) {

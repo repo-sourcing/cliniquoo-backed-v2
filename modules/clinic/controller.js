@@ -31,6 +31,12 @@ exports.getAll = async (req, res, next) => {
       order: [[sort, sortBy]],
       limit,
       offset: skip,
+      include: [
+        {
+          model: userModel,
+          attributes: ["name", "profilePic", "mobile", "about", "email"],
+        },
+      ],
     });
 
     res.status(200).send({
@@ -52,9 +58,9 @@ exports.edit = async (req, res, next) => {
       },
     });
 
-    res.status(203).send({
+    res.status(200).send({
       status: "success",
-      message: "edit patient successfully",
+      message: "edit clinic successfully",
       data,
     });
   } catch (error) {
@@ -75,7 +81,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete patient successfully",
+      message: "delete Post successfully",
       data,
     });
   } catch (error) {

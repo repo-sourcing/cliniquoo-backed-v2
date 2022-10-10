@@ -2,8 +2,8 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
-const Patient = sequelize.define(
-  "patient",
+const Clinic = sequelize.define(
+  "clinic",
   {
     id: {
       type: Sequelize.INTEGER,
@@ -15,12 +15,9 @@ const Patient = sequelize.define(
       type: Sequelize.STRING,
       allowNull: false,
     },
-    location: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
     mobile: {
       type: Sequelize.BIGINT,
+      unique: true,
       allowNull: false,
       validate: {
         not: {
@@ -33,13 +30,20 @@ const Patient = sequelize.define(
         },
       },
     },
-    gender: {
-      type: Sequelize.ENUM("M", "F", "O"),
+    location: {
+      type: Sequelize.STRING,
       allowNull: false,
     },
-    age: {
-      type: Sequelize.INTEGER,
-      allowNull: false,
+    dayOff: {
+      type: Sequelize.TEXT,
+      get: function () {
+        return this.getDataValue("dayOff")
+          ? JSON.parse(this.getDataValue("dayOff"))
+          : [];
+      },
+      set: function (val) {
+        return this.setDataValue("dayOff", JSON.stringify(val.split(",")));
+      },
     },
   },
   {
@@ -47,7 +51,10 @@ const Patient = sequelize.define(
   }
 );
 
-User.hasMany(Patient);
-Patient.belongsTo(User);
-
-module.exports = Patient;
+User.hasMany(Clinic, {
+  foreignKey: {
+    allowNull: false,
+  },
+});
+Clinic.belongsTo(User);
+module.exports = Clinic;
