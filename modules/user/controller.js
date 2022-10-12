@@ -127,18 +127,19 @@ exports.verifyUser = async (req, res, next) => {
     .auth()
     .verifyIdToken(req.body.firebase_token)
     .then(async (jwtUser) => {
-      // console.log(jwtUser);
+      console.log(jwtUser);
       let token;
       // console.log("user from firebase token\n", jwtUser);
       const [avlUser] = await service.get({
         where: {
-          $or: { mobileUid: jwtUser.uid, emailUid: jwtUser.uid },
+          [Op.or]: { mobileUid: jwtUser.uid, emailUid: jwtUser.uid },
         },
         attributes: ["id", "mobile"],
       });
-      // console.log("available user", avlUser);
+      console.log("available user", avlUser);
       // Sign a JWT Token for login/signup
       if (!avlUser) {
+        console.log("Hi");
         token = jwt.sign(
           { id: jwtUser.uid, role: "User" },
           process.env.JWT_SECRETE,
@@ -169,6 +170,7 @@ exports.verifyUser = async (req, res, next) => {
       }
     })
     .catch(async (err) => {
+      console.log(err);
       try {
         let token;
         // const jwtUser = await decodeToken(req);
