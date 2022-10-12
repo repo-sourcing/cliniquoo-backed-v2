@@ -1,5 +1,6 @@
 const service = require("./service");
-const userModel = require("../user/model");
+const Patient = require("../patient/model");
+const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -21,12 +22,10 @@ exports.getAll = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
+
     const data = await service.get({
-      where: req.query,
+      where: sqquery(req.query),
+      include: [Patient],
       order: [[sort, sortBy]],
       limit,
       offset: skip,

@@ -17,7 +17,6 @@ const Patient = sequelize.define(
     },
     location: {
       type: Sequelize.STRING,
-      allowNull: false,
     },
     mobile: {
       type: Sequelize.BIGINT,

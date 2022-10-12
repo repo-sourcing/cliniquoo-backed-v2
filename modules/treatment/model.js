@@ -16,7 +16,6 @@ const Treatment = sequelize.define("treatment", {
   },
   category: {
     type: Sequelize.STRING,
-    allowNull: false,
   },
   amount: {
     type: Sequelize.INTEGER,
