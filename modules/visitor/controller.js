@@ -1,6 +1,9 @@
 const service = require("./service");
 const Patient = require("../patient/model");
+const Treatment = require("../treatment/model");
+const Procedure = require("../procedure/model");
 const { sqquery } = require("../../utils/query");
+
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -25,7 +28,23 @@ exports.getAll = async (req, res, next) => {
 
     const data = await service.get({
       where: sqquery(req.query),
-      include: [Patient],
+
+      include: [
+        {
+          model: Patient,
+          include: [
+            {
+              model: Treatment,
+
+              include: [
+                {
+                  model: Procedure,
+                },
+              ],
+            },
+          ],
+        },
+      ],
       order: [[sort, sortBy]],
       limit,
       offset: skip,
@@ -48,8 +67,9 @@ exports.edit = async (req, res, next) => {
       },
     });
 
-    res.status(203).send({
-      status: 203,
+    res.status(200).send({
+      status: 200,
+      message: "edit visitor successfully",
       data,
     });
   } catch (error) {
@@ -70,7 +90,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete Post successfully",
+      message: "delete visitor successfully",
       data,
     });
   } catch (error) {

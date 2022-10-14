@@ -1,12 +1,13 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
+const Procedure = require("../procedure/model");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
 
     res.status(201).json({
       status: "success",
-      message: "Add Patient successfully",
+      message: "Add Treatment successfully",
       data,
     });
   } catch (error) {
@@ -21,12 +22,18 @@ exports.getAll = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
+
     delete req.query.limit;
     delete req.query.page;
     delete req.query.sort;
     delete req.query.sortBy;
     const data = await service.get({
       where: req.query,
+      include: [
+        {
+          model: Procedure,
+        },
+      ],
       order: [[sort, sortBy]],
       limit,
       offset: skip,
@@ -60,18 +67,7 @@ exports.getBill = async (req, res, next) => {
     next(error);
   }
 };
-exports.getByDate = async (req, res, next) => {
-  try {
-    const data = await service.get();
 
-    res.status(200).send({
-      status: "success",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -81,8 +77,9 @@ exports.edit = async (req, res, next) => {
       },
     });
 
-    res.status(203).send({
-      status: 203,
+    res.status(200).send({
+      status: "success",
+      message: "edit treatment successfully",
       data,
     });
   } catch (error) {

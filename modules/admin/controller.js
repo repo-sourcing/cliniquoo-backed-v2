@@ -41,7 +41,7 @@ exports.signup = async (req, res, next) => {
     const data = await service.create(req.body);
 
     res.status(200).send({
-      status: 200,
+      status: "success",
       message: "Admin signup Successfully",
       data,
     });
@@ -59,7 +59,7 @@ exports.getMe = async (req, res, next) => {
     });
 
     res.status(200).send({
-      status: 200,
+      status: "success",
       message: "getMe successfully",
       data,
     });

@@ -1,5 +1,6 @@
 const service = require("./service");
-const userModel = require("../user/model");
+const Treatment = require("../treatment/model");
+const Procedure = require("../procedure/model");
 const { Op } = require("sequelize");
 exports.create = async (req, res, next) => {
   try {
@@ -50,6 +51,16 @@ exports.getSearch = async (req, res, next) => {
           [Op.like]: `${req.params.name}%`,
         },
       },
+      include: [
+        {
+          model: Treatment,
+          include: [
+            {
+              model: Procedure,
+            },
+          ],
+        },
+      ],
     });
 
     res.status(200).send({
@@ -71,9 +82,9 @@ exports.edit = async (req, res, next) => {
       },
     });
 
-    res.status(203).send({
+    res.status(200).send({
       status: "success",
-      message: "edit patient successfully",
+      message: "edit transaction successfully",
       data,
     });
   } catch (error) {

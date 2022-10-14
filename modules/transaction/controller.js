@@ -82,8 +82,9 @@ exports.edit = async (req, res, next) => {
       },
     });
 
-    res.status(203).send({
-      status: 203,
+    res.status(200).send({
+      status: 200,
+      message: "edit transaction successfully",
       data,
     });
   } catch (error) {

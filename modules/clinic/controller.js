@@ -7,7 +7,7 @@ exports.create = async (req, res, next) => {
 
     res.status(201).json({
       status: "success",
-      message: "Add Patient successfully",
+      message: "Add Clinic successfully",
       data,
     });
   } catch (error) {
@@ -81,7 +81,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete Post successfully",
+      message: "delete Clinic successfully",
       data,
     });
   } catch (error) {

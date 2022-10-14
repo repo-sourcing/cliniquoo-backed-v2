@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require(".././middleware/auth");
 
+router.use("/procedure", auth.authMiddleware, require("../modules/procedure"));
 router.use(
   "/transaction",
   auth.authMiddleware,

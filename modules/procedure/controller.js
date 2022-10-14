@@ -6,6 +6,7 @@ exports.create = async (req, res, next) => {
 
     res.status(201).json({
       status: "success",
+      message: "Add Procedure successfully",
       data,
     });
   } catch (error) {
@@ -13,15 +14,11 @@ exports.create = async (req, res, next) => {
   }
 };
 
-exports.getMyNotification = async (req, res, next) => {
+exports.getAll = async (req, res, next) => {
   try {
-    const userId = req.requestor.id;
     const data = await service.get({
-      where: {
-        userId,
-      },
+      where: req.query,
     });
-
     res.status(200).send({
       status: "success",
       data,
@@ -31,26 +28,10 @@ exports.getMyNotification = async (req, res, next) => {
   }
 };
 
-exports.update = async (req, res, next) => {
+exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const data = await service.update(id, req.body);
-
-    res.status(200).send({
-      status: 200,
-      message: "update notification successfully",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.removeOne = async (req, res, next) => {
-  try {
-    const id = req.params.id;
-
-    const data = await service.remove({
+    const data = await service.update(req.body, {
       where: {
         id,
       },
@@ -58,7 +39,7 @@ exports.removeOne = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete Notification successfully",
+      message: "edit procedure successfully",
       data,
     });
   } catch (error) {
@@ -66,19 +47,20 @@ exports.removeOne = async (req, res, next) => {
   }
 };
 
-exports.removeAll = async (req, res, next) => {
+exports.remove = async (req, res, next) => {
   try {
-    const userId = req.requestor.id;
+    const id = req.params.id;
 
     const data = await service.remove({
       where: {
-        userId,
+        id,
+        userId: req.requestor.id,
       },
     });
 
     res.status(200).send({
       status: "success",
-      message: "delete All Notification successfully",
+      message: "delete procedure successfully",
       data,
     });
   } catch (error) {

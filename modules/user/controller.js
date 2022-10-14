@@ -148,7 +148,7 @@ exports.verifyUser = async (req, res, next) => {
           }
         );
         res.status(200).json({
-          status: 200,
+          status: "success",
           message: "user verified",
           user: "new",
           token,
@@ -197,7 +197,7 @@ exports.verifyUser = async (req, res, next) => {
             }
           );
           res.status(200).json({
-            status: 200,
+            status: "success",
             message: "user verified",
             user: "new",
             token,
@@ -253,7 +253,7 @@ exports.signup = async (req, res, next) => {
       expiresIn: process.env.JWT_EXPIREIN,
     });
     res.status(200).send({
-      status: 200,
+      status: "success",
       message: "User signup Successfully",
       data,
       token,
