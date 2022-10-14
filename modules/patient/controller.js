@@ -1,5 +1,6 @@
 const service = require("./service");
 const userModel = require("../user/model");
+const { Op } = require("sequelize");
 exports.create = async (req, res, next) => {
   try {
     req.body.userId = req.requestor.id;
@@ -31,6 +32,24 @@ exports.getAll = async (req, res, next) => {
       order: [[sort, sortBy]],
       limit,
       offset: skip,
+    });
+
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+exports.getSearch = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        name: {
+          [Op.like]: `${req.params.name}%`,
+        },
+      },
     });
 
     res.status(200).send({

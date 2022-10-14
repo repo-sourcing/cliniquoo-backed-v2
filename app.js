@@ -1,9 +1,9 @@
 const express = require("express");
-const path = require("path");
+
 require("dotenv").config();
 global.createError = require("http-errors");
 const cookieParser = require("cookie-parser");
-const sequelize = require("./config/db");
+
 const logger = require("morgan");
 var cors = require("cors");
 

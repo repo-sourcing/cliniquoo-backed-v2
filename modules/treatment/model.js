@@ -14,12 +14,13 @@ const Treatment = sequelize.define("treatment", {
     type: Sequelize.STRING,
     allowNull: false,
   },
-  category: {
-    type: Sequelize.STRING,
-  },
   amount: {
     type: Sequelize.INTEGER,
     allowNull: false,
+  },
+  status: {
+    type: Sequelize.ENUM("OnGoing", "Done"),
+    defaultValue: "OnGoing",
   },
 });
 
