@@ -50,6 +50,7 @@ exports.getSearch = async (req, res, next) => {
         name: {
           [Op.like]: `${req.params.name}%`,
         },
+        userId: req.requestor.id,
       },
       include: [
         {
