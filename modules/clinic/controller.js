@@ -2,6 +2,7 @@ const service = require("./service");
 const userModel = require("../user/model");
 exports.create = async (req, res, next) => {
   try {
+    console.log(req.requestor);
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
 

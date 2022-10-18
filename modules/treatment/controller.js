@@ -1,10 +1,15 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
 const Procedure = require("../procedure/model");
+const Patient = require("../patient/model");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
 
+    await Patient.increment("remainBill", {
+      by: req.body.amount,
+      where: { id: req.body.patientId },
+    });
     res.status(201).json({
       status: "success",
       message: "Add Treatment successfully",

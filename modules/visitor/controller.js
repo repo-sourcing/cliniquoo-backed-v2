@@ -49,6 +49,7 @@ exports.getAll = async (req, res, next) => {
       limit,
       offset: skip,
     });
+
     res.status(200).send({
       status: "success",
       data,

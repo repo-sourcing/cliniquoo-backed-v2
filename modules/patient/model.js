@@ -40,6 +40,10 @@ const Patient = sequelize.define(
       type: Sequelize.INTEGER,
       allowNull: false,
     },
+    remainBill: {
+      type: Sequelize.INTEGER,
+      defaultValue: 0,
+    },
   },
   {
     paranoid: true,
