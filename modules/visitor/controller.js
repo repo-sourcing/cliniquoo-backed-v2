@@ -1,4 +1,5 @@
 const service = require("./service");
+const Visitor = require("./model");
 const Patient = require("../patient/model");
 const Treatment = require("../treatment/model");
 const Procedure = require("../procedure/model");
@@ -6,7 +7,14 @@ const { sqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
-    const data = await service.create(req.body);
+    const { date, clinicId, patientId } = req.body;
+    const data = await Visitor.findOrCreate({
+      where: {
+        date,
+        clinicId,
+        patientId,
+      },
+    });
 
     res.status(201).json({
       status: "success",

@@ -304,3 +304,28 @@ exports.search = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.mobileCheck = async (req, res, next) => {
+  try {
+    const [data] = await service.get({
+      where: {
+        mobile: req.body.mobile,
+      },
+    });
+
+    if (data)
+      return res.status(200).json({
+        status: "success",
+        message: "user available",
+        available: true,
+      });
+
+    res.status(200).json({
+      status: "success",
+      message: "user not available",
+      available: false,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
