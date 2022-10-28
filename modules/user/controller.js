@@ -318,6 +318,7 @@ exports.mobileCheck = async (req, res, next) => {
         status: "success",
         message: "user available",
         available: true,
+        email:data.emil
       });
 
     res.status(200).json({
