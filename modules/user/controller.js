@@ -312,7 +312,6 @@ exports.mobileCheck = async (req, res, next) => {
         mobile: req.body.mobile,
       },
     });
-    console.log(data);
     if (data)
       return res.status(200).json({
         status: "success",
