@@ -33,7 +33,14 @@ exports.getAll = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
-
+    let no_of_visitor = 0;
+    if (req.query.clinicId) {
+      no_of_visitor = await Visitor.count({
+        where: {
+          clinicId: req.query.clinicId,
+        },
+      });
+    }
     const data = await service.get({
       where: sqquery(req.query),
 
@@ -60,6 +67,7 @@ exports.getAll = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
+      no_of_visitor,
       data,
     });
   } catch (error) {
