@@ -1,5 +1,6 @@
 const service = require("./service");
 const Treatment = require("../treatment/model");
+const visitorService = require("../visitor/service");
 const Procedure = require("../procedure/model");
 const { Op } = require("sequelize");
 exports.create = async (req, res, next) => {
@@ -103,7 +104,11 @@ exports.remove = async (req, res, next) => {
         userId: req.requestor.id,
       },
     });
-
+    await visitorService.remove({
+      where: {
+        patientId: id,
+      },
+    });
     res.status(200).send({
       status: "success",
       message: "delete patient successfully",
