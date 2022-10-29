@@ -2,6 +2,7 @@ const service = require("./service");
 const Treatment = require("../treatment/model");
 const visitorService = require("../visitor/service");
 const Procedure = require("../procedure/model");
+const Transaction = require("../transaction/model");
 const { Op } = require("sequelize");
 exports.create = async (req, res, next) => {
   try {
@@ -56,11 +57,20 @@ exports.getSearch = async (req, res, next) => {
       include: [
         {
           model: Treatment,
+          order: [["createdAt", "DESC"]],
+          limit: 1,
           include: [
             {
               model: Procedure,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
             },
           ],
+        },
+        {
+          model: Transaction,
+          order: [["createdAt", "DESC"]],
+          limit: 1,
         },
       ],
     });
