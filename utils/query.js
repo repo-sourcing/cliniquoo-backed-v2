@@ -1,6 +1,6 @@
 const { Op } = require("sequelize");
 exports.sqquery = (q) => {
-  const excludeFileds = ["page", "sort", "limit", "fields", "sortBy"];
+  const excludeFileds = ["page", "sort", "limit", "fields", "sortBy", "day"];
   excludeFileds.forEach((el) => delete q[el]);
   let where = {};
 

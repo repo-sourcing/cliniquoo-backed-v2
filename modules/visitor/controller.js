@@ -1,9 +1,11 @@
 const service = require("./service");
 const Visitor = require("./model");
+const { Op } = require("sequelize");
 const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
 const Treatment = require("../treatment/model");
 const Procedure = require("../procedure/model");
+const moment = require("moment");
 const { sqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
@@ -35,6 +37,27 @@ exports.getAll = async (req, res, next) => {
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
     let no_of_visitor = 0;
+    let wheres;
+
+    if (req.query.day == "Today") {
+      wheres = {
+        createdAt: { [Op.gt]: moment.utc().startOf("day") },
+      };
+    } else if (req.query.day == "Yesterday") {
+      wheres = {
+        createdAt: {
+          [Op.gt]: moment.utc().subtract(1, "days").startOf("day"),
+          [Op.lt]: moment.utc().subtract(1, "days").endOf("day"),
+        },
+      };
+    } else if (req.query.day == "Older") {
+      wheres = {
+        createdAt: {
+          [Op.lt]: moment.utc().subtract(2, "days").endOf("day"),
+        },
+      };
+    }
+
     if (req.query.clinicId) {
       no_of_visitor = await Visitor.count({
         where: {
@@ -43,7 +66,7 @@ exports.getAll = async (req, res, next) => {
       });
     }
     const data = await service.get({
-      where: sqquery(req.query),
+      where: { ...sqquery(req.query), ...wheres },
 
       include: [
         {
@@ -51,11 +74,15 @@ exports.getAll = async (req, res, next) => {
           include: [
             {
               model: Treatment,
+              where: wheres,
+              required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
               include: [
                 {
                   model: Procedure,
+                  where: wheres,
+                  required: false,
                   order: [["createdAt", "DESC"]],
                   limit: 1,
                 },
@@ -63,6 +90,8 @@ exports.getAll = async (req, res, next) => {
             },
             {
               model: Transaction,
+              where: wheres,
+              required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
             },
