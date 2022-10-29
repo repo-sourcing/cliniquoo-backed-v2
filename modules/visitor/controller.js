@@ -1,6 +1,7 @@
 const service = require("./service");
 const Visitor = require("./model");
 const Patient = require("../patient/model");
+const Transaction = require("../transaction/model");
 const Treatment = require("../treatment/model");
 const Procedure = require("../procedure/model");
 const { sqquery } = require("../../utils/query");
@@ -50,12 +51,20 @@ exports.getAll = async (req, res, next) => {
           include: [
             {
               model: Treatment,
-
+              order: [["createdAt", "DESC"]],
+              limit: 1,
               include: [
                 {
                   model: Procedure,
+                  order: [["createdAt", "DESC"]],
+                  limit: 1,
                 },
               ],
+            },
+            {
+              model: Transaction,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
             },
           ],
         },
