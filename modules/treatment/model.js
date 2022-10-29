@@ -18,6 +18,9 @@ const Treatment = sequelize.define("treatment", {
     type: Sequelize.INTEGER,
     allowNull: false,
   },
+  toothNumber: {
+    type: Sequelize.INTEGER,
+  },
   status: {
     type: Sequelize.ENUM("OnGoing", "Done"),
     defaultValue: "OnGoing",
