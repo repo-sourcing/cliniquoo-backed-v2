@@ -44,6 +44,9 @@ const Patient = sequelize.define(
       type: Sequelize.INTEGER,
       defaultValue: 0,
     },
+    lastVisitedDate: {
+      type: Sequelize.DATEONLY,
+    },
   },
   {
     paranoid: true,

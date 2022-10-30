@@ -10,6 +10,17 @@ exports.create = async (req, res, next) => {
       by: req.body.amount,
       where: { id: req.body.patientId },
     });
+
+    await Patient.update(
+      {
+        lastVisitedDate: Date.now(),
+      },
+      {
+        where: {
+          id: req.body.patientId,
+        },
+      }
+    );
     res.status(201).json({
       status: "success",
       message: "Add Treatment successfully",

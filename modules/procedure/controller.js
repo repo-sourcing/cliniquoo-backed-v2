@@ -1,9 +1,25 @@
 const service = require("./service");
+const Patient = require("../patient/model");
+const Treatment = require("../treatment/service");
 
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
-
+    const [treatment] = await Treatment.get({
+      where: {
+        id: req.body.treatmentId,
+      },
+    });
+    await Patient.update(
+      {
+        lastVisitedDate: Date.now(),
+      },
+      {
+        where: {
+          id: treatment.patientId,
+        },
+      }
+    );
     res.status(201).json({
       status: "success",
       message: "Add Procedure successfully",
