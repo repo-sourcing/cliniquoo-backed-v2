@@ -17,6 +17,7 @@ router.use(
   auth.authMiddleware,
   require("../modules/notification")
 );
+router.use("/analytics", require("../modules/analytics"));
 router.use("/user", require("../modules/user"));
 router.use("/admin", require("../modules/admin"));
 

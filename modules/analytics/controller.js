@@ -1,40 +1,31 @@
-const { sqquery } = require("../../utils/query");
+const User = require("../user/model");
+const Patient = require("../patient/model");
+const Visitor = require("../visitor/model");
+const Transaction = require("../transaction/model");
+const sequelize = require("../../config/db");
 
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-
-    const data = await service.get({
-      where: sqquery(req.query),
-
-      include: [
-        {
-          model: Patient,
-          include: [
-            {
-              model: Treatment,
-
-              include: [
-                {
-                  model: Procedure,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+    const doctor = await User.count();
+    const patient = await Patient.count();
+    const visitor = await Visitor.count();
+    const transaction = await Transaction.count();
+    const doctorDaily = await User.count({
+      group: [sequelize.fn("date", sequelize.col("createdAt"))],
     });
-
+    const doctorMonthly = await User.count({
+      group: [sequelize.fn("month", sequelize.col("createdAt"))],
+    });
     res.status(200).send({
       status: "success",
-      data,
+      data: {
+        doctor,
+        patient,
+        visitor,
+        transaction,
+        doctorDaily,
+        doctorMonthly,
+      },
     });
   } catch (error) {
     next(error);
