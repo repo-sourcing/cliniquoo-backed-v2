@@ -1,17 +1,17 @@
-const User = require("./model");
+const Clinic = require("./model");
 
 exports.create = async (data) => {
-  return User.create(data);
+  return Clinic.create(data);
 };
 
 exports.get = async (condition) => {
-  return User.findAll(condition);
+  return Clinic.findAll(condition);
 };
 
 exports.update = async (data, condition) => {
-  return Post.update(data, condition);
+  return Clinic.update(data, condition);
 };
 
 exports.remove = async (id) => {
-  return User.destroy({ where: { id } });
+  return Clinic.destroy({ where: { id } });
 };
