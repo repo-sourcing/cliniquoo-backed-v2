@@ -1,4 +1,6 @@
 const service = require("./service");
+const Patient = require("./model");
+const sequelize = require("../../config/db");
 const Treatment = require("../treatment/model");
 const visitorService = require("../visitor/service");
 const Procedure = require("../procedure/model");
@@ -49,9 +51,18 @@ exports.getSearch = async (req, res, next) => {
   try {
     const data = await service.get({
       where: {
-        name: {
-          [Op.like]: `${req.params.name}%`,
-        },
+        [Op.or]: [
+          {
+            name: {
+              [Op.like]: `${req.params.name}%`,
+            },
+          },
+          {
+            mobile: {
+              [Op.like]: `${req.params.name}%`,
+            },
+          },
+        ],
         userId: req.requestor.id,
       },
       include: [

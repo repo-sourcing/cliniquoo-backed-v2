@@ -1,17 +1,17 @@
-const Post = require("./model");
+const Patient = require("./model");
 
 exports.create = async (data) => {
-  return Post.create(data);
+  return Patient.create(data);
 };
 
 exports.get = async (condition) => {
-  return Post.findAll(condition);
+  return Patient.findAll(condition);
 };
 
 exports.update = async (data, condition) => {
-  return Post.update(data, condition);
+  return Patient.update(data, condition);
 };
 
 exports.remove = async (condition) => {
-  return Post.destroy(condition);
+  return Patient.destroy(condition);
 };
