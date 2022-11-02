@@ -1,0 +1,12 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /root/dento-backend/
+    overwrite: true
+file_exists_behavior: OVERWRITE
+hooks:
+  ApplicationStart:
+    - location: script/update.sh
+      timeout: 300
+      runas: root
