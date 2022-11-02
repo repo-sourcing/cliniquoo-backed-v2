@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sudo chmod -R 777 /root/dento-backend
-
 cd
 
 cd dento-backend
