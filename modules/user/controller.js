@@ -242,6 +242,18 @@ exports.signup = async (req, res, next) => {
   token = req.headers.authorization.split(" ")[1];
 
   try {
+    const [user] = await service.get({
+      where: {
+        [Op.or]: [{ email: req.body.email }, { mobile: req.body.mobile }],
+      },
+    });
+
+    if (user)
+      return res.status(200).json({
+        status: "fail",
+        message: "user already exist",
+      });
+
     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
     // console.log(jwtUser);
 
