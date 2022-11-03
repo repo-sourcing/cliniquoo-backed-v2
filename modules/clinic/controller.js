@@ -2,7 +2,17 @@ const service = require("./service");
 const userModel = require("../user/model");
 exports.create = async (req, res, next) => {
   try {
-    console.log(req.requestor);
+    const [clinic] = await service.get({
+      where: {
+        mobile: req.body.mobile,
+      },
+    });
+
+    if (clinic)
+      return res.status(200).json({
+        status: "fail",
+        message: "user already exist",
+      });
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
 
