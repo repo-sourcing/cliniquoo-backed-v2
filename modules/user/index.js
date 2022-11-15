@@ -15,11 +15,17 @@ const {
   search,
   mobileCheck,
 } = require("./controller");
+const { userValidation, updateUserValidation } = require("./validation");
 
 router
   .route("/")
   .get(getAll)
-  .patch(auth.authMiddleware, upload.single("profilePic"), update);
+  .patch(
+    auth.authMiddleware,
+    upload.single("profilePic"),
+    updateUserValidation,
+    update
+  );
 router.get("/getMe", auth.authMiddleware, getMe);
 router.post("/sendOTP", sendOTP);
 router.post("/verifyUser", verifyUser);

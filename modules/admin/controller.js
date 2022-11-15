@@ -10,8 +10,11 @@ exports.login = async (req, res, next) => {
         email,
       },
     });
-    const correctPassword = await bcrypt.compare(password, admin.password);
-    if (admin && correctPassword) {
+    
+   
+    if (admin) {
+      const correctPassword = await bcrypt.compare(password, admin.password);
+      if(correctPassword){
       const token = jwt.sign(
         { id: admin.id, role: "Admin" },
         process.env.JWT_SECRETE,
@@ -25,6 +28,8 @@ exports.login = async (req, res, next) => {
         message: "Admin login successfully",
         token,
       });
+
+      }
     } else {
       res.status(401).json({
         status: "fail",
@@ -32,6 +37,7 @@ exports.login = async (req, res, next) => {
       });
     }
   } catch (error) {
+    console.log("error")
     next(error);
   }
 };

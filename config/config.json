@@ -8,7 +8,7 @@
   },
   "test": {
     "username": "root",
-    "password": "password",
+    "password": "Asu@4496",
     "database": "dento",
     "host": "127.0.0.1",
     "dialect": "mysql"
