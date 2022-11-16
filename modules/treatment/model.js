@@ -15,7 +15,7 @@ const Treatment = sequelize.define("treatment", {
     allowNull: false,
   },
   amount: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.FLOAT,
     allowNull: false,
   },
   toothNumber: {

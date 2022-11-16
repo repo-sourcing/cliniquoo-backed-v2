@@ -19,7 +19,7 @@ exports.create = async (req, res, next) => {
         await service.create({
           name: req.body.name,
           toothNumber: dent[i],
-          amount: req.body.amount / dent.length,
+          amount: (req.body.amount / dent.length).toFixed(2),
           clinicId: req.body.clinicId,
           patientId: req.body.patientId,
         });
