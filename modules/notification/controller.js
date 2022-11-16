@@ -13,6 +13,23 @@ exports.create = async (req, res, next) => {
   }
 };
 
+exports.sendToTopic = async (req, res, next) => {
+  try {
+    await PushNotification.pushNotificationTopic(
+      "all-users",
+      req.body.title,
+      req.body.body,
+      "PLAY_CLICK"
+    );
+
+    res.status(200).json({
+      status: "success",
+      message: "push notification successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.getMyNotification = async (req, res, next) => {
   try {
     const userId = req.requestor.id;
