@@ -19,7 +19,15 @@ const Treatment = sequelize.define("treatment", {
     allowNull: false,
   },
   toothNumber: {
-    type: Sequelize.INTEGER,
+    type: Sequelize.TEXT,
+    get: function () {
+      return this.getDataValue("toothNumber")
+        ? JSON.parse(this.getDataValue("toothNumber"))
+        : [];
+    },
+    set: function (val) {
+      return this.setDataValue("toothNumber", JSON.stringify(val.split(",")));
+    },
   },
   status: {
     type: Sequelize.ENUM("OnGoing", "Done"),
