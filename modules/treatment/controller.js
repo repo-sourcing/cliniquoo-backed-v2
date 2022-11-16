@@ -10,19 +10,23 @@ exports.create = async (req, res, next) => {
       "complete denture",
       "removable partial denture",
     ];
-    console.log(singleTreatment.includes(req.body.name.toLowerCase()));
+
     if (singleTreatment.includes(req.body.name.toLowerCase())) {
       await service.create(req.body);
     } else {
-      const dent = req.body.toothNumber.split(",");
-      for (let i in dent) {
-        await service.create({
-          name: req.body.name,
-          toothNumber: dent[i],
-          amount: (req.body.amount / dent.length).toFixed(2),
-          clinicId: req.body.clinicId,
-          patientId: req.body.patientId,
-        });
+      if (req.body.toothNumber) {
+        const dent = req.body.toothNumber.split(",");
+        for (let i in dent) {
+          await service.create({
+            name: req.body.name,
+            toothNumber: dent[i],
+            amount: (req.body.amount / dent.length).toFixed(2),
+            clinicId: req.body.clinicId,
+            patientId: req.body.patientId,
+          });
+        }
+      } else {
+        await service.create(req.body);
       }
     }
     await Patient.increment("remainBill", {
