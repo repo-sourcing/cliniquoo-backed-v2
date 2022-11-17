@@ -11,7 +11,7 @@ const sequelize = new Sequelize(
 
 console.log(config);
 sequelize
-  .sync()
+  .sync({ alter: true })
   .then(() => {
     console.log("database connected successfully");
   })
