@@ -57,7 +57,7 @@ exports.pushNotificationTopic = async (topic, title, body, click_action) => {
         console.log("Error subscribing to topic:", error);
       });
   });
-  return data;
+  return true;
 };
 
 // const tryfnc = () => {

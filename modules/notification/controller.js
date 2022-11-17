@@ -1,4 +1,5 @@
 const service = require("./service");
+const {pushNotificationTopic}=require('../../utils/notification')
 
 exports.create = async (req, res, next) => {
   try {
@@ -15,7 +16,7 @@ exports.create = async (req, res, next) => {
 
 exports.sendToTopic = async (req, res, next) => {
   try {
-    await PushNotification.pushNotificationTopic(
+    await pushNotificationTopic(
       "all-users",
       req.body.title,
       req.body.body,
