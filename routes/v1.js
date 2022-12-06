@@ -18,6 +18,26 @@ router.use(
   require("../modules/notification")
 );
 router.use("/analytics", auth.authMiddleware, require("../modules/analytics"));
+router.use(
+  "/medicalHistory",
+  auth.authMiddleware,
+  require("../modules/medicalHistory")
+);
+router.use(
+  "/generalTreatment",
+  auth.authMiddleware,
+  require("../modules/generalTreatment")
+);
+router.use(
+  "/generalProcedure",
+  auth.authMiddleware,
+  require("../modules/generalProcedure")
+);
+router.use(
+  "/generalComplain",
+  auth.authMiddleware,
+  require("../modules/generalComplaint")
+);
 router.use("/user", require("../modules/user"));
 router.use("/config", require("../modules/config"));
 router.use("/admin", require("../modules/admin"));

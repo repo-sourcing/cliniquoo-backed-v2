@@ -1,0 +1,29 @@
+const yup = require("yup");
+exports.generalComplainValidation = async (req, res, next) => {
+  try {
+    const generalComplainSchema = yup.object().shape({
+      name: yup.string().required("name is required field"),
+    });
+    await generalComplainSchema.validate(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+};
+exports.updateGeneralComplainValidation = async (req, res, next) => {
+  try {
+    const generalComplainSchema = yup.object().shape({
+      name: yup.string(),
+    });
+    await generalComplainSchema.validate(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+};
