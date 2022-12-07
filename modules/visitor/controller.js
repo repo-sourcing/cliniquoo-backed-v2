@@ -1,6 +1,6 @@
 const service = require("./service");
 const Visitor = require("./model");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
 const Treatment = require("../treatment/model");
@@ -10,7 +10,22 @@ const { sqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
-    const { date, clinicId, patientId } = req.body;
+    const { date, clinicId, patientId, isCanceled } = req.body;
+    let previousScheduleData;
+    //logic for reschedule if rescedule previos appointment date isCancelled true and add new entry
+    // if (req.body.previousScheduleDate) {
+    //   previousScheduleData = await service.update(
+    //     { isCanceled: true },
+    //     {
+    //       where: {
+    //         date: req.body.previousScheduleDate,
+    //         clinicId,
+    //         patientId,
+    //       },
+    //     }
+    //   );
+    // }
+
     const data = await Visitor.findOrCreate({
       where: {
         date,
@@ -106,6 +121,114 @@ exports.getAll = async (req, res, next) => {
     res.status(200).send({
       status: "success",
       no_of_visitor,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getAllVisitorByDate = async (req, res, next) => {
+  try {
+    const limit = req.query.limit * 1 || 100;
+    const page = req.query.page * 1 || 1;
+    const skip = (page - 1) * limit;
+    const sort = req.query.sort || "createdAt";
+    const sortBy = req.query.sortBy || "DESC";
+    let no_of_visitor = 0;
+    let wheres;
+
+    // if (req.query.day == "Today") {
+    //   wheres = {
+    //     createdAt: { [Op.gt]: moment.utc().startOf("day") },
+    //   };
+    // } else if (req.query.day == "Yesterday") {
+    //   wheres = {
+    //     createdAt: {
+    //       [Op.gt]: moment.utc().subtract(1, "days").startOf("day"),
+    //       [Op.lt]: moment.utc().subtract(1, "days").endOf("day"),
+    //     },
+    //   };
+    // } else if (req.query.day == "Older") {
+    //   wheres = {
+    //     createdAt: {
+    //       [Op.lt]: moment.utc().subtract(2, "days").endOf("day"),
+    //     },
+    //   };
+    // }
+
+    if (req.query.clinicId) {
+      no_of_visitor = await Visitor.count({
+        where: {
+          clinicId: req.query.clinicId,
+          date: req.query.date,
+        },
+      });
+    }
+    const data = await service.get({
+      where: { ...sqquery(req.query) },
+
+      include: [
+        {
+          model: Patient,
+          include: [
+            {
+              model: Treatment,
+              where: wheres,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+              include: [
+                {
+                  model: Procedure,
+                  where: wheres,
+                  required: false,
+                  order: [["createdAt", "DESC"]],
+                  limit: 1,
+                },
+              ],
+            },
+            {
+              model: Transaction,
+              where: wheres,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+            },
+          ],
+        },
+      ],
+      order: [[sort, sortBy]],
+      limit,
+      offset: skip,
+    });
+
+    res.status(200).send({
+      status: "success",
+      no_of_visitor,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+exports.countOfvisitorForAllDates = async (req, res, next) => {
+  try {
+    const data = await Visitor.findAll({
+      where: {
+        clinicId: req.query.clinicId,
+      },
+      attributes: [
+        "date",
+        [Sequelize.fn("count", Sequelize.col("date")), "count"],
+      ],
+      group: ["date"],
+      raw: true,
+      order: Sequelize.literal("count DESC"),
+    });
+
+    res.status(200).send({
+      status: "success",
       data,
     });
   } catch (error) {
