@@ -12,7 +12,7 @@ exports.create = async (req, res, next) => {
   try {
     const { date, clinicId, patientId, isCanceled } = req.body;
     let previousScheduleData;
-    //logic for reschedule if rescedule previos appointment date isCancelled true and add new entry
+    //logic for reschedule if reschedule previous appointment date isCancelled true and add new entry
     // if (req.body.previousScheduleDate) {
     //   previousScheduleData = await service.update(
     //     { isCanceled: true },
@@ -136,26 +136,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
     let no_of_visitor = 0;
-    let wheres;
-
-    // if (req.query.day == "Today") {
-    //   wheres = {
-    //     createdAt: { [Op.gt]: moment.utc().startOf("day") },
-    //   };
-    // } else if (req.query.day == "Yesterday") {
-    //   wheres = {
-    //     createdAt: {
-    //       [Op.gt]: moment.utc().subtract(1, "days").startOf("day"),
-    //       [Op.lt]: moment.utc().subtract(1, "days").endOf("day"),
-    //     },
-    //   };
-    // } else if (req.query.day == "Older") {
-    //   wheres = {
-    //     createdAt: {
-    //       [Op.lt]: moment.utc().subtract(2, "days").endOf("day"),
-    //     },
-    //   };
-    // }
 
     if (req.query.clinicId) {
       no_of_visitor = await Visitor.count({
