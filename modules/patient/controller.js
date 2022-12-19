@@ -5,11 +5,44 @@ const Treatment = require("../treatment/model");
 const visitorService = require("../visitor/service");
 const Procedure = require("../procedure/model");
 const Transaction = require("../transaction/model");
+const crypto = require("crypto");
+const redisClient = require("../../utils/redis");
 const { Op } = require("sequelize");
+
 exports.create = async (req, res, next) => {
   try {
+    // Find patient with same phone number
+    // If patient found with this  phone number. Then throw error
+    // otherwise add new data
+    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+    var encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
+    encrypted += cipher.final("hex");
+
+    const [patientWithSamePhoneNo] = await service.get({
+      where: { mobile: encrypted.toString() },
+    });
+    // patient with same phone number is  found.
+    if (patientWithSamePhoneNo) {
+      return res.status(400).json({
+        message: "This Phone Number is already register,try with another one",
+      });
+    }
+
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
+
+    let patientData = await redisClient.GET(
+      `patient?userId=${req.requestor.id}`
+    );
+    patientData = patientData ? JSON.parse(patientData) : [];
+    const storeData = [
+      ...patientData,
+      { id: data.id, name: data.name, mobile: data.mobile },
+    ];
+    await redisClient.SET(
+      `patient?userId=${req.requestor.id}`,
+      JSON.stringify(storeData)
+    );
 
     res.status(201).json({
       status: "success",
@@ -49,46 +82,20 @@ exports.getAll = async (req, res, next) => {
 };
 exports.getSearch = async (req, res, next) => {
   try {
-    const data = await service.get({
-      where: {
-        [Op.or]: [
-          {
-            name: {
-              [Op.like]: `${req.params.name}%`,
-            },
-          },
-          {
-            mobile: {
-              [Op.like]: `${req.params.name}%`,
-            },
-          },
-        ],
-        userId: req.requestor.id,
-      },
-      include: [
-        {
-          model: Treatment,
-          order: [["createdAt", "DESC"]],
-          limit: 1,
-          include: [
-            {
-              model: Procedure,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
-            },
-          ],
-        },
-        {
-          model: Transaction,
-          order: [["createdAt", "DESC"]],
-          limit: 1,
-        },
-      ],
+    let patientData = await redisClient.GET(
+      `patient?userId=${req.requestor.id}`
+    );
+    patientData = JSON.parse(patientData);
+    const searchData = patientData.filter((data) => {
+      return (
+        data.name.includes(req.params.name) ||
+        data.mobile.includes(req.params.name)
+      )
     });
 
     res.status(200).send({
       status: "success",
-      data,
+      data: searchData,
     });
   } catch (error) {
     next(error);

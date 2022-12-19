@@ -1,7 +1,24 @@
 const service = require("./service");
 const userModel = require("../user/model");
+var crypto = require("crypto");
 exports.create = async (req, res, next) => {
   try {
+    // Find clinic with e phone number
+    // If clinic found with this  phone number. Then throw error
+    // otherwise add new data
+    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+    var encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
+    encrypted += cipher.final("hex");
+
+    const [clinicWithSamePhoneNo] = await service.get({
+      where: { mobile: encrypted.toString() },
+    });
+    // clinic with same phone number is  found.
+    if (clinicWithSamePhoneNo) {
+      return res.status(400).json({
+        message: "This Phone Number is already register,try with another one",
+      });
+    }
     const [clinic] = await service.get({
       where: {
         mobile: req.body.mobile,
@@ -86,7 +103,6 @@ exports.remove = async (req, res, next) => {
     const data = await service.remove({
       where: {
         id,
-        userId: req.requestor.id,
       },
     });
 

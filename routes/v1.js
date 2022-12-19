@@ -10,8 +10,18 @@ router.use(
   require("../modules/transaction")
 );
 router.use("/visitor", auth.authMiddleware, require("../modules/visitor"));
-router.use("/treatment", auth.authMiddleware, require("../modules/treatment"));
-router.use("/clinic", auth.authMiddleware, require("../modules/clinic"));
+router.use(
+  "/treatment",
+  auth.authMiddleware,
+  checkSubscription,
+  require("../modules/treatment")
+);
+router.use(
+  "/clinic",
+  auth.authMiddleware,
+  checkSubscription,
+  require("../modules/clinic")
+);
 router.use(
   "/patient",
   auth.authMiddleware,
@@ -27,21 +37,25 @@ router.use("/analytics", auth.authMiddleware, require("../modules/analytics"));
 router.use(
   "/medicalHistory",
   auth.authMiddleware,
+  checkSubscription,
   require("../modules/medicalHistory")
 );
 router.use(
   "/generalTreatment",
   auth.authMiddleware,
+  checkSubscription,
   require("../modules/generalTreatment")
 );
 router.use(
   "/generalProcedure",
   auth.authMiddleware,
+  checkSubscription,
   require("../modules/generalProcedure")
 );
 router.use(
   "/generalComplain",
   auth.authMiddleware,
+  checkSubscription,
   require("../modules/generalComplaint")
 );
 router.use(

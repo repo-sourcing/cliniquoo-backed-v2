@@ -2,6 +2,9 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
+var CryptoJS = require("crypto-js");
+var AES = require("crypto-js/aes");
+const crypto = require("crypto");
 const Patient = sequelize.define(
   "patient",
   {
@@ -14,22 +17,40 @@ const Patient = sequelize.define(
     name: {
       type: Sequelize.STRING,
       allowNull: false,
+      get() {
+        const storedValue = this.getDataValue("name");
+        var decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
+        var decrypted = decipher.update(storedValue, "hex", "utf8");
+        decrypted += decipher.final("utf8");
+        return decrypted.toString();
+      },
+      set(value) {
+        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+        var encrypted = cipher.update(value, "utf8", "hex");
+        encrypted += cipher.final("hex");
+        console.log("encrypted", encrypted);
+        this.setDataValue("name", encrypted);
+      },
     },
     location: {
       type: Sequelize.STRING,
     },
     mobile: {
-      type: Sequelize.BIGINT,
+      type: Sequelize.STRING,
       allowNull: false,
-      validate: {
-        not: {
-          args: ["[a-z]", "i"],
-          msg: "Please enter a valid number",
-        },
-        len: {
-          args: [10, 10],
-          msg: "length of the phone number is 10",
-        },
+      get() {
+        const storedValue = this.getDataValue("mobile");
+        var decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
+        var decrypted = decipher.update(storedValue.toString(), "hex", "utf8");
+        decrypted += decipher.final("utf8");
+        return decrypted.toString();
+      },
+      set(value) {
+        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+        var encrypted = cipher.update(value.toString(), "utf8", "hex");
+        encrypted += cipher.final("hex");
+        console.log("encrypted", encrypted);
+        this.setDataValue("mobile", encrypted.toString());
       },
     },
     gender: {
@@ -50,6 +71,7 @@ const Patient = sequelize.define(
   },
   {
     paranoid: true,
+    alter: true,
   }
 );
 

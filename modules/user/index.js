@@ -31,6 +31,10 @@ router.post("/sendOTP", sendOTP);
 router.post("/verifyUser", verifyUser);
 router.post("/mobileCheck", mobileCheck);
 router.post("/signup", upload.single("profilePic"), signup);
-router.route("/:id").get(getOne).delete(remove);
+router
+  .route("/:id")
+  .get(getOne)
+  .delete(remove)
+  .patch(auth.authMiddleware, update);
 router.get("/search/:name", search);
 module.exports = router;

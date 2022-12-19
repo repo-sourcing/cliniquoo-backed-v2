@@ -3,10 +3,11 @@ const transactionService = require("../userTransaction/service");
 const razorpayInstance = require("../../utils/razorpay");
 const userSubscriptionService = require("../userSubscription/service");
 const crypto = require("crypto");
+const redis = require("../../utils/redis");
 
 exports.generatePayment = async (req, res, next) => {
   try {
-    console.log("userId subscription------>", req.requestor.id);
+    let order;
     const [data] = await subscriptionService.get({
       where: {
         id: req.body.subscriptionId,
@@ -24,15 +25,18 @@ exports.generatePayment = async (req, res, next) => {
         subscriptionId: req.body.subscriptionId,
       },
     };
-    razorpayInstance.orders.create(options, (err, order) => {
-      //STEP 3 & 4:
-      if (!err)
-        res.status(201).json({
-          status: "success",
-          message: "Add  user transaction successfully",
-          data: res.json(order),
-        });
-      else res.send(err);
+    try {
+      order = await razorpayInstance.orders.create(options);
+    } catch (err) {
+      return next(createHttpError(err.statusCode, err.error.description));
+    }
+    res.status(200).json({
+      status: 200,
+      message: "Add  user transaction successfully",
+      data: {
+        RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
+        order,
+      },
     });
   } catch (error) {
     next(error);
@@ -43,7 +47,6 @@ exports.verification = async (req, res) => {
   res.json({ status: "ok" });
   // Get the data from RazorPay Webhook
   const webhookRes = req.body.payload.payment.entity;
-  console.log("webhookRes", webhookRes);
   const shasum = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET);
   shasum.update(JSON.stringify(req.body));
   const digest = shasum.digest("hex");
@@ -59,10 +62,37 @@ exports.verification = async (req, res) => {
     });
     if (transaction.status === "captured") {
       //if order is captured then we can add entry of user subscription
-      const data = await userSubscriptionService.create({
+      //if the user already present we can update user subscription otherwise we add user subscription
+      let [data] = await userSubscriptionService.update(
+        {
+          date: new Date(),
+          userId: webhookRes.notes.UserId,
+          subscriptionId: webhookRes.notes.UserId,
+        },
+        {
+          where: {
+            userId: webhookRes.notes.UserId,
+          },
+        }
+      );
+      if (data) {
+        redisClient.DEL(`checkSubscription?userId=${webhookRes.notes.UserId}`);
+        return res.status(201).json({
+          status: "success",
+          message: "Add  user subscription successfully",
+          data,
+        });
+      }
+      let addData = await userSubscriptionService.create({
         date: new Date(),
         userId: webhookRes.notes.UserId,
         subscriptionId: webhookRes.notes.UserId,
+      });
+
+      res.status(201).json({
+        status: "success",
+        message: "Add  user subscription successfully",
+        data: addData,
       });
     } else {
       // pass it

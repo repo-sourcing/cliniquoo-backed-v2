@@ -12,6 +12,6 @@ exports.update = async (data, condition) => {
   return Clinic.update(data, condition);
 };
 
-exports.remove = async (id) => {
-  return Clinic.destroy({ where: { id } });
+exports.remove = async (condition) => {
+  return Clinic.destroy(condition);
 };
