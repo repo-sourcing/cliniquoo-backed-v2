@@ -14,7 +14,6 @@ const DailyActivity = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 User.hasMany(DailyActivity, {

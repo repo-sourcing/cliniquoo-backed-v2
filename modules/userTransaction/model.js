@@ -17,7 +17,6 @@ const UserTransaction = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

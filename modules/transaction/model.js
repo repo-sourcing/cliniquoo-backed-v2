@@ -23,7 +23,6 @@ const Transaction = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

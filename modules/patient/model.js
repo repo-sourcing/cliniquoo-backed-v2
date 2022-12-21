@@ -67,7 +67,6 @@ const Patient = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

@@ -16,7 +16,6 @@ const Subscription = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

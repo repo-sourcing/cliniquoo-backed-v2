@@ -38,7 +38,6 @@ const Treatment = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

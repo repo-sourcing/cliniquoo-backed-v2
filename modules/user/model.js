@@ -14,7 +14,6 @@ const User = sequelize.define(
     },
     emailUid: {
       type: Sequelize.STRING,
-      allowNull: false,
     },
     mobileUid: {
       type: Sequelize.STRING,
@@ -83,6 +82,9 @@ const User = sequelize.define(
     appVersion: {
       type: Sequelize.STRING,
     },
+    device: {
+      type: Sequelize.ENUM("Android", "IOS"),
+    },
 
     FcmToken: {
       type: Sequelize.TEXT,
@@ -90,7 +92,6 @@ const User = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

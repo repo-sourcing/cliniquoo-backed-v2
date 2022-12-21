@@ -65,7 +65,6 @@ const Clinic = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

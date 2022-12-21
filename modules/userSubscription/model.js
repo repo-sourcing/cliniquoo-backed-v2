@@ -16,7 +16,6 @@ const UserSubscription = sequelize.define(
   },
   {
     paranoid: true,
-    alter: true,
   }
 );
 

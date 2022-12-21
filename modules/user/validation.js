@@ -4,7 +4,7 @@ exports.userValidation = async (req, res, next) => {
     const phoneRegExp =
       /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
     const userSchema = yup.object().shape({
-      emailUid: yup.string().required("emailUid is required field"),
+      emailUid: yup.string(),
       mobileUid: yup.string().required(" mobileUid is required field"),
       name: yup.string().required("name is required field"),
       email: yup
@@ -19,6 +19,8 @@ exports.userValidation = async (req, res, next) => {
         .required("mobile number is required field"),
       profilePic: yup.string(),
       about: yup.string(),
+      appVersion: yup.string(),
+      device: yup.string(),
       FcmToken: yup.string(),
     });
     await userSchema.validate(req.body);
