@@ -16,6 +16,7 @@ const UserTransaction = sequelize.define(
     status: { type: Sequelize.STRING, allowNull: false }, //userId,paymentId,status,subscriptionId, transactionId
   },
   {
+    paranoid: true,
     alter: true,
   }
 );

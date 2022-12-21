@@ -15,7 +15,8 @@ const UserSubscription = sequelize.define(
     date: { type: Sequelize.DATEONLY, allowNull: false },
   },
   {
-    //alter: true,
+    paranoid: true,
+    alter: true,
   }
 );
 

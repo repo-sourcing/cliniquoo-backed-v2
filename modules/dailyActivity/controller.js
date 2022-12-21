@@ -5,29 +5,20 @@ const { sqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
-    let [data] = await service.update(req.body, {
-      where: {
-        userId: req.body.userId,
-      },
+    const data = await service.create({
+      userId: req.requestor.id,
     });
-    if (data) {
-      return res.status(201).json({
-        status: "success",
-        message: "Add  user subscription successfully",
-        data,
-      });
-    }
-    let addData = await service.create(req.body);
 
     res.status(201).json({
       status: "success",
-      message: "Add  user subscription successfully",
-      data: addData,
+      message: "Add subscription successfully",
+      data,
     });
   } catch (error) {
     next(error);
   }
 };
+
 exports.getAll = async (req, res, next) => {
   try {
     const limit = req.query.limit * 1 || 100;
@@ -35,6 +26,11 @@ exports.getAll = async (req, res, next) => {
     const skip = (page - 1) * limit;
     const sort = req.query.sort || "createdAt";
     const sortBy = req.query.sortBy || "DESC";
+    delete req.query.limit;
+    delete req.query.page;
+    delete req.query.sort;
+    delete req.query.sortBy;
+    req.query.userId = req.params.userId;
     const data = await service.get({
       where: req.query,
       order: [[sort, sortBy]],
@@ -44,6 +40,24 @@ exports.getAll = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
+      message: "get All daily activities of user successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+exports.getOne = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get one subscription data",
       data,
     });
   } catch (error) {
@@ -62,7 +76,7 @@ exports.edit = async (req, res, next) => {
 
     res.status(200).send({
       status: 200,
-      message: "edit user Subscription successfully",
+      message: "edit  daily activity successfully",
       data,
     });
   } catch (error) {
@@ -82,7 +96,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete user subscription successfully",
+      message: "Delete Daily Activity successfully",
       data,
     });
   } catch (error) {

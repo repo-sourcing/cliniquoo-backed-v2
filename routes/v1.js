@@ -69,6 +69,11 @@ router.use(
   require("../modules/userSubscription")
 );
 router.use(
+  "/dailyActivity",
+  auth.authMiddleware,
+  require("../modules/dailyActivity")
+);
+router.use(
   "/userTransaction",
   auth.authMiddleware,
   require("../modules/userTransaction")

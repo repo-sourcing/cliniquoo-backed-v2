@@ -28,7 +28,6 @@ exports.authMiddleware = async (req, res, next) => {
       });
       requestor.role = "Admin";
     } else {
-      // console.log(jwtUser);
       requestor = await userService.get({
         where: {
           id: jwtUser.id,
@@ -43,7 +42,6 @@ exports.authMiddleware = async (req, res, next) => {
         message: "User not found",
       });
     } else {
-      // console.log(requestor);
       req.requestor = requestor[0];
       next();
     }

@@ -2,8 +2,6 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
-var CryptoJS = require("crypto-js");
-var AES = require("crypto-js/aes");
 const crypto = require("crypto");
 const Patient = sequelize.define(
   "patient",
@@ -28,7 +26,6 @@ const Patient = sequelize.define(
         const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
         var encrypted = cipher.update(value, "utf8", "hex");
         encrypted += cipher.final("hex");
-        console.log("encrypted", encrypted);
         this.setDataValue("name", encrypted);
       },
     },
@@ -49,7 +46,6 @@ const Patient = sequelize.define(
         const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
         var encrypted = cipher.update(value.toString(), "utf8", "hex");
         encrypted += cipher.final("hex");
-        console.log("encrypted", encrypted);
         this.setDataValue("mobile", encrypted.toString());
       },
     },

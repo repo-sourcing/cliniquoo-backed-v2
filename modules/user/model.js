@@ -80,6 +80,9 @@ const User = sequelize.define(
     about: {
       type: Sequelize.TEXT,
     },
+    appVersion: {
+      type: Sequelize.STRING,
+    },
 
     FcmToken: {
       type: Sequelize.TEXT,
@@ -87,6 +90,7 @@ const User = sequelize.define(
   },
   {
     paranoid: true,
+    alter: true,
   }
 );
 

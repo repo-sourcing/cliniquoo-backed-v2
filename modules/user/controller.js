@@ -5,6 +5,7 @@ const firebase = require("../../utils/firebaseConfige");
 const Clinic = require("../clinic/model");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const DailyActivityService = require("../dailyActivity/service");
 
 exports.create = async (req, res, next) => {
   try {
@@ -48,6 +49,7 @@ exports.create = async (req, res, next) => {
       });
     }
     const data = await service.create(req.body);
+    console.log("data login", data);
 
     res.status(201).json({
       status: 201,
@@ -166,7 +168,6 @@ exports.verifyUser = async (req, res, next) => {
     .verifyIdToken(req.body.firebase_token)
     .then(async (jwtUser) => {
       let token;
-      // console.log("user from firebase token\n", jwtUser);
       const [avlUser] = await service.get({
         where: {
           [Op.or]: { mobileUid: jwtUser.uid, emailUid: jwtUser.uid },
@@ -245,6 +246,7 @@ exports.verifyUser = async (req, res, next) => {
               expiresIn: process.env.JWT_EXPIREIN,
             }
           );
+
           res.status(200).json({
             status: "success",
             message: "user verified",
@@ -299,6 +301,7 @@ exports.signup = async (req, res, next) => {
     token = jwt.sign({ id: data.id, role: "User" }, process.env.JWT_SECRETE, {
       expiresIn: process.env.JWT_EXPIREIN,
     });
+
     res.status(200).send({
       status: "success",
       message: "User signup Successfully",
@@ -311,7 +314,6 @@ exports.signup = async (req, res, next) => {
 };
 exports.getMe = async (req, res, next) => {
   try {
-    // console.log(req.requestor.id);
     const data = await service.get({
       where: {
         id: req.requestor.id,

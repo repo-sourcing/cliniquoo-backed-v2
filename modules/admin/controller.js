@@ -10,25 +10,23 @@ exports.login = async (req, res, next) => {
         email,
       },
     });
-    
-   
+
     if (admin) {
       const correctPassword = await bcrypt.compare(password, admin.password);
-      if(correctPassword){
-      const token = jwt.sign(
-        { id: admin.id, role: "Admin" },
-        process.env.JWT_SECRETE,
-        {
-          expiresIn: process.env.JWT_EXPIREIN,
-        }
-      );
+      if (correctPassword) {
+        const token = jwt.sign(
+          { id: admin.id, role: "Admin" },
+          process.env.JWT_SECRETE,
+          {
+            expiresIn: process.env.JWT_EXPIREIN,
+          }
+        );
 
-      res.status(200).json({
-        status: "success",
-        message: "Admin login successfully",
-        token,
-      });
-
+        res.status(200).json({
+          status: "success",
+          message: "Admin login successfully",
+          token,
+        });
       }
     } else {
       res.status(401).json({
@@ -37,7 +35,6 @@ exports.login = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.log("error")
     next(error);
   }
 };

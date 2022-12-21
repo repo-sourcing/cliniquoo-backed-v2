@@ -1,8 +1,9 @@
 "use strict";
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
-const Subscription = sequelize.define(
-  "subscription",
+const User = require("../user/model");
+const DailyActivity = sequelize.define(
+  "dailyActivity",
   {
     id: {
       type: Sequelize.INTEGER,
@@ -10,14 +11,17 @@ const Subscription = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    name: { type: Sequelize.STRING, allowNull: false },
-    day: { type: Sequelize.INTEGER, allowNull: false },
-    price: { type: Sequelize.INTEGER, allowNull: false },
   },
   {
     paranoid: true,
     alter: true,
   }
 );
+User.hasMany(DailyActivity, {
+  foreignKey: {
+    allowNull: false,
+  },
+});
+DailyActivity.belongsTo(User);
 
-module.exports = Subscription;
+module.exports = DailyActivity;

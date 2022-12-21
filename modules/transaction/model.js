@@ -3,22 +3,29 @@ const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const Patient = require("../patient/model");
 const Clinic = require("../clinic/model");
-const Transaction = sequelize.define("transaction", {
-  id: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
+const Transaction = sequelize.define(
+  "transaction",
+  {
+    id: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    type: {
+      type: Sequelize.ENUM("Cash", "Online"),
+      defaultValue: "Cash",
+    },
+    amount: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    },
   },
-  type: {
-    type: Sequelize.ENUM("Cash", "Online"),
-    defaultValue: "Cash",
-  },
-  amount: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-  },
-});
+  {
+    paranoid: true,
+    alter: true,
+  }
+);
 
 Patient.hasMany(Transaction, {
   foreignKey: {
