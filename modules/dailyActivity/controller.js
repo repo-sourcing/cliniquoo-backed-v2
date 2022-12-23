@@ -1,7 +1,7 @@
 const service = require("./service");
 const { Op, Sequelize } = require("sequelize");
 const moment = require("moment");
-const { sqquery } = require("../../utils/query");
+const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
@@ -19,23 +19,28 @@ exports.create = async (req, res, next) => {
   }
 };
 
+exports.getAllByUser = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        userId: req.requestor.id,
+      },
+      ...usersqquery(req.query),
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get All daily activities of user successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
-    req.query.userId = req.params.userId;
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
     });
 
     res.status(200).send({

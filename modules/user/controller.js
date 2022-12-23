@@ -6,6 +6,7 @@ const Clinic = require("../clinic/model");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const DailyActivityService = require("../dailyActivity/service");
+const { sqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
@@ -13,14 +14,14 @@ exports.create = async (req, res, next) => {
     // If user found with this  phone number or email. Then throw error
     // otherwise add new data
     const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    var encryptedMobile = cipher.update(
+    let encryptedMobile = cipher.update(
       req.body.mobile.toString(),
       "utf8",
       "hex"
     );
     encryptedMobile += cipher.final("hex");
     const cipherEmail = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    var encryptedEmail = cipherEmail.update(
+    let encryptedEmail = cipherEmail.update(
       req.body.email.toString(),
       "utf8",
       "hex"
@@ -62,20 +63,8 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
     });
 
     res.status(200).send({
@@ -292,7 +281,7 @@ exports.signup = async (req, res, next) => {
       });
 
     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
-    // console.log(jwtUser);
+    console.log(jwtUser);
 
     req.body.emailUid = jwtUser.id;
     req.body.profilePic = req.file ? req.file.location : null;
@@ -309,6 +298,7 @@ exports.signup = async (req, res, next) => {
       token,
     });
   } catch (err) {
+    console.log("error", err);
     next(err);
   }
 };

@@ -33,7 +33,7 @@ exports.create = async (req, res, next) => {
 exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
-      where: req.query,
+      ...sqquery(req.query),
     });
     res.status(200).send({
       status: "success",

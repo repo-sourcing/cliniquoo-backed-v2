@@ -1,16 +1,16 @@
 const express = require("express");
-const { getOne } = require("../user/controller");
 const router = express.Router();
-const { create, getAll, edit, remove } = require("./controller");
+const { create, edit, remove, getOne } = require("./controller");
 const {
   userTransactionValidation,
   updateUserTransactionValidation,
 } = require("./validation");
 
-router.route("/").get(getAll).post(userTransactionValidation, create);
+router.route("/").post(userTransactionValidation, create);
 router
   .route("/:id")
   .patch(updateUserTransactionValidation, edit)
+  .get(getOne)
   .delete(remove);
 
 module.exports = router;

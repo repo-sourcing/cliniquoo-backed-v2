@@ -1,6 +1,8 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
 const Patient = require("../patient/model");
+const clinic = require("../clinic/model");
+const { sqquery, usersqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -27,23 +29,31 @@ exports.create = async (req, res, next) => {
     next(error);
   }
 };
+exports.getAllByUser = async (req, res, next) => {
+  try {
+    const [clinicData] = await clinic.findAll({
+      where: {
+        userId: req.requestor.id,
+      },
+    });
+    console.log("data", clinicData.id);
+    const data = await service.get({
+      where: { clinicId: clinicData.id },
+      ...usersqquery(req.query),
+    });
 
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
     });
 
     res.status(200).send({

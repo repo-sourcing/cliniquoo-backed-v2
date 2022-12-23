@@ -5,11 +5,12 @@ exports.visitorValidation = async (req, res, next) => {
       date: yup.date(),
       patientId: yup.number().required("patientId is required"),
       clinicId: yup.number().required("clinicId is required"),
-      isCanceled: yub.boolean(),
+      isCanceled: yup.boolean(),
     });
     await visitorSchema.validate(req.body);
     next();
   } catch (error) {
+    console.log("error", error);
     res.status(400).json({
       success: false,
       errors: error.errors[0],

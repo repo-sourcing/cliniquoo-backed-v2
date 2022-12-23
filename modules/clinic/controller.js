@@ -1,13 +1,14 @@
 const service = require("./service");
 const userModel = require("../user/model");
-var crypto = require("crypto");
+let crypto = require("crypto");
+const { sqquery, usersqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     // Find clinic with e phone number
     // If clinic found with this  phone number. Then throw error
     // otherwise add new data
     const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    var encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
+    let encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
     encrypted += cipher.final("hex");
 
     const [clinicWithSamePhoneNo] = await service.get({
@@ -39,26 +40,38 @@ exports.create = async (req, res, next) => {
       data,
     });
   } catch (error) {
+    console.log("error", error);
+    next(error);
+  }
+};
+exports.getAllByUser = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: { userId: req.requestor.id },
+      ...usersqquery(req.query),
+
+      include: [
+        {
+          model: userModel,
+          attributes: ["name", "profilePic", "mobile", "about", "email"],
+        },
+      ],
+    });
+
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
     next(error);
   }
 };
 
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
+
       include: [
         {
           model: userModel,

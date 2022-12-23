@@ -2,6 +2,7 @@ const service = require("./service");
 const sequelize = require("../../config/db");
 const Procedure = require("../procedure/model");
 const Patient = require("../patient/model");
+const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     const singleTreatment = [
@@ -55,26 +56,13 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
     const data = await service.get({
-      where: req.query,
+      ...sqquery(req.query),
       include: [
         {
           model: Procedure,
         },
       ],
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
     });
     res.status(200).send({
       status: "success",

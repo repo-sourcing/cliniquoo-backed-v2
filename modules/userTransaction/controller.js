@@ -19,16 +19,8 @@ exports.create = async (req, res, next) => {
 };
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
     });
 
     res.status(200).send({
@@ -39,7 +31,22 @@ exports.getAll = async (req, res, next) => {
     next(error);
   }
 };
+exports.getOne = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        userId: req.requestor.id,
+      },
+    });
 
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;

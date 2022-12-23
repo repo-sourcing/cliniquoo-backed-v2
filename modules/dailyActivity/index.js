@@ -1,9 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { create, getAll } = require("./controller");
-const {} = require("./validation");
+const { create, getAll, getAllByUser } = require("./controller");
 
-router.route("/").post(create);
-router.route("/:userId").get(getAll);
+router.route("/").post(create).get(getAllByUser);
 
 module.exports = router;

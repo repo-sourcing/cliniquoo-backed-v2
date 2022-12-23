@@ -19,7 +19,6 @@ const { userValidation, updateUserValidation } = require("./validation");
 
 router
   .route("/")
-  .get(getAll)
   .patch(
     auth.authMiddleware,
     upload.single("profilePic"),

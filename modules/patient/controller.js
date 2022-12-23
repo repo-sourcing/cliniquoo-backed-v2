@@ -1,13 +1,9 @@
 const service = require("./service");
-const Patient = require("./model");
-const sequelize = require("../../config/db");
-const Treatment = require("../treatment/model");
 const visitorService = require("../visitor/service");
-const Procedure = require("../procedure/model");
-const Transaction = require("../transaction/model");
 const crypto = require("crypto");
 const redisClient = require("../../utils/redis");
 const { Op } = require("sequelize");
+const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
@@ -53,23 +49,25 @@ exports.create = async (req, res, next) => {
     next(error);
   }
 };
+exports.getAllByUser = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: { userId: req.requestor.id },
+      ...usersqquery(req.query),
+    });
 
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
-    delete req.query.limit;
-    delete req.query.page;
-    delete req.query.sort;
-    delete req.query.sortBy;
     const data = await service.get({
-      where: req.query,
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
+      ...sqquery(req.query),
     });
 
     res.status(200).send({
@@ -90,7 +88,7 @@ exports.getSearch = async (req, res, next) => {
       return (
         data.name.includes(req.params.name) ||
         data.mobile.includes(req.params.name)
-      )
+      );
     });
 
     res.status(200).send({
@@ -101,7 +99,6 @@ exports.getSearch = async (req, res, next) => {
     next(error);
   }
 };
-
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -121,7 +118,6 @@ exports.edit = async (req, res, next) => {
     next(error);
   }
 };
-
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;

@@ -13,18 +13,18 @@ exports.create = async (req, res, next) => {
     const { date, clinicId, patientId, isCanceled } = req.body;
     let previousScheduleData;
     //logic for reschedule if reschedule previous appointment date isCancelled true and add new entry
-    // if (req.body.previousScheduleDate) {
-    //   previousScheduleData = await service.update(
-    //     { isCanceled: true },
-    //     {
-    //       where: {
-    //         date: req.body.previousScheduleDate,
-    //         clinicId,
-    //         patientId,
-    //       },
-    //     }
-    //   );
-    // }
+    if (req.body.previousScheduleDate) {
+      previousScheduleData = await service.update(
+        { isCanceled: true },
+        {
+          where: {
+            date: req.body.previousScheduleDate,
+            clinicId,
+            patientId,
+          },
+        }
+      );
+    }
 
     const data = await Visitor.findOrCreate({
       where: {
@@ -46,11 +46,6 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
     let no_of_visitor = 0;
     let wheres;
 
@@ -80,8 +75,9 @@ exports.getAll = async (req, res, next) => {
         },
       });
     }
+    const datafilter = { ...sqquery(req.query), ...wheres };
     const data = await service.get({
-      where: { ...sqquery(req.query), ...wheres },
+      ...datafilter,
 
       include: [
         {
@@ -113,9 +109,6 @@ exports.getAll = async (req, res, next) => {
           ],
         },
       ],
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
     });
 
     res.status(200).send({
@@ -130,11 +123,6 @@ exports.getAll = async (req, res, next) => {
 
 exports.getAllVisitorByDate = async (req, res, next) => {
   try {
-    const limit = req.query.limit * 1 || 100;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    const sort = req.query.sort || "createdAt";
-    const sortBy = req.query.sortBy || "DESC";
     let no_of_visitor = 0;
 
     if (req.query.clinicId) {
@@ -146,7 +134,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       });
     }
     const data = await service.get({
-      where: { ...sqquery(req.query) },
+      ...sqquery(req.query),
 
       include: [
         {
@@ -154,14 +142,12 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           include: [
             {
               model: Treatment,
-              where: wheres,
               required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
               include: [
                 {
                   model: Procedure,
-                  where: wheres,
                   required: false,
                   order: [["createdAt", "DESC"]],
                   limit: 1,
@@ -170,7 +156,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
             },
             {
               model: Transaction,
-              where: wheres,
               required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
@@ -178,9 +163,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           ],
         },
       ],
-      order: [[sort, sortBy]],
-      limit,
-      offset: skip,
     });
 
     res.status(200).send({
@@ -195,9 +177,8 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 exports.countOfvisitorForAllDates = async (req, res, next) => {
   try {
     const data = await Visitor.findAll({
-      where: {
-        clinicId: req.query.clinicId,
-      },
+      ...sqquery(req.query),
+
       attributes: [
         "date",
         [Sequelize.fn("count", Sequelize.col("date")), "count"],

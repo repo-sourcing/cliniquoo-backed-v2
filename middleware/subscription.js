@@ -36,8 +36,8 @@ exports.checkSubscription = async (req, res, next) => {
         ],
       });
       if (data) {
-        var dateOne = moment(data.date);
-        var endDate = dateOne.add(data?.subscription?.dataValues?.day, "days");
+        let dateOne = moment(data.date);
+        let endDate = dateOne.add(data?.subscription?.dataValues?.day, "days");
         if (moment(endDate).isAfter(new Date())) {
           subscriptionData.endSubscriptionDate = endDate;
           await redisClient.SET(

@@ -1,5 +1,6 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
+const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     req.body.icon = req.file ? req.file.location : null;
@@ -56,7 +57,9 @@ exports.remove = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const data = await service.get();
+    const data = await service.get({
+      ...sqquery(req.query),
+    });
 
     res.status(200).send({
       status: "success",

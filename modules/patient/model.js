@@ -17,14 +17,14 @@ const Patient = sequelize.define(
       allowNull: false,
       get() {
         const storedValue = this.getDataValue("name");
-        var decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-        var decrypted = decipher.update(storedValue, "hex", "utf8");
+        let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
+        let decrypted = decipher.update(storedValue, "hex", "utf8");
         decrypted += decipher.final("utf8");
         return decrypted.toString();
       },
       set(value) {
         const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        var encrypted = cipher.update(value, "utf8", "hex");
+        let encrypted = cipher.update(value, "utf8", "hex");
         encrypted += cipher.final("hex");
         this.setDataValue("name", encrypted);
       },
@@ -37,14 +37,14 @@ const Patient = sequelize.define(
       allowNull: false,
       get() {
         const storedValue = this.getDataValue("mobile");
-        var decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-        var decrypted = decipher.update(storedValue.toString(), "hex", "utf8");
+        let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
+        let decrypted = decipher.update(storedValue.toString(), "hex", "utf8");
         decrypted += decipher.final("utf8");
         return decrypted.toString();
       },
       set(value) {
         const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        var encrypted = cipher.update(value.toString(), "utf8", "hex");
+        let encrypted = cipher.update(value.toString(), "utf8", "hex");
         encrypted += cipher.final("hex");
         this.setDataValue("mobile", encrypted.toString());
       },
