@@ -1,12 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { create, getAll, edit, remove } = require("./controller");
-const {
-  subscriptionValidation,
-  updateSubscriptionValidation,
-} = require("./validation");
+const { getAll, getOne } = require("./controller");
 
-router.route("/").get(getAll).post(subscriptionValidation, create);
-router.route("/:id").patch(updateSubscriptionValidation, edit).delete(remove);
+router.route("/").get(getAll);
+router.route("/:id").get(getOne);
 
 module.exports = router;
