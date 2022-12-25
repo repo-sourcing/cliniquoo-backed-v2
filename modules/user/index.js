@@ -14,6 +14,7 @@ const {
   getAll,
   search,
   mobileCheck,
+  verifyOTP,
 } = require("./controller");
 const { userValidation, updateUserValidation } = require("./validation");
 
@@ -27,6 +28,7 @@ router
   );
 router.get("/getMe", auth.authMiddleware, getMe);
 router.post("/sendOTP", sendOTP);
+router.post("/verifyOTP", verifyOTP);
 router.post("/verifyUser", verifyUser);
 router.post("/mobileCheck", mobileCheck);
 router.post("/signup", upload.single("profilePic"), signup);

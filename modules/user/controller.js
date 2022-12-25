@@ -1,5 +1,6 @@
 "use strict";
 const service = require("./service");
+const AWS = require("aws-sdk");
 const { Op } = require("sequelize");
 const firebase = require("../../utils/firebaseConfige");
 const Clinic = require("../clinic/model");
@@ -132,24 +133,90 @@ exports.remove = async (req, res, next) => {
 };
 
 // Temp
-exports.sendOTP = async (req, res, next) => {
-  const mobile = req.body.mobile;
-  const token = jwt.sign(
-    {
-      phone_number: req.body.mobile,
-      uid: req.body.uid,
-    },
-    process.env.JWT_SECRETE,
-    {
-      expiresIn: process.env.JWT_EXPIREIN,
-    }
-  );
+// exports.sendOTP = async (req, res, next) => {
+//   const mobile = req.body.mobile;
+//   const token = jwt.sign(
+//     {
+//       phone_number: req.body.mobile,
+//       uid: req.body.uid,
+//     },
+//     process.env.JWT_SECRETE,
+//     {
+//       expiresIn: process.env.JWT_EXPIREIN,
+//     }
+//   );
 
-  res.status(200).json({
-    message: "Verification is sent",
-    phoneNumber: mobile,
-    token,
-  });
+//   res.status(200).json({
+//     message: "Verification is sent",
+//     phoneNumber: mobile,
+//     token,
+//   });
+// };
+
+exports.sendOTP = async (req, res, next) => {
+  try {
+    let mobileNo = `+91${req.body.mobile}`;
+    const OTP = Math.floor(100000 + Math.random() * 900000);
+    console.log(OTP);
+    const token = jwt.sign(
+      {
+        mobile: req.body.mobile,
+        OTP: OTP,
+      },
+      process.env.JWT_SECRETE,
+      {
+        expiresIn: 80,
+      }
+    );
+    let params = {
+      Message: `${OTP} is the OTP to login to your Dento account. Do Not Disclose it to anyone.`,
+      PhoneNumber: mobileNo,
+      //       EntityId :1101782810000058028,
+      //       TemplateId :1107165124279967724
+    };
+    return new AWS.SNS({
+      apiVersion: "2010–03–31",
+    })
+      .publish(params)
+      .promise()
+      .then((message) => {
+        console.log("OTP send successfully");
+
+        res.status(200).json({
+          status: "success",
+          message: "OTP send successfully",
+          token,
+        });
+      })
+      .catch((err) => {
+        console.log("Error" + err);
+        return err;
+      });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.verifyOTP = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
+    if (jwtUser.OTP == req.body.OTP) {
+      // const token = singMobileToken(jwtUser.mobile, true);
+      res.status(200).json({
+        status: "success",
+        message: "User Verified",
+        token,
+      });
+    } else {
+      res.status(401).json({
+        status: "fail",
+        message: "Incorrect OTP",
+      });
+    }
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
 };
 exports.verifyUser = async (req, res, next) => {
   firebase
