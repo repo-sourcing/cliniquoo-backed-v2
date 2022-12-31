@@ -76,21 +76,20 @@ exports.authMiddleware = async (req, res, next) => {
       });
       requestor.role = "Admin";
     } else {
-      requestor = await userService.get({
+      [requestor] = await userService.get({
         where: {
           id: jwtUser.id,
         },
       });
       requestor.role = "User";
     }
-
     if (!requestor) {
       res.status(401).json({
         status: "fail",
         message: "User not found",
       });
     } else {
-      req.requestor = requestor[0];
+      req.requestor = requestor;
       next();
     }
   } catch (error) {
@@ -126,7 +125,7 @@ exports.verifiedCheck = async (req, res, next) => {
       });
     }
   } catch (error) {
-    res.status(404).json({
+    res.status(401).json({
       status: "fail",
       message: error,
     });
@@ -136,7 +135,7 @@ exports.verifiedCheck = async (req, res, next) => {
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.requestor.role)) {
-      res.status(403).json({
+      res.status(401).json({
         status: "fail",
         message: ` ${req.requestor.role}  are not authorized for  this portion`,
       });

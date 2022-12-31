@@ -37,9 +37,9 @@ router.post("/verifyOTP", verifyOTPValidation, auth.mobileProtected, verifyOTP);
 router.post("/mobileCheck", mobileCheck);
 router.post(
   "/signup",
-  userValidation,
   auth.verifiedCheck,
   upload.single("profilePic"),
+  userValidation,
   signup
 );
 router

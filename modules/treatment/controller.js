@@ -50,7 +50,7 @@ exports.create = async (req, res, next) => {
       message: "Add Treatment successfully",
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -69,7 +69,7 @@ exports.getAll = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.getBill = async (req, res, next) => {
@@ -90,7 +90,7 @@ exports.getBill = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -109,7 +109,7 @@ exports.edit = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -130,6 +130,6 @@ exports.remove = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };

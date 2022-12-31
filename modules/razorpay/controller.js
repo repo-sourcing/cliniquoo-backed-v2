@@ -39,7 +39,7 @@ exports.generatePayment = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.verification = async (req, res) => {

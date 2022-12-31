@@ -1,5 +1,5 @@
 const service = require("./service");
-const {pushNotificationTopic}=require('../../utils/notification')
+const { pushNotificationTopic } = require("../../utils/notification");
 
 exports.create = async (req, res, next) => {
   try {
@@ -10,7 +10,7 @@ exports.create = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -28,7 +28,7 @@ exports.sendToTopic = async (req, res, next) => {
       message: "push notification successfully",
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.getMyNotification = async (req, res, next) => {
@@ -45,7 +45,7 @@ exports.getMyNotification = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -60,7 +60,7 @@ exports.update = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -80,7 +80,7 @@ exports.removeOne = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -100,6 +100,6 @@ exports.removeAll = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };

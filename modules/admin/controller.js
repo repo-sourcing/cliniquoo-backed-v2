@@ -35,7 +35,7 @@ exports.login = async (req, res, next) => {
       });
     }
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -49,7 +49,7 @@ exports.signup = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -67,6 +67,6 @@ exports.getMe = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };

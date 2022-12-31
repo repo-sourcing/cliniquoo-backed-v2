@@ -7,8 +7,8 @@ exports.userValidation = async (req, res, next) => {
       name: yup.string().required("name is required field"),
       email: yup
         .string()
-        .email("Please enter valid email")
-        .required("Email is required"),
+        .required("Email is required")
+        .email("Please enter valid email"),
       mobile: yup
         .string()
         .matches(phoneRegExp, "mobile number should be valid 10 digits")

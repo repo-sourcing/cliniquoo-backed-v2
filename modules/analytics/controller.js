@@ -48,6 +48,6 @@ exports.getAll = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };

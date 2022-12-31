@@ -14,7 +14,7 @@ exports.create = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.getAll = async (req, res, next) => {
@@ -28,7 +28,7 @@ exports.getAll = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.getOne = async (req, res, next) => {
@@ -44,7 +44,7 @@ exports.getOne = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.edit = async (req, res, next) => {
@@ -62,7 +62,7 @@ exports.edit = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -82,6 +82,6 @@ exports.remove = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };

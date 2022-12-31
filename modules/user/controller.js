@@ -60,7 +60,7 @@ exports.create = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -76,7 +76,7 @@ exports.getAll = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.getOne = async (req, res, next) => {
@@ -93,7 +93,7 @@ exports.getOne = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -113,7 +113,7 @@ exports.update = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -129,7 +129,7 @@ exports.remove = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -474,7 +474,8 @@ exports.signup = async (req, res, next) => {
 };
 exports.getMe = async (req, res, next) => {
   try {
-    const data = await service.get({
+    console.log(req.requestor);
+    const [data] = await service.get({
       where: {
         id: req.requestor.id,
       },
@@ -484,12 +485,10 @@ exports.getMe = async (req, res, next) => {
     res.status(200).send({
       status: "success",
       message: "getMe successfully",
-      data: {
-        data,
-      },
+      data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 exports.search = async (req, res, next) => {
@@ -509,7 +508,7 @@ exports.search = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
 
@@ -534,6 +533,6 @@ exports.mobileCheck = async (req, res, next) => {
       available: false,
     });
   } catch (error) {
-    next(error);
+    next(error || createError(404, "Data not found"));
   }
 };
