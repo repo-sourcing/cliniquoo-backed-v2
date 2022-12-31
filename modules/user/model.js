@@ -12,13 +12,6 @@ const User = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    emailUid: {
-      type: Sequelize.STRING,
-    },
-    mobileUid: {
-      type: Sequelize.STRING,
-      allowNull: false,
-    },
     name: {
       type: Sequelize.STRING,
       allowNull: false,

@@ -2,6 +2,54 @@ const jwt = require("jsonwebtoken");
 const userService = require("./../modules/user/service");
 const adminService = require("./../modules/admin/service");
 
+exports.singIdToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRETE, {
+    expiresIn: process.env.JWT_EXPIREIN,
+  });
+};
+
+exports.singMobileToken = (mobile, isVerified) => {
+  return jwt.sign({ mobile, isVerified }, process.env.JWT_SECRETE, {
+    expiresIn: process.env.JWT_EXPIREIN,
+  });
+};
+
+exports.mobileProtected = async (req, res, next) => {
+  try {
+    if (
+      req.headers.authorization != null &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      const token = req.headers.authorization.split(" ")[1];
+      console.log(token);
+      const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
+      console.log(jwtUser);
+      const mobile = jwtUser.mobile;
+
+      if (mobile) {
+        req.requestor = jwtUser;
+        next();
+      } else {
+        res.status(401).json({
+          status: "fail",
+          message: "user not authorized",
+        });
+      }
+    } else {
+      res.status(404).json({
+        status: "fail",
+        message: "token not found",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(404).json({
+      status: "fail",
+      message: error,
+    });
+  }
+};
+
 exports.authMiddleware = async (req, res, next) => {
   if (req.headers.authorization == null)
     return res.status(401).json({
@@ -49,6 +97,38 @@ exports.authMiddleware = async (req, res, next) => {
     res.status(401).json({
       status: "fail",
       message: "User not authorized",
+    });
+  }
+};
+
+exports.verifiedCheck = async (req, res, next) => {
+  try {
+    if (
+      req.headers.authorization != null &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      const token = req.headers.authorization.split(" ")[1];
+      const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
+      console.log(jwtUser);
+      if (jwtUser.isVerified) {
+        req.requestor = jwtUser;
+        next();
+      } else {
+        res.status(401).json({
+          status: "fail",
+          message: "user not verified",
+        });
+      }
+    } else {
+      res.status(404).json({
+        status: "fail",
+        message: "token not found",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      status: "fail",
+      message: error,
     });
   }
 };

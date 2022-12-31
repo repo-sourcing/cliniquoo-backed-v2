@@ -5,7 +5,6 @@ const upload = require("../../utils/fileUploads");
 
 const {
   sendOTP,
-  verifyUser,
   signup,
   getMe,
   update,
@@ -16,7 +15,12 @@ const {
   mobileCheck,
   verifyOTP,
 } = require("./controller");
-const { userValidation, updateUserValidation } = require("./validation");
+const {
+  userValidation,
+  sendOTPValidation,
+  updateUserValidation,
+  verifyOTPValidation,
+} = require("./validation");
 
 router
   .route("/")
@@ -27,11 +31,17 @@ router
     update
   );
 router.get("/getMe", auth.authMiddleware, getMe);
-router.post("/sendOTP", sendOTP);
-router.post("/verifyOTP", verifyOTP);
-router.post("/verifyUser", verifyUser);
+router.post("/sendOTP", sendOTPValidation, sendOTP);
+router.post("/verifyOTP", verifyOTPValidation, auth.mobileProtected, verifyOTP);
+// router.post("/verifyUser", verifyUser);
 router.post("/mobileCheck", mobileCheck);
-router.post("/signup", upload.single("profilePic"), signup);
+router.post(
+  "/signup",
+  userValidation,
+  auth.verifiedCheck,
+  upload.single("profilePic"),
+  signup
+);
 router
   .route("/:id")
   .get(getOne)
