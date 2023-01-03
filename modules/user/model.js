@@ -78,6 +78,14 @@ const User = sequelize.define(
     device: {
       type: Sequelize.ENUM("Android", "IOS"),
     },
+    dob: {
+      type: Sequelize.DATEONLY,
+      allowNull: false,
+    },
+    gender: {
+      type: Sequelize.ENUM("M", "F", "O"),
+      allowNull: false,
+    },
 
     FcmToken: {
       type: Sequelize.TEXT,

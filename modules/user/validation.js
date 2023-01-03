@@ -20,6 +20,11 @@ exports.userValidation = async (req, res, next) => {
       appVersion: yup.string(),
       device: yup.string(),
       FcmToken: yup.string(),
+      dob: yup.date().required("dob is required field"),
+      gender: yup
+        .mixed()
+        .oneOf(["M", "F", "O"])
+        .required("gender is required field"),
     });
     await userSchema.validate(req.body);
     next();
@@ -45,6 +50,8 @@ exports.updateUserValidation = async (req, res, next) => {
       profilePic: yup.string(),
       about: yup.string(),
       FcmToken: yup.string(),
+      dob: yup.date(),
+      gender: yup.mixed().oneOf(["M", "F", "O"]),
     });
     await userSchema.validate(req.body);
     next();
