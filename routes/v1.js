@@ -3,31 +3,15 @@ const router = express.Router();
 const auth = require(".././middleware/auth");
 const { checkSubscription } = require("../middleware/subscription");
 
-router.use("/procedure", auth.authMiddleware, require("../modules/procedure"));
 router.use(
   "/transaction",
   auth.authMiddleware,
   require("../modules/transaction")
 );
 router.use("/visitor", auth.authMiddleware, require("../modules/visitor"));
-router.use(
-  "/treatment",
-  auth.authMiddleware,
-  checkSubscription,
-  require("../modules/treatment")
-);
-router.use(
-  "/clinic",
-  auth.authMiddleware,
-  checkSubscription,
-  require("../modules/clinic")
-);
-router.use(
-  "/patient",
-  auth.authMiddleware,
-  checkSubscription,
-  require("../modules/patient")
-);
+router.use("/treatment", auth.authMiddleware, require("../modules/treatment"));
+router.use("/clinic", auth.authMiddleware, require("../modules/clinic"));
+router.use("/patient", auth.authMiddleware, require("../modules/patient"));
 router.use(
   "/notification",
   auth.authMiddleware,
@@ -37,25 +21,21 @@ router.use("/analytics", auth.authMiddleware, require("../modules/analytics"));
 router.use(
   "/medicalHistory",
   auth.authMiddleware,
-  checkSubscription,
   require("../modules/medicalHistory")
 );
 router.use(
   "/generalTreatment",
   auth.authMiddleware,
-  checkSubscription,
   require("../modules/generalTreatment")
 );
 router.use(
   "/generalProcedure",
   auth.authMiddleware,
-  checkSubscription,
   require("../modules/generalProcedure")
 );
 router.use(
   "/generalComplain",
   auth.authMiddleware,
-  checkSubscription,
   require("../modules/generalComplaint")
 );
 router.use(

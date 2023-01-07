@@ -3,6 +3,8 @@ const sequelize = require("../../config/db");
 const Patient = require("../patient/model");
 const clinic = require("../clinic/model");
 const { sqquery, usersqquery } = require("../../utils/query");
+const Treatment = require("../treatment/model");
+const moment = require("moment");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -10,6 +12,14 @@ exports.create = async (req, res, next) => {
       by: req.body.amount,
       where: { id: req.body.patientId },
     });
+    console.log("date2----->", Date.now());
+    // const patient = await Patient.find({
+    //   where: {
+    //     id: req.body.patientId,
+    //   },
+    // });
+    // patient.lastVisitedDate = Date.now();
+    // await patient.save();
     await Patient.update(
       {
         lastVisitedDate: Date.now(),
@@ -20,6 +30,19 @@ exports.create = async (req, res, next) => {
         },
       }
     );
+
+    if (req?.body?.isComplete === true) {
+      await Treatment.update(
+        {
+          status: "Done",
+        },
+        {
+          where: {
+            id: req.body.patientId,
+          },
+        }
+      );
+    }
     res.status(201).json({
       status: "success",
       message: "Add Transaction successfully",

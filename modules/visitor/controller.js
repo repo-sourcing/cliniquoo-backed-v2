@@ -4,7 +4,6 @@ const { Op, Sequelize } = require("sequelize");
 const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
 const Treatment = require("../treatment/model");
-const Procedure = require("../procedure/model");
 const moment = require("moment");
 const { sqquery } = require("../../utils/query");
 
@@ -43,77 +42,27 @@ exports.create = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.getAll = async (req, res, next) => {
   try {
-    let no_of_visitor = 0;
-    let wheres;
-
-    if (req.query.day == "Today") {
-      wheres = {
-        createdAt: { [Op.gt]: moment.utc().startOf("day") },
-      };
-    } else if (req.query.day == "Yesterday") {
-      wheres = {
-        createdAt: {
-          [Op.gt]: moment.utc().subtract(1, "days").startOf("day"),
-          [Op.lt]: moment.utc().subtract(1, "days").endOf("day"),
-        },
-      };
-    } else if (req.query.day == "Older") {
-      wheres = {
-        createdAt: {
-          [Op.lt]: moment.utc().subtract(2, "days").endOf("day"),
-        },
-      };
-    }
-
-    if (req.query.clinicId) {
-      no_of_visitor = await Visitor.count({
-        where: {
-          clinicId: req.query.clinicId,
-        },
-      });
-    }
-    const datafilter = { ...sqquery(req.query), ...wheres };
     const data = await service.get({
-      ...datafilter,
-
-      include: [
-        {
-          model: Patient,
-          include: [
-            {
-              model: Treatment,
-              where: wheres,
-              required: false,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
-              include: [
-                {
-                  model: Procedure,
-                  where: wheres,
-                  required: false,
-                  order: [["createdAt", "DESC"]],
-                  limit: 1,
-                },
-              ],
-            },
-            {
-              model: Transaction,
-              where: wheres,
-              required: false,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
-            },
-          ],
-        },
-      ],
+      ...sqquery(req.query),
+    });
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.getOne = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: { clinicId: req.query.clinicId, id: req.params.id },
     });
 
     res.status(200).send({
       status: "success",
-      no_of_visitor,
       data,
     });
   } catch (error) {
@@ -123,19 +72,11 @@ exports.getAll = async (req, res, next) => {
 
 exports.getAllVisitorByDate = async (req, res, next) => {
   try {
-    let no_of_visitor = 0;
-
-    if (req.query.clinicId) {
-      no_of_visitor = await Visitor.count({
-        where: {
-          clinicId: req.query.clinicId,
-          date: req.query.date,
-        },
-      });
-    }
     const data = await service.get({
-      ...sqquery(req.query),
-
+      where: {
+        date: req.query.date,
+        clinicId: req.query.clinicId,
+      },
       include: [
         {
           model: Patient,
@@ -145,14 +86,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
               required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
-              include: [
-                {
-                  model: Procedure,
-                  required: false,
-                  order: [["createdAt", "DESC"]],
-                  limit: 1,
-                },
-              ],
             },
             {
               model: Transaction,
@@ -167,7 +100,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      no_of_visitor,
       data,
     });
   } catch (error) {
@@ -176,18 +108,17 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 };
 exports.countOfvisitorForAllDates = async (req, res, next) => {
   try {
-    const data = await Visitor.findAll({
-      ...sqquery(req.query),
+    let startDate = moment().subtract(5, "days");
+    let endDate = moment().add(10, "days");
 
-      attributes: [
-        "date",
-        [Sequelize.fn("count", Sequelize.col("date")), "count"],
-      ],
-      group: ["date"],
-      raw: true,
-      order: Sequelize.literal("count DESC"),
+    const data = await Visitor.count({
+      where: {
+        date: {
+          $between: [startDate, endDate],
+        },
+      },
+      group: [Sequelize.fn("date", Sequelize.col("date"))],
     });
-
     res.status(200).send({
       status: "success",
       data,
@@ -196,7 +127,6 @@ exports.countOfvisitorForAllDates = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -215,7 +145,6 @@ exports.edit = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;

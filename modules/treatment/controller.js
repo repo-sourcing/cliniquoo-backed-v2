@@ -1,35 +1,11 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
-const Procedure = require("../procedure/model");
 const Patient = require("../patient/model");
 const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
-    const singleTreatment = [
-      "bridge",
-      "cast partial denture",
-      "complete denture",
-      "removable partial denture",
-    ];
+    const data = await service.create(req.body);
 
-    if (singleTreatment.includes(req.body.name.toLowerCase())) {
-      await service.create(req.body);
-    } else {
-      if (req.body.toothNumber) {
-        const dent = req.body.toothNumber.split(",");
-        for (let i in dent) {
-          await service.create({
-            name: req.body.name,
-            toothNumber: dent[i],
-            amount: (req.body.amount / dent.length).toFixed(2),
-            clinicId: req.body.clinicId,
-            patientId: req.body.patientId,
-          });
-        }
-      } else {
-        await service.create(req.body);
-      }
-    }
     await Patient.increment("remainBill", {
       by: req.body.amount,
       where: { id: req.body.patientId },
@@ -58,11 +34,6 @@ exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
       ...sqquery(req.query),
-      include: [
-        {
-          model: Procedure,
-        },
-      ],
     });
     res.status(200).send({
       status: "success",

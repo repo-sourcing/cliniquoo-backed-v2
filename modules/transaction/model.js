@@ -20,6 +20,9 @@ const Transaction = sequelize.define(
       type: Sequelize.INTEGER,
       allowNull: false,
     },
+    notes: {
+      type: Sequelize.TEXT,
+    },
   },
   {
     paranoid: true,

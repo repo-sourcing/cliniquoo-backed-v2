@@ -8,11 +8,16 @@ const {
   edit,
   remove,
   getAllByUser,
+  getOne,
 } = require("./controller");
 const { patientValidation, updatePatientValidation } = require("./validation");
 
 router.route("/").get(getAllByUser).post(patientValidation, create);
-router.route("/:id").patch(updatePatientValidation, edit).delete(remove);
+router
+  .route("/:id")
+  .patch(updatePatientValidation, edit)
+  .delete(remove)
+  .get(getOne);
 router.route("/search/:name").get(getSearch);
 
 module.exports = router;

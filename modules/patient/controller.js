@@ -64,6 +64,21 @@ exports.getAllByUser = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.getOne = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: { userId: req.requestor.id, id: req.params.id },
+    });
+
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
 exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
