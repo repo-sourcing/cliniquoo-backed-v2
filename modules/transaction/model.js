@@ -23,9 +23,24 @@ const Transaction = sequelize.define(
     notes: {
       type: Sequelize.TEXT,
     },
+    processedToothNumber: {
+      type: Sequelize.TEXT,
+      get: function () {
+        return this.getDataValue("processedToothNumber")
+          ? JSON.parse(this.getDataValue("processedToothNumber"))
+          : [];
+      },
+      set: function (val) {
+        return this.setDataValue(
+          "processedToothNumber",
+          JSON.stringify(val.split(","))
+        );
+      },
+    },
   },
   {
     paranoid: true,
+    alter: true,
   }
 );
 

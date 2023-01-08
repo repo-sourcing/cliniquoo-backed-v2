@@ -8,9 +8,7 @@ const {
   signup,
   getMe,
   update,
-  getOne,
   remove,
-  getAll,
   search,
   mobileCheck,
   verifyOTP,
@@ -33,7 +31,6 @@ router
 router.get("/getMe", auth.authMiddleware, getMe);
 router.post("/sendOTP", sendOTPValidation, sendOTP);
 router.post("/verifyOTP", verifyOTPValidation, auth.mobileProtected, verifyOTP);
-// router.post("/verifyUser", verifyUser);
 router.post("/mobileCheck", mobileCheck);
 router.post(
   "/signup",
@@ -44,7 +41,6 @@ router.post(
 );
 router
   .route("/:id")
-  .get(getOne)
   .delete(remove)
   .patch(auth.authMiddleware, update);
 router.get("/search/:name", search);

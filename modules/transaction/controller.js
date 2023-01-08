@@ -5,6 +5,7 @@ const clinic = require("../clinic/model");
 const { sqquery, usersqquery } = require("../../utils/query");
 const Treatment = require("../treatment/model");
 const moment = require("moment");
+const Visitor = require("../visitor/model");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
@@ -12,14 +13,6 @@ exports.create = async (req, res, next) => {
       by: req.body.amount,
       where: { id: req.body.patientId },
     });
-    console.log("date2----->", Date.now());
-    // const patient = await Patient.find({
-    //   where: {
-    //     id: req.body.patientId,
-    //   },
-    // });
-    // patient.lastVisitedDate = Date.now();
-    // await patient.save();
     await Patient.update(
       {
         lastVisitedDate: Date.now(),
@@ -42,6 +35,14 @@ exports.create = async (req, res, next) => {
           },
         }
       );
+    } else {
+      await Visitor.findOrCreate({
+        where: {
+          date: req.body.date,
+          clinicId: req.body.clinicId,
+          patientId: req.body.patientId,
+        },
+      });
     }
     res.status(201).json({
       status: "success",
@@ -52,6 +53,7 @@ exports.create = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+//if we need to show all the transaction of perticular user
 exports.getAllByUser = async (req, res, next) => {
   try {
     const [clinicData] = await clinic.findAll({
@@ -59,7 +61,6 @@ exports.getAllByUser = async (req, res, next) => {
         userId: req.requestor.id,
       },
     });
-    console.log("data", clinicData.id);
     const data = await service.get({
       where: { clinicId: clinicData.id },
       ...usersqquery(req.query),

@@ -29,7 +29,6 @@ const Patient = sequelize.define(
         let encrypted = cipher.update(value.toString(), "utf8", "hex");
         encrypted += cipher.final("hex");
         this.setDataValue("name", encrypted);
-        console.log("encrypted", encrypted);
       },
     },
     location: {

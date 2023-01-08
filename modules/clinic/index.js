@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { create, getAll, edit, remove, getAllByUser } = require("./controller");
+const { create, edit, remove, getAllByUser } = require("./controller");
 const {
   clinicDataValidation,
   updateClinicDataValidation,

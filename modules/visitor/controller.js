@@ -5,7 +5,7 @@ const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
 const Treatment = require("../treatment/model");
 const moment = require("moment");
-const { sqquery } = require("../../utils/query");
+const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
@@ -69,7 +69,6 @@ exports.getOne = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.getAllVisitorByDate = async (req, res, next) => {
   try {
     const data = await service.get({
@@ -106,15 +105,59 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.findNotVisited = async (req, res, next) => {
+  try {
+    let startDate = moment().subtract(7, "days");
+    let endDate = moment();
+
+    const data = await service.get({
+      where: {
+        date: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        clinicId: req.query.clinicId,
+        isVisited: false,
+      },
+
+      include: [
+        {
+          model: Patient,
+          include: [
+            {
+              model: Treatment,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+            },
+            {
+              model: Transaction,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+            },
+          ],
+        },
+      ],
+    });
+
+    res.status(200).send({
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
 exports.countOfvisitorForAllDates = async (req, res, next) => {
   try {
     let startDate = moment().subtract(5, "days");
     let endDate = moment().add(10, "days");
-
     const data = await Visitor.count({
       where: {
         date: {
-          $between: [startDate, endDate],
+          [Op.gte]: new Date(startDate),
+          [Op.lte]: moment(endDate).add(1, "days"),
         },
       },
       group: [Sequelize.fn("date", Sequelize.col("date"))],

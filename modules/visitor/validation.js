@@ -23,7 +23,7 @@ exports.updateVisitorValidation = async (req, res, next) => {
       date: yup.date(),
       patientId: yup.number(),
       clinicId: yup.number(),
-      isCanceled: yub.boolean(),
+      isCanceled: yup.boolean(),
     });
     await visitorSchema.validate(req.body);
     next();
