@@ -65,7 +65,6 @@ exports.edit = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;

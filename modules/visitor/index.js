@@ -4,7 +4,6 @@ const upload = require("../../utils/fileUploads");
 const {
   create,
   getAll,
-  getByDate,
   edit,
   remove,
   getAllVisitorByDate,

@@ -9,12 +9,7 @@ const Visitor = require("../visitor/model");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
-    // if(req.body.processedToothNumber){
-    //   const teethNumber=Treatment.find({where:
 
-    //   })
-
-    // }
     await Patient.decrement("remainBill", {
       by: req.body.amount,
       where: { id: req.body.patientId },
@@ -145,7 +140,6 @@ exports.edit = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;

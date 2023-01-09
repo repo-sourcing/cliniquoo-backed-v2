@@ -1,6 +1,5 @@
 const service = require("./service");
 const { Op, Sequelize } = require("sequelize");
-const moment = require("moment");
 const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
@@ -59,7 +58,6 @@ exports.getAll = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -78,7 +76,6 @@ exports.edit = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;
