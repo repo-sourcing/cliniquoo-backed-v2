@@ -9,6 +9,7 @@ const {
   remove,
   getAllByUser,
   getOne,
+  getSearchByDate,
 } = require("./controller");
 const { patientValidation, updatePatientValidation } = require("./validation");
 
@@ -19,5 +20,6 @@ router
   .delete(remove)
   .get(getOne);
 router.route("/search/:name").get(getSearch);
+router.route("/searchByDate/:name").get(getSearchByDate);
 
 module.exports = router;

@@ -3,6 +3,7 @@ const visitorService = require("../visitor/service");
 const crypto = require("crypto");
 const redisClient = require("../../utils/redis");
 const { Op } = require("sequelize");
+const Visitor = require("../visitor/model");
 const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
@@ -98,13 +99,86 @@ exports.getSearch = async (req, res, next) => {
     let patientData = await redisClient.GET(
       `patient?userId=${req.requestor.id}`
     );
-    patientData = JSON.parse(patientData);
+
+    if (patientData) {
+      patientData = JSON.parse(patientData);
+    } else {
+      patientData = await service.get({
+        where: {
+          userId: req.requestor.id,
+        },
+      });
+      await redisClient.SET(
+        `patient?userId=${req.requestor.id}`,
+        JSON.stringify(patientData)
+      );
+    }
     const searchData = patientData.filter((data) => {
       return (
         data.name.includes(req.params.name) ||
         data.mobile.includes(req.params.name)
       );
     });
+
+    res.status(200).send({
+      status: "success",
+      data: searchData,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+const getUpdatedSchedule = async (patientData, search, selectedIds) => {
+  let finalSearchData = [];
+  await patientData.filter((data) => {
+    if (data.name.includes(search) || data.mobile.includes(search)) {
+      if (selectedIds.includes(data.id)) {
+        data.schedule = true;
+        finalSearchData = [...finalSearchData, { ...data }];
+      } else {
+        data.schedule = false;
+        finalSearchData = [...finalSearchData, { ...data }];
+      }
+    }
+  });
+  return finalSearchData;
+};
+
+exports.getSearchByDate = async (req, res, next) => {
+  try {
+    let selectedIds, searchData, patientData;
+    const data = await Visitor.findAll({
+      where: {
+        date: req.query.date,
+        clinicId: req.query.clinicId,
+      },
+    });
+    selectedIds = data.map((searchIds) => searchIds.patientId);
+
+    patientData = await redisClient.GET(`patient?userId=${req.requestor.id}`);
+    if (patientData) {
+      patientData = JSON.parse(patientData);
+      searchData = await getUpdatedSchedule(
+        patientData,
+        req.params.name,
+        selectedIds
+      );
+    } else {
+      patientData = await service.get({
+        where: {
+          userId: req.requestor.id,
+        },
+      });
+      searchData = await getUpdatedSchedule(
+        patientData,
+        req.params.name,
+        selectedIds
+      );
+      await redisClient.SET(
+        `patient?userId=${req.requestor.id}`,
+        JSON.stringify(patientData)
+      );
+    }
 
     res.status(200).send({
       status: "success",
@@ -123,6 +197,7 @@ exports.edit = async (req, res, next) => {
         userId: req.requestor.id,
       },
     });
+    redisClient.DEL(`patient?userId=${req.requestor.id}`);
 
     res.status(200).send({
       status: "success",
@@ -148,6 +223,7 @@ exports.remove = async (req, res, next) => {
         patientId: id,
       },
     });
+    redisClient.DEL(`patient?userId=${req.requestor.id}`);
     res.status(200).send({
       status: "success",
       message: "delete patient successfully",

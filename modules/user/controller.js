@@ -122,6 +122,7 @@ exports.remove = async (req, res, next) => {
     const id = req.params.id;
 
     const data = await service.remove(id);
+    await redisClient.DEL(`patient?userId=${req.requestor.id}`);
 
     res.status(200).send({
       status: "success",
