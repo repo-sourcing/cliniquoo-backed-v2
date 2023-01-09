@@ -59,6 +59,25 @@ exports.getOne = async (req, res, next) => {
   try {
     const data = await service.get({
       where: { clinicId: req.query.clinicId, id: req.params.id },
+      include: [
+        {
+          model: Patient,
+          include: [
+            {
+              model: Treatment,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+            },
+            {
+              model: Transaction,
+              required: false,
+              order: [["createdAt", "DESC"]],
+              limit: 1,
+            },
+          ],
+        },
+      ],
     });
 
     res.status(200).send({

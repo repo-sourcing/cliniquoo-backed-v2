@@ -29,6 +29,26 @@ exports.create = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.ongoingProcessTeeth = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        clinicId: req.query.clinicId,
+        patientId: req.query.patientId,
+        status: "OnGoing",
+      },
+    });
+
+    res.status(200).send({
+      status: "success",
+      data: {
+        toothNumber: data[0]["toothNumber"],
+      },
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
 
 exports.getAll = async (req, res, next) => {
   try {

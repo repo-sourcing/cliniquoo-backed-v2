@@ -9,6 +9,12 @@ const Visitor = require("../visitor/model");
 exports.create = async (req, res, next) => {
   try {
     const data = await service.create(req.body);
+    // if(req.body.processedToothNumber){
+    //   const teethNumber=Treatment.find({where:
+
+    //   })
+
+    // }
     await Patient.decrement("remainBill", {
       by: req.body.amount,
       where: { id: req.body.patientId },
