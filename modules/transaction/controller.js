@@ -24,7 +24,7 @@ exports.create = async (req, res, next) => {
       }
     );
 
-    if (req?.body?.isComplete === true) {
+    if (req.body?.isComplete === true) {
       await Treatment.update(
         {
           status: "Done",
