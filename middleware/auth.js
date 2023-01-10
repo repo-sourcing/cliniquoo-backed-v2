@@ -69,7 +69,7 @@ exports.authMiddleware = async (req, res, next) => {
     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
     let requestor;
     if (jwtUser.role === "Admin") {
-      requestor = await adminService.get({
+      [requestor] = await adminService.get({
         where: {
           id: jwtUser.id,
         },
