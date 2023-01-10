@@ -178,6 +178,7 @@ exports.countOfvisitorForAllDates = async (req, res, next) => {
           [Op.gte]: new Date(startDate),
           [Op.lte]: moment(endDate).add(1, "days"),
         },
+        clinicId: req.query.clinicId,
       },
       group: [Sequelize.fn("date", Sequelize.col("date"))],
     });

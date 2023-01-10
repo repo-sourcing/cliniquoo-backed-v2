@@ -1,6 +1,8 @@
 const service = require("./service");
 const visitorService = require("../visitor/service");
 const crypto = require("crypto");
+const Treatment = require("../treatment/model");
+const Transaction = require("../transaction/model");
 const redisClient = require("../../utils/redis");
 const { Op } = require("sequelize");
 const Visitor = require("../visitor/model");
@@ -69,6 +71,20 @@ exports.getOne = async (req, res, next) => {
   try {
     const data = await service.get({
       where: { userId: req.requestor.id, id: req.params.id },
+      include: [
+        {
+          model: Treatment,
+          required: false,
+          order: [["createdAt", "DESC"]],
+          limit: 1,
+        },
+        {
+          model: Transaction,
+          required: false,
+          order: [["createdAt", "DESC"]],
+          limit: 1,
+        },
+      ],
     });
 
     res.status(200).send({
