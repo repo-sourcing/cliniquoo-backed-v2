@@ -31,10 +31,7 @@ const Transaction = sequelize.define(
           : [];
       },
       set: function (val) {
-        return this.setDataValue(
-          "processedToothNumber",
-          JSON.stringify(val.split(","))
-        );
+        return this.setDataValue("processedToothNumber", JSON.stringify(val));
       },
     },
   },

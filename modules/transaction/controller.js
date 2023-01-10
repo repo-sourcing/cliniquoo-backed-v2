@@ -1,4 +1,5 @@
 const service = require("./service");
+const { Op, Sequelize } = require("sequelize");
 const sequelize = require("../../config/db");
 const Patient = require("../patient/model");
 const clinic = require("../clinic/model");
@@ -6,9 +7,55 @@ const { sqquery, usersqquery } = require("../../utils/query");
 const Treatment = require("../treatment/model");
 const moment = require("moment");
 const Visitor = require("../visitor/model");
+const visitorService = require("../visitor/service");
 exports.create = async (req, res, next) => {
   try {
+    const selectTooth = req.body.processedToothNumber.split(",");
+    let final = [];
+    await Promise.all(
+      selectTooth.map(async (el) => {
+        const runningTreatment = await Treatment.findAll({
+          where: {
+            status: "OnGoing",
+            patientId: req.body.patientId,
+            toothNumber: {
+              [Op.like]: `%${el}%`,
+            },
+          },
+        });
+        console.log(runningTreatment);
+        runningTreatment.map((el) => {
+          console.log(el.name);
+          final.push({
+            treatment: el.name,
+            tooth: selectTooth.filter((element) =>
+              el.toothNumber.includes(element)
+            ),
+          });
+        });
+      })
+    );
+    console.log("final", final);
+
+    const ids = final.map((o) => o.treatment);
+    const filtered = final.filter(
+      ({ treatment }, index) => !ids.includes(treatment, index + 1)
+    );
+
+    req.body.processedToothNumber = filtered;
     const data = await service.create(req.body);
+    await visitorService.update(
+      {
+        isVisited: true,
+      },
+      {
+        where: {
+          patientId: req.body.patientId,
+          clinicId: req.body.clinicId,
+          date: moment().utcOffset("+05:30"),
+        },
+      }
+    );
 
     await Patient.decrement("remainBill", {
       by: req.body.amount,
@@ -16,7 +63,7 @@ exports.create = async (req, res, next) => {
     });
     await Patient.update(
       {
-        lastVisitedDate: Date.now(),
+        lastVisitedDate: moment().utcOffset("+05:30"),
       },
       {
         where: {
@@ -36,7 +83,8 @@ exports.create = async (req, res, next) => {
           },
         }
       );
-    } else {
+    }
+    if (req.body?.date) {
       await Visitor.findOrCreate({
         where: {
           date: req.body.date,

@@ -8,7 +8,6 @@ const {
   remove,
   getAllVisitorByDate,
   countOfvisitorForAllDates,
-  getOne,
   findNotVisited,
 } = require("./controller");
 const {
@@ -18,11 +17,7 @@ const {
 } = require("./validation");
 
 router.route("/").get(getAll).post(visitorValidation, create);
-router
-  .route("/:id")
-  .patch(updateVisitorValidation, edit)
-  .delete(remove)
-  .get(getOne);
+router.route("/:id").patch(updateVisitorValidation, edit).delete(remove);
 router.route("/info/visiterInfoByDate").get(getAllVisitorByDate);
 router.route("/info/findNotVisited").get(findNotVisited);
 router.route("/info/countOfVisitors").get(countOfvisitorForAllDates);

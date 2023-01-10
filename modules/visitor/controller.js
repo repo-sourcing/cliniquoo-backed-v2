@@ -3,6 +3,7 @@ const Visitor = require("./model");
 const { Op, Sequelize } = require("sequelize");
 const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
+const transactionService = require("../transaction/service");
 const Treatment = require("../treatment/model");
 const moment = require("moment");
 const { sqquery, usersqquery } = require("../../utils/query");
@@ -90,11 +91,12 @@ exports.getOne = async (req, res, next) => {
 };
 exports.getAllVisitorByDate = async (req, res, next) => {
   try {
-    const data = await service.get({
+    const data = await service.findAndCountAll({
       where: {
         date: req.query.date,
         clinicId: req.query.clinicId,
       },
+      ...usersqquery(req.query),
       include: [
         {
           model: Patient,
@@ -115,9 +117,29 @@ exports.getAllVisitorByDate = async (req, res, next) => {
         },
       ],
     });
+    const totalAmount = await transactionService.sum("amount", {
+      where: {
+        clinicId: req.query.clinicId,
+      },
+    });
+    const cashAmount = await transactionService.sum("amount", {
+      where: {
+        clinicId: req.query.clinicId,
+        type: "Cash",
+      },
+    });
+    const visited = await service.count({
+      where: {
+        date: req.query.date,
+        isVisited: true,
+      },
+    });
 
     res.status(200).send({
       status: "success",
+      totalAmount: totalAmount ? totalAmount : 0,
+      cashAmount: cashAmount ? cashAmount : 0,
+      visited: visited ? visited : 0,
       data,
     });
   } catch (error) {
@@ -127,7 +149,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 exports.findNotVisited = async (req, res, next) => {
   try {
     let startDate = moment().subtract(7, "days");
-    let endDate = moment();
+    let endDate = moment().subtract(1, "days");
 
     const data = await service.get({
       where: {
@@ -170,8 +192,8 @@ exports.findNotVisited = async (req, res, next) => {
 };
 exports.countOfvisitorForAllDates = async (req, res, next) => {
   try {
-    let startDate = moment().subtract(5, "days");
-    let endDate = moment().add(10, "days");
+    let startDate = moment().subtract(514, "days");
+    let endDate = moment().add(14, "days");
     const data = await Visitor.count({
       where: {
         date: {

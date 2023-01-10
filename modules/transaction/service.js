@@ -1,20 +1,20 @@
-const Post = require("./model");
+const Transaction = require("./model");
 
 exports.create = async (data) => {
-  return Post.create(data);
+  return Transaction.create(data);
 };
 
 exports.get = async (condition) => {
-  return Post.findAll(condition);
+  return Transaction.findAll(condition);
 };
-exports.getSum = async (condition) => {
-  return Post.sum(condition);
+exports.sum = async (data, query) => {
+  return await Transaction.sum(data, query);
 };
 
 exports.update = async (data, condition) => {
-  return Post.update(data, condition);
+  return Transaction.update(data, condition);
 };
 
 exports.remove = async (condition) => {
-  return Post.destroy(condition);
+  return Transaction.destroy(condition);
 };

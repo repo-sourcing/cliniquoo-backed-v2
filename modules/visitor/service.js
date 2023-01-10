@@ -1,17 +1,23 @@
-const Post = require("./model");
+const Visitor = require("./model");
 
 exports.create = async (data) => {
-  return Post.create(data);
+  return Visitor.create(data);
 };
 
 exports.get = async (condition) => {
-  return Post.findAll(condition);
+  return Visitor.findAll(condition);
+};
+exports.findAndCountAll = async (condition) => {
+  return Visitor.findAndCountAll(condition);
 };
 
 exports.update = async (data, condition) => {
-  return Post.update(data, condition);
+  return Visitor.update(data, condition);
+};
+exports.count = async (query) => {
+  return Visitor.count(query);
 };
 
 exports.remove = async (condition) => {
-  return Post.destroy(condition);
+  return Visitor.destroy(condition);
 };

@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { flushAll } = require("./controller");
 
-const { get } = require("./controller");
-
-router.route("/").get(get);
+router.route("/").get(flushAll);
 module.exports = router;

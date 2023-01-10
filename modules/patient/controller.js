@@ -1,8 +1,11 @@
 const service = require("./service");
 const visitorService = require("../visitor/service");
 const crypto = require("crypto");
+const moment = require("moment");
 const Treatment = require("../treatment/model");
+const treatmentService = require("../treatment/service");
 const Transaction = require("../transaction/model");
+const transactionService = require("../transaction/service");
 const redisClient = require("../../utils/redis");
 const { Op } = require("sequelize");
 const Visitor = require("../visitor/model");
@@ -29,6 +32,11 @@ exports.create = async (req, res, next) => {
 
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
+    await visitorService.create({
+      date: moment().utcOffset("+05:30"),
+      clinicId: req.body.clinicId,
+      patientId: data.id,
+    });
 
     let patientData = await redisClient.GET(
       `patient?userId=${req.requestor.id}`
@@ -67,29 +75,54 @@ exports.getAllByUser = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+
+function flatten(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(
+      Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten
+    );
+  }, []);
+}
+
 exports.getOne = async (req, res, next) => {
   try {
-    const data = await service.get({
+    const [data] = await service.get({
       where: { userId: req.requestor.id, id: req.params.id },
       include: [
         {
           model: Treatment,
           required: false,
           order: [["createdAt", "DESC"]],
-          limit: 1,
         },
         {
           model: Transaction,
           required: false,
           order: [["createdAt", "DESC"]],
-          limit: 1,
         },
       ],
     });
+    const receivedPayment = await transactionService.sum("amount", {
+      where: {
+        patientId: req.params.id,
+      },
+    });
+    const onProcessTreatment = await treatmentService.get({
+      where: {
+        patientId: req.params.id,
+        status: "OnGoing",
+      },
+    });
+
+    let onProcessTeeth = onProcessTreatment.map((el) => el.toothNumber);
+    onProcessTeeth = [...new Set(flatten(onProcessTeeth))];
 
     res.status(200).send({
       status: "success",
       data,
+      receivedPayment: receivedPayment ? receivedPayment : 0,
+      pendingPayment: data.remainBill,
+      totalPayment: data.remainBill + receivedPayment,
+      onProcessTeeth,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -163,12 +196,13 @@ const getUpdatedSchedule = async (patientData, search, selectedIds) => {
 exports.getSearchByDate = async (req, res, next) => {
   try {
     let selectedIds, searchData, patientData;
-    const data = await Visitor.findAll({
+    const data = await visitorService.get({
       where: {
         date: req.query.date,
         clinicId: req.query.clinicId,
       },
     });
+    console.log(data);
     selectedIds = data.map((searchIds) => searchIds.patientId);
 
     patientData = await redisClient.GET(`patient?userId=${req.requestor.id}`);

@@ -15,14 +15,11 @@ exports.create = async (req, res, next) => {
 
 exports.get = async (req, res, next) => {
   try {
-    const data = await service.get({
-      where: {
-        id: 1,
-      },
-    });
+    const data = await service.get();
+
     res.status(200).send({
       status: "success",
-      data,
+      data: data[0],
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -31,7 +28,7 @@ exports.get = async (req, res, next) => {
 
 exports.edit = async (req, res, next) => {
   try {
-    const id = 1;
+    const id = req.params.id;
     const data = await service.update(req.body, {
       where: {
         id,

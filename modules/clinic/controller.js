@@ -47,14 +47,6 @@ exports.getAllByUser = async (req, res, next) => {
   try {
     const data = await service.get({
       where: { userId: req.requestor.id },
-      ...usersqquery(req.query),
-
-      include: [
-        {
-          model: userModel,
-          attributes: ["name", "profilePic", "mobile", "about", "email"],
-        },
-      ],
     });
 
     res.status(200).send({

@@ -1,6 +1,8 @@
 const service = require("./service");
 const sequelize = require("../../config/db");
 const Patient = require("../patient/model");
+const visitorService = require("../visitor/service");
+const moment = require("moment");
 const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
@@ -10,10 +12,21 @@ exports.create = async (req, res, next) => {
       by: req.body.amount,
       where: { id: req.body.patientId },
     });
-
+    await visitorService.update(
+      {
+        isVisited: true,
+      },
+      {
+        where: {
+          patientId: req.body.patientId,
+          clinicId: req.body.clinicId,
+          date: moment().utcOffset("+05:30"),
+        },
+      }
+    );
     await Patient.update(
       {
-        lastVisitedDate: Date.now(),
+        lastVisitedDate: moment().utcOffset("+05:30"),
       },
       {
         where: {
@@ -21,29 +34,10 @@ exports.create = async (req, res, next) => {
         },
       }
     );
+
     res.status(201).json({
       status: "success",
       message: "Add Treatment successfully",
-    });
-  } catch (error) {
-    next(error || createError(404, "Data not found"));
-  }
-};
-exports.ongoingProcessTeeth = async (req, res, next) => {
-  try {
-    const data = await service.get({
-      where: {
-        clinicId: req.query.clinicId,
-        patientId: req.query.patientId,
-        status: "OnGoing",
-      },
-    });
-
-    res.status(200).send({
-      status: "success",
-      data: {
-        toothNumber: data[0]["toothNumber"],
-      },
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -55,27 +49,6 @@ exports.getAll = async (req, res, next) => {
     const data = await service.get({
       ...sqquery(req.query),
     });
-    res.status(200).send({
-      status: "success",
-      data,
-    });
-  } catch (error) {
-    next(error || createError(404, "Data not found"));
-  }
-};
-exports.getBill = async (req, res, next) => {
-  try {
-    const { clinicId, patientId } = req.query;
-    const data = await service.get({
-      attributes: [
-        [sequelize.fn("sum", sequelize.col("amount")), "totalAmount"],
-      ],
-      where: {
-        clinicId,
-        patientId,
-      },
-    });
-
     res.status(200).send({
       status: "success",
       data,
@@ -117,7 +90,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete Post successfully",
+      message: "delete treatment successfully",
       data,
     });
   } catch (error) {
