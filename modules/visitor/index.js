@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../../utils/fileUploads");
 const {
   create,
   getAll,
@@ -9,6 +8,7 @@ const {
   getAllVisitorByDate,
   countOfvisitorForAllDates,
   findNotVisited,
+  schedule,
 } = require("./controller");
 const {
   visitorValidation,
@@ -22,5 +22,6 @@ router.route("/info/visiterInfoByDate").get(getAllVisitorByDate);
 router.route("/info/findNotVisited").get(findNotVisited);
 router.route("/info/countOfVisitors").get(countOfvisitorForAllDates);
 router.route("/reschedule").post(rescheduleValidation, create);
+router.route("/schedule").post(rescheduleValidation, schedule);
 
 module.exports = router;

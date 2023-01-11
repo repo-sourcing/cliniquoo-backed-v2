@@ -10,28 +10,59 @@ const { sqquery, usersqquery } = require("../../utils/query");
 
 exports.create = async (req, res, next) => {
   try {
-    const { date, clinicId, patientId, isCanceled } = req.body;
-    let previousScheduleData;
-    //logic for reschedule if reschedule previous appointment date isCancelled true and add new entry
-    if (req.body.previousScheduleDate) {
-      previousScheduleData = await service.update(
-        { isCanceled: true },
-        {
-          where: {
-            date: req.body.previousScheduleDate,
-            clinicId,
-            patientId,
-          },
-        }
-      );
-    }
-
-    const data = await Visitor.findOrCreate({
+    const { date, clinicId, patientId } = req.body;
+    // let previousScheduleData;
+    // //logic for reschedule if reschedule previous appointment date isCancelled true and add new entry
+    // if (req.body.previousScheduleDate) {
+    //   previousScheduleData = await service.update(
+    //     { isCanceled: true },
+    //     {
+    //       where: {
+    //         date: req.body.previousScheduleDate,
+    //         clinicId,
+    //         patientId,
+    //       },
+    //     }
+    //   );
+    // }
+    const [visitor] = await service.get({
       where: {
         date,
         clinicId,
         patientId,
       },
+    });
+
+    if (visitor)
+      return res.status(200).json({
+        status: "fail",
+        message: "this patient already schedul on this date",
+      });
+
+    const data = await service.create({
+      date,
+      clinicId,
+      patientId,
+    });
+
+    res.status(201).json({
+      status: "success",
+      message: "Add Visitor successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.schedule = async (req, res, next) => {
+  try {
+    const { date, clinicId, patientId } = req.body;
+
+    const data = await Visitor.findOrCreate({
+      date,
+      clinicId,
+      patientId,
     });
 
     res.status(201).json({
