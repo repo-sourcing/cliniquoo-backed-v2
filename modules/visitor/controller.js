@@ -223,21 +223,33 @@ exports.findNotVisited = async (req, res, next) => {
 };
 exports.countOfvisitorForAllDates = async (req, res, next) => {
   try {
-    let startDate = moment().subtract(514, "days");
+    let startDate = moment().subtract(14, "days");
     let endDate = moment().add(14, "days");
-    const data = await Visitor.count({
+    const featurePatientCount = await Visitor.count({
       where: {
         date: {
-          [Op.gte]: new Date(startDate),
+          [Op.gte]: new Date(moment().utcOffset("+05:30")),
           [Op.lte]: moment(endDate).add(1, "days"),
         },
         clinicId: req.query.clinicId,
       },
       group: [Sequelize.fn("date", Sequelize.col("date"))],
     });
+    const missPatientCount = await Visitor.count({
+      where: {
+        date: {
+          [Op.lte]: new Date(moment().utcOffset("+05:30").subtract(1, "days")),
+          [Op.gte]: moment(startDate),
+        },
+        isVisited: false,
+        clinicId: req.query.clinicId,
+      },
+      group: [Sequelize.fn("date", Sequelize.col("date"))],
+    });
     res.status(200).send({
       status: "success",
-      data,
+      featurePatientCount,
+      missPatientCount,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
