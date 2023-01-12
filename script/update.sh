@@ -1,8 +1,6 @@
 #!/bin/bash
 
-cd
-
-cd dento-backend
+cd /root/dento-backend
 
 npm install
 
