@@ -3,6 +3,7 @@ const visitorService = require("../visitor/service");
 const crypto = require("crypto");
 const moment = require("moment");
 const Treatment = require("../treatment/model");
+const MedicalHistory = require("../medicalHistory/model");
 const treatmentService = require("../treatment/service");
 const Transaction = require("../transaction/model");
 const transactionService = require("../transaction/service");
@@ -96,6 +97,11 @@ exports.getOne = async (req, res, next) => {
         },
         {
           model: Transaction,
+          required: false,
+          order: [["createdAt", "DESC"]],
+        },
+        {
+          model: MedicalHistory,
           required: false,
           order: [["createdAt", "DESC"]],
         },
