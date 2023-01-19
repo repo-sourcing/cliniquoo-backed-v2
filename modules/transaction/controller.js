@@ -72,18 +72,18 @@ exports.create = async (req, res, next) => {
       }
     );
 
-    if (req.body?.isComplete === true) {
-      await Treatment.update(
-        {
-          status: "Done",
-        },
-        {
-          where: {
-            id: req.body.patientId,
-          },
-        }
-      );
-    }
+    // if (req.body?.isComplete === true) {
+    //   await Treatment.update(
+    //     {
+    //       status: "Done",
+    //     },
+    //     {
+    //       where: {
+    //         id: req.body.patientId,
+    //       },
+    //     }
+    //   );
+    // }
     if (req.body?.date) {
       await Visitor.findOrCreate({
         where: {
