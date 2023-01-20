@@ -2,7 +2,7 @@ const service = require("./service");
 const sequelize = require("../../config/db");
 exports.create = async (req, res, next) => {
   try {
-    await service.create(req.body);
+    const data = await service.create(req.body);
     res.status(201).json({
       status: "success",
       message: "Add Medical History of Patient successfully",
