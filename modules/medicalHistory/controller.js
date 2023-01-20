@@ -6,6 +6,7 @@ exports.create = async (req, res, next) => {
     res.status(201).json({
       status: "success",
       message: "Add Medical History of Patient successfully",
+      data,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
