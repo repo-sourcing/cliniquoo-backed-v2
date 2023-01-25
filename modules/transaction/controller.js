@@ -89,7 +89,7 @@ exports.create = async (req, res, next) => {
         },
         {
           where: {
-            id: req.body.patientId,
+            patientId: req.body.patientId,
           },
         }
       );
