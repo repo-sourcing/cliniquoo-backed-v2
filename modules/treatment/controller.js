@@ -6,21 +6,32 @@ const moment = require("moment");
 const { sqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
+    const { clinicId, patientId } = req.body;
     const data = await service.create(req.body);
 
+    await visitorService.findOrCreate({
+      where: {
+        date: moment().utcOffset("+05:30"),
+        clinicId,
+        patientId,
+      },
+      defaults: { isVisited: true },
+    });
     await Patient.increment("remainBill", {
       by: req.body.amount,
       where: { id: req.body.patientId },
     });
+
     await visitorService.update(
       {
         isVisited: true,
       },
       {
         where: {
-          patientId: req.body.patientId,
-          clinicId: req.body.clinicId,
+          patientId,
+          clinicId,
           date: moment().utcOffset("+05:30"),
+          isVisited: false,
         },
       }
     );

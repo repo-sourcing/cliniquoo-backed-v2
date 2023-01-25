@@ -21,9 +21,9 @@ exports.mobileProtected = async (req, res, next) => {
       req.headers.authorization.startsWith("Bearer")
     ) {
       const token = req.headers.authorization.split(" ")[1];
-      console.log(token);
+
       const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
-      console.log(jwtUser);
+
       const mobile = jwtUser.mobile;
 
       if (mobile) {
@@ -108,7 +108,7 @@ exports.verifiedCheck = async (req, res, next) => {
     ) {
       const token = req.headers.authorization.split(" ")[1];
       const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
-      console.log(jwtUser);
+
       if (jwtUser.isVerified) {
         req.requestor = jwtUser;
         next();

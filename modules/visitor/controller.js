@@ -59,10 +59,12 @@ exports.schedule = async (req, res, next) => {
   try {
     const { date, clinicId, patientId } = req.body;
 
-    const data = await Visitor.findOrCreate({
-      date,
-      clinicId,
-      patientId,
+    const data = await service.findOrCreate({
+      where: {
+        date,
+        clinicId,
+        patientId,
+      },
     });
 
     res.status(201).json({

@@ -53,7 +53,6 @@ exports.create = async (req, res, next) => {
       });
     }
     const data = await service.create(req.body);
-    console.log("data login", data);
 
     res.status(201).json({
       status: 201,
@@ -218,7 +217,6 @@ exports.sendOTP = async (req, res, next) => {
     };
     Services.post(`https://api.kaleyra.io/v1/${process.env.SID}/verify`, body)
       .then((el) => {
-        console.log("el", el.data);
         res.status(200).json({
           status: "success",
           message: "OTP send successfully",
@@ -280,7 +278,6 @@ exports.verifyOTP = async (req, res, next) => {
       body
     )
       .then(async (el) => {
-        console.log("el", el.data);
         const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
         let encrypted = cipher.update(
           req.requestor.mobile.toString(),
@@ -294,7 +291,6 @@ exports.verifyOTP = async (req, res, next) => {
             mobile: encrypted.toString(),
           },
         });
-        console.log(user);
         if (!user) {
           const token = await auth.singMobileToken(req.requestor.mobile, true);
           res.status(200).json({
@@ -475,7 +471,6 @@ exports.signup = async (req, res, next) => {
 };
 exports.getMe = async (req, res, next) => {
   try {
-    console.log(req.requestor);
     const [data] = await service.get({
       where: {
         id: req.requestor.id,

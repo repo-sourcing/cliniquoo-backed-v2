@@ -8,8 +8,11 @@ const Treatment = require("../treatment/model");
 const moment = require("moment");
 const Visitor = require("../visitor/model");
 const visitorService = require("../visitor/service");
+
 exports.create = async (req, res, next) => {
   try {
+    const { clinicId, patientId } = req.body;
+
     const selectTooth = req.body.processedToothNumber.split(",");
     let final = [];
     await Promise.all(
@@ -23,9 +26,7 @@ exports.create = async (req, res, next) => {
             },
           },
         });
-        console.log(runningTreatment);
         runningTreatment.map((el) => {
-          console.log(el.name);
           final.push({
             treatment: el.name,
             tooth: selectTooth.filter((element) =>
@@ -35,7 +36,6 @@ exports.create = async (req, res, next) => {
         });
       })
     );
-    console.log("final", final);
 
     const ids = final.map((o) => o.treatment);
     const filtered = final.filter(
@@ -44,15 +44,25 @@ exports.create = async (req, res, next) => {
 
     req.body.processedToothNumber = filtered;
     const data = await service.create(req.body);
+
+    await visitorService.findOrCreate({
+      where: {
+        date: moment().utcOffset("+05:30"),
+        clinicId,
+        patientId,
+      },
+      defaults: { isVisited: true },
+    });
     await visitorService.update(
       {
         isVisited: true,
       },
       {
         where: {
-          patientId: req.body.patientId,
-          clinicId: req.body.clinicId,
+          patientId,
+          clinicId,
           date: moment().utcOffset("+05:30"),
+          isVisited: false,
         },
       }
     );

@@ -4,6 +4,10 @@ exports.create = async (data) => {
   return Visitor.create(data);
 };
 
+exports.findOrCreate = async (data) => {
+  return Visitor.findOrCreate(data);
+};
+
 exports.get = async (condition) => {
   return Visitor.findAll(condition);
 };

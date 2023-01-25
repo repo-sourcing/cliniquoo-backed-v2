@@ -208,7 +208,6 @@ exports.getSearchByDate = async (req, res, next) => {
         clinicId: req.query.clinicId,
       },
     });
-    console.log(data);
     selectedIds = data.map((searchIds) => searchIds.patientId);
 
     patientData = await redisClient.GET(`patient?userId=${req.requestor.id}`);
