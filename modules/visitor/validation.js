@@ -55,3 +55,21 @@ exports.rescheduleValidation = async (req, res, next) => {
     });
   }
 };
+
+exports.scheduleValidation = async (req, res, next) => {
+  try {
+    const visitorSchema = yup.object().shape({
+      date: yup.date().required("schedule date is required field"),
+      patientId: yup.number().required("patientId is required"),
+      clinicId: yup.number().required("clinicId is required"),
+    });
+    await visitorSchema.validate(req.body);
+    next();
+  } catch (error) {
+    console.log("error", error);
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+};
