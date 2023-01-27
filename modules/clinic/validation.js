@@ -12,7 +12,7 @@ exports.clinicDataValidation = async (req, res, next) => {
         .min(10, "mobile number should be valid 10 digits")
         .max(10, "mobile number should be valid 10 digits"),
       location: yup.string().required("Location is required"),
-      dayOff: yup.string().required("day off is required"),
+      dayOff: yup.string(),
     });
     await clinicDataSchema.validate(req.body);
     next();
