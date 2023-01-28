@@ -136,13 +136,34 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           include: [
             {
               model: Treatment,
+              where: {
+                createdAt: {
+                  [Op.gte]: moment(req.query.date)
+                    .subtract(330, "minutes")
+                    .toDate(),
+                  [Op.lte]: moment(req.query.date)
+                    .add(1, "day")
+                    .subtract(330, "minutes")
+                    .toDate(),
+                },
+              },
               required: false,
               order: [["createdAt", "DESC"]],
               limit: 1,
             },
             {
               model: Transaction,
-              required: false,
+              where: {
+                createdAt: {
+                  [Op.gte]: moment(req.query.date)
+                    .subtract(330, "minutes")
+                    .toDate(),
+                  [Op.lte]: moment(req.query.date)
+                    .add(1, "day")
+                    .subtract(330, "minutes")
+                    .toDate(),
+                },
+              },
               order: [["createdAt", "DESC"]],
               limit: 1,
             },
@@ -153,12 +174,26 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     const totalAmount = await transactionService.sum("amount", {
       where: {
         clinicId: req.query.clinicId,
+        createdAt: {
+          [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
+          [Op.lte]: moment(req.query.date)
+            .add(1, "day")
+            .subtract(330, "minutes")
+            .toDate(),
+        },
       },
     });
     const cashAmount = await transactionService.sum("amount", {
       where: {
         clinicId: req.query.clinicId,
         type: "Cash",
+        createdAt: {
+          [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
+          [Op.lte]: moment(req.query.date)
+            .add(1, "day")
+            .subtract(330, "minutes")
+            .toDate(),
+        },
       },
     });
     const visited = await service.count({
