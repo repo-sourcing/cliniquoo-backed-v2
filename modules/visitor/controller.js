@@ -199,7 +199,14 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     const visited = await service.count({
       where: {
         date: req.query.date,
+        clinicId: req.query.clinicId,
         isVisited: true,
+      },
+    });
+    const totalVisitor = await service.count({
+      where: {
+        date: req.query.date,
+        clinicId: req.query.clinicId,
       },
     });
 
@@ -208,6 +215,8 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       totalAmount: totalAmount ? totalAmount : 0,
       cashAmount: cashAmount ? cashAmount : 0,
       visited: visited ? visited : 0,
+      totalVisitor: totalVisitor ? totalVisitor : 0,
+      pendingVisitor: totalVisitor - visited,
       data,
     });
   } catch (error) {
