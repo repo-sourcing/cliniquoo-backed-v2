@@ -8,12 +8,18 @@ const {
   removeOne,
   sendToTopic,
 } = require("./controller");
-const{notificationValidation,updateNotificationValidation}=require("./validation")
+const {
+  notificationValidation,
+  updateNotificationValidation,
+} = require("./validation");
 
-router.route("/").get(getMyNotification).post(notificationValidation,create);
+router.route("/").get(getMyNotification).post(notificationValidation, create);
 router.route("/clearAll").delete(removeAll);
 router.route("/sendToTopic").post(sendToTopic);
 
-router.route("/:id").delete(removeOne).patch(updateNotificationValidation,update);
+router
+  .route("/:id")
+  .delete(removeOne)
+  .patch(updateNotificationValidation, update);
 
 module.exports = router;

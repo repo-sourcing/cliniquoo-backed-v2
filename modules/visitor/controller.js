@@ -80,6 +80,7 @@ exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
       ...sqquery(req.query),
+      include: [Patient],
     });
     res.status(200).send({
       status: "success",
