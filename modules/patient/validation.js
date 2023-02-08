@@ -5,7 +5,7 @@ exports.patientValidation = async (req, res, next) => {
       /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
     const patientSchema = yup.object().shape({
       name: yup.string().required("name is required"),
-      location: yup.string().required("location is required"),
+      location: yup.string(),
       mobile: yup
         .string()
         .matches(phoneRegExp, "mobile number should be valid 10 digits")

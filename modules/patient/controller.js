@@ -17,19 +17,19 @@ exports.create = async (req, res, next) => {
     // Find patient with same phone number
     // If patient found with this  phone number. Then throw error
     // otherwise add new data
-    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    var encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
-    encrypted += cipher.final("hex");
+    // const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+    // var encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
+    // encrypted += cipher.final("hex");
 
-    const [patientWithSamePhoneNo] = await service.get({
-      where: { mobile: encrypted.toString() },
-    });
+    // const [patientWithSamePhoneNo] = await service.get({
+    //   where: { mobile: encrypted.toString() },
+    // });
     // patient with same phone number is  found.
-    if (patientWithSamePhoneNo) {
-      return res.status(400).json({
-        message: "This Phone Number is already register,try with another one",
-      });
-    }
+    // if (patientWithSamePhoneNo) {
+    //   return res.status(400).json({
+    //     message: "This Phone Number is already register,try with another one",
+    //   });
+    // }
 
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);

@@ -21,6 +21,10 @@ const Visitor = sequelize.define("visitor", {
     defaultValue: false,
     allowNull: false,
   },
+  isSchedule: {
+    type: Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
 });
 
 Clinic.hasMany(Visitor);

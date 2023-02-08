@@ -67,6 +67,17 @@ exports.schedule = async (req, res, next) => {
       },
     });
 
+    await service.update(
+      {
+        isSchedule: true,
+      },
+      {
+        where: {
+          patientId,
+          clinicId,
+        },
+      }
+    );
     res.status(201).json({
       status: "success",
       message: "Add Visitor successfully",
@@ -237,8 +248,8 @@ exports.findNotVisited = async (req, res, next) => {
         },
         clinicId: req.query.clinicId,
         isVisited: false,
+        isSchedule: false,
       },
-
       include: [
         {
           model: Patient,
@@ -258,6 +269,7 @@ exports.findNotVisited = async (req, res, next) => {
           ],
         },
       ],
+      group: ["patientId"],
     });
 
     res.status(200).send({
