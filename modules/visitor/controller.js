@@ -177,7 +177,6 @@ exports.getAllVisitorByDate = async (req, res, next) => {
                 },
               },
               order: [["createdAt", "DESC"]],
-              limit: 1,
             },
           ],
         },
