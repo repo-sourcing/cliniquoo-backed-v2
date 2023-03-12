@@ -61,5 +61,6 @@ router.use(
 router.use("/payment", require("../modules/razorpay"));
 router.use("/user", require("../modules/user"));
 router.use("/config", require("../modules/config"));
+router.use("/service", require("../modules/log"));
 
 module.exports = router;

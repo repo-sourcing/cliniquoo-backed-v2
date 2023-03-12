@@ -43,19 +43,13 @@ exports.mobileProtected = async (req, res, next) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(404).json({
-      status: "fail",
-      message: error,
-    });
+    return next(createError(404, error));
   }
 };
 
 exports.authMiddleware = async (req, res, next) => {
   if (req.headers.authorization == null)
-    return res.status(401).json({
-      status: "fail",
-      message: "Not Authorized",
-    });
+    return next(createError(401, "Not Authorized"));
 
   if (!req.headers.authorization.startsWith("Bearer"))
     return res.status(401).json({

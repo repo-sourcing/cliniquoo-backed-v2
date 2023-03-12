@@ -21,13 +21,27 @@ app.use(function (req, res, next) {
   next(createError(404, "URL Not Found"));
 });
 
+const logService = require("./modules/log/service");
+
 // error handler
-app.use(function (err, req, res, next) {
+app.use(async (err, req, res, next) => {
   console.log({ err });
   res.status(err.status || 500).json({
-    status: err.status || 500,
-    message: err.message || "Unknown Error",
+    status: "fail",
+    message: err.message || "Unknown Error.",
+    // stack: err.stack,
+  });
+  await logService.create({
+    method: req.method,
+    url: req.url,
+    statusCode: err.status || res.statusCode,
+    message: err.message || "Something went wrong!",
     stack: err.stack,
+    payload: {
+      params: req.params,
+      body: req.body,
+      query: req.query,
+    },
   });
 });
 

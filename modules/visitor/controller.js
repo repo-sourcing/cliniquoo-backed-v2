@@ -34,10 +34,9 @@ exports.create = async (req, res, next) => {
     });
 
     if (visitor)
-      return res.status(200).json({
-        status: "fail",
-        message: "this patient already schedul on this date",
-      });
+      return next(
+        createError(200, "this patient already schedule on this date")
+      );
 
     const data = await service.create({
       date,

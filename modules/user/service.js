@@ -15,3 +15,7 @@ exports.update = async (id, data) => {
 exports.remove = async (id) => {
   return User.destroy({ where: { id } });
 };
+
+exports.restore = async (id) => {
+  return User.restore({ where: { id } });
+};

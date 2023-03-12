@@ -13,6 +13,9 @@ exports.create = async (req, res, next) => {
   try {
     const { clinicId, patientId } = req.body;
 
+    if (!req.body.processedToothNumber)
+      return next(createError(200, "tooth number must be required"));
+
     const selectTooth = req.body.processedToothNumber.split(",");
     let final = [];
     await Promise.all(

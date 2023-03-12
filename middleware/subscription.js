@@ -18,10 +18,9 @@ exports.checkSubscription = async (req, res, next) => {
       if (moment(checkSubscription?.endSubscriptionDate).isAfter(new Date())) {
         next();
       } else {
-        res.status(400).json({
-          status: "fail",
-          message: `To Use this Features Please Take the Subscription`,
-        });
+        return next(
+          createError(200, "To Use this Features Please Take the Subscription")
+        );
       }
     } else {
       const [data] = await userSubscriptionService.findAll({
@@ -46,22 +45,20 @@ exports.checkSubscription = async (req, res, next) => {
           );
           next();
         } else {
-          res.status(400).json({
-            status: "fail",
-            message: `To Use this Features Please Take the Subscription`,
-          });
+          return next(
+            createError(
+              200,
+              "To Use this Features Please Take the Subscription"
+            )
+          );
         }
       } else {
-        res.status(400).json({
-          status: "fail",
-          message: `To Use this Features Please Take the Subscription`,
-        });
+        return next(
+          createError(200, "To Use this Features Please Take the Subscription")
+        );
       }
     }
   } catch (error) {
-    res.status(401).json({
-      status: "fail",
-      message: "User not subscribed",
-    });
+    return next(createError(200, "User not subscribed"));
   }
 };

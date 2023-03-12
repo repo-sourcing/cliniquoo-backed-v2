@@ -1,8 +1,6 @@
 const { createClient, SchemaFieldTypes } = require("redis");
 const redisClient = createClient({
-  url: `redis://:@localhost:${
-    process.env.NODE_ENV === "production" ? "6379" : "6380"
-  }/0`,
+  url: `redis://default:redispw@localhost:32769`,
 });
 
 try {

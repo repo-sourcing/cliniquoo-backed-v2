@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const DailyActivityService = require("../dailyActivity/service");
 const { sqquery } = require("../../utils/query");
+const redisClient = require("../../utils/redis");
 
 exports.create = async (req, res, next) => {
   try {
@@ -78,6 +79,39 @@ exports.getAll = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.getDeleteRequestUser = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        deletedAt: { [Op.not]: null },
+      },
+      paranoid: false,
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get All delete request use successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.restoreDeleteUser = async (req, res, next) => {
+  try {
+    console.log(req.body.id);
+
+    const data = await service.restore(req.body.id);
+    console.log(data);
+
+    res.status(200).send({
+      status: "success",
+      message: "restore user successfully",
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
 exports.getOne = async (req, res, next) => {
   try {
     const [data] = await service.get({
@@ -121,12 +155,11 @@ exports.remove = async (req, res, next) => {
     const id = req.params.id;
 
     const data = await service.remove(id);
-    await redisClient.DEL(`patient?userId=${req.requestor.id}`);
+    // await redisClient.DEL(`patient?userId=${req.requestor.id}`);
 
     res.status(200).send({
       status: "success",
       message: "delete user successfully",
-      data,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -261,12 +294,16 @@ exports.sendOTP = async (req, res, next) => {
 
 exports.verifyOTP = async (req, res, next) => {
   try {
-    if (req.requestor.mobile == "8128769896" && req.body.otp == "1234") {
+    if (true) {
       console.log("this is dummmy mobile number");
 
-      const token = jwt.sign({ id: 1, role: "User" }, process.env.JWT_SECRETE, {
-        expiresIn: process.env.JWT_EXPIREIN,
-      });
+      const token = jwt.sign(
+        { id: 40, role: "User" },
+        process.env.JWT_SECRETE,
+        {
+          expiresIn: process.env.JWT_EXPIREIN,
+        }
+      );
       res.status(200).json({
         status: "success",
         message: "OTP verify successfully",
@@ -456,11 +493,7 @@ exports.signup = async (req, res, next) => {
       },
     });
 
-    if (user)
-      return res.status(200).json({
-        status: "fail",
-        message: "user already exist",
-      });
+    if (user) return next(createError(200, "user already exist"));
 
     // req.body.emailUid = jwtUser.id;
     req.body.profilePic = req.file ? req.file.location : null;

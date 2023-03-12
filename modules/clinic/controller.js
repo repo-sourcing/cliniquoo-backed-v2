@@ -26,11 +26,8 @@ exports.create = async (req, res, next) => {
       },
     });
 
-    if (clinic)
-      return res.status(200).json({
-        status: "fail",
-        message: "user already exist",
-      });
+    if (clinic) return next(createError(200, "user already exist"));
+
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
 
