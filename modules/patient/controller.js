@@ -119,6 +119,14 @@ exports.getOne = async (req, res, next) => {
       },
     });
 
+    const [nextSchedule] = await visitorService.get({
+      where: {
+        patientId: req.params.id,
+        date: {
+          [Op.gt]: new Date(moment().utcOffset("+05:30")),
+        },
+      },
+    });
     let onProcessTeeth = onProcessTreatment.map((el) => el.toothNumber);
     onProcessTeeth = [...new Set(flatten(onProcessTeeth))];
 
@@ -129,6 +137,7 @@ exports.getOne = async (req, res, next) => {
       pendingPayment: data.remainBill,
       totalPayment: data.remainBill + receivedPayment,
       onProcessTeeth,
+      nextSchedule,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));

@@ -58,6 +58,19 @@ exports.schedule = async (req, res, next) => {
   try {
     const { date, clinicId, patientId } = req.body;
 
+    if (moment(date) < new Date(moment().utcOffset("+05:30")))
+      return next(
+        createError(200, "You can not schedule patient in past date")
+      );
+    await service.remove({
+      where: {
+        clinicId,
+        patientId,
+        date: {
+          [Op.gt]: new Date(moment().utcOffset("+05:30")),
+        },
+      },
+    });
     const data = await service.findOrCreate({
       where: {
         date,
