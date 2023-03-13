@@ -29,6 +29,15 @@ exports.create = async (req, res, next) => {
     if (clinic) return next(createError(200, "user already exist"));
 
     req.body.userId = req.requestor.id;
+
+    const noOfClinic = await service.count({
+      where: {
+        userId: req.requestor.id,
+      },
+    });
+
+    if (noOfClinic >= 3)
+      return next(createError(200, "You Can Add max 3 clinic"));
     const data = await service.create(req.body);
 
     res.status(200).json({
@@ -100,6 +109,14 @@ exports.edit = async (req, res, next) => {
 exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;
+    const noOfClinic = await service.count({
+      where: {
+        userId: req.requestor.id,
+      },
+    });
+
+    if (noOfClinic <= 1)
+      return next(createError(200, "Minimum 1 clinic is required"));
 
     const data = await service.remove({
       where: {

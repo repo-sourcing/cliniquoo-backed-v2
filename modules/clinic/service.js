@@ -15,3 +15,6 @@ exports.update = async (data, condition) => {
 exports.remove = async (condition) => {
   return Clinic.destroy(condition);
 };
+exports.count = async (data) => {
+  return await Clinic.count(data);
+};
