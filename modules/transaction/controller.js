@@ -104,6 +104,15 @@ exports.create = async (req, res, next) => {
       );
     }
     if (req.body?.date) {
+      await visitorService.remove({
+        where: {
+          clinicId,
+          patientId,
+          date: {
+            [Op.gt]: new Date(moment().utcOffset("+05:30")),
+          },
+        },
+      });
       await Visitor.findOrCreate({
         where: {
           date: req.body.date,
