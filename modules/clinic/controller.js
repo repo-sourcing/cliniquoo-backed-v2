@@ -16,7 +16,7 @@ exports.create = async (req, res, next) => {
     });
     // clinic with same phone number is  found.
     if (clinicWithSamePhoneNo) {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "This Phone Number is already register,try with another one",
       });
     }
@@ -31,7 +31,7 @@ exports.create = async (req, res, next) => {
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
 
-    res.status(201).json({
+    res.status(200).json({
       status: "success",
       message: "Add Clinic successfully",
       data,

@@ -17,6 +17,7 @@ exports.create = async (req, res, next) => {
       return next(createError(200, "tooth number must be required"));
 
     const selectTooth = req.body.processedToothNumber.split(",");
+
     let final = [];
     await Promise.all(
       selectTooth.map(async (el) => {
@@ -30,12 +31,17 @@ exports.create = async (req, res, next) => {
           },
         });
         runningTreatment.map((el) => {
-          final.push({
-            treatment: el.name,
-            tooth: selectTooth.filter((element) =>
-              el.toothNumber.includes(element)
-            ),
-          });
+          const tempString = el.toothNumber.toString().replaceAll(" ", "");
+          const matchTooth = selectTooth.filter((element) =>
+            tempString.includes(element)
+          );
+
+          if (matchTooth.length > 0) {
+            final.push({
+              treatment: el.name,
+              tooth: matchTooth,
+            });
+          }
         });
       })
     );

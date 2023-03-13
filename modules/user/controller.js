@@ -294,16 +294,12 @@ exports.sendOTP = async (req, res, next) => {
 
 exports.verifyOTP = async (req, res, next) => {
   try {
-    if (true) {
+    if (req.requestor.mobile == "8128769896" && req.body.otp == "1234") {
       console.log("this is dummmy mobile number");
 
-      const token = jwt.sign(
-        { id: 40, role: "User" },
-        process.env.JWT_SECRETE,
-        {
-          expiresIn: process.env.JWT_EXPIREIN,
-        }
-      );
+      const token = jwt.sign({ id: 1, role: "User" }, process.env.JWT_SECRETE, {
+        expiresIn: process.env.JWT_EXPIREIN,
+      });
       res.status(200).json({
         status: "success",
         message: "OTP verify successfully",
