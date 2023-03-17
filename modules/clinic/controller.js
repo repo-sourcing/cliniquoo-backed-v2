@@ -1,32 +1,32 @@
 const service = require("./service");
 const userModel = require("../user/model");
-let crypto = require("crypto");
+// let crypto = require("crypto");
 const { sqquery, usersqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
     // Find clinic with e phone number
     // If clinic found with this  phone number. Then throw error
     // otherwise add new data
-    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    let encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
-    encrypted += cipher.final("hex");
+    // const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+    // let encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
+    // encrypted += cipher.final("hex");
 
-    const [clinicWithSamePhoneNo] = await service.get({
-      where: { mobile: encrypted.toString() },
-    });
-    // clinic with same phone number is  found.
-    if (clinicWithSamePhoneNo) {
-      return res.status(200).json({
-        message: "This Phone Number is already register,try with another one",
-      });
-    }
-    const [clinic] = await service.get({
-      where: {
-        mobile: req.body.mobile,
-      },
-    });
+    // const [clinicWithSamePhoneNo] = await service.get({
+    //   where: { mobile: encrypted.toString() },
+    // });
+    // // clinic with same phone number is  found.
+    // if (clinicWithSamePhoneNo) {
+    //   return res.status(200).json({
+    //     message: "This Phone Number is already register,try with another one",
+    //   });
+    // }
+    // const [clinic] = await service.get({
+    //   where: {
+    //     mobile: req.body.mobile,
+    //   },
+    // });
 
-    if (clinic) return next(createError(200, "user already exist"));
+    // if (clinic) return next(createError(200, "user already exist"));
 
     req.body.userId = req.requestor.id;
 
