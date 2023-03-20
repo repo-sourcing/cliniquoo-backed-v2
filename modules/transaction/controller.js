@@ -119,8 +119,10 @@ exports.create = async (req, res, next) => {
           clinicId: req.body.clinicId,
           patientId: req.body.patientId,
         },
+        defaults: { isVisited: true },
       });
     }
+
     res.status(201).json({
       status: "success",
       message: "Add Transaction successfully",
