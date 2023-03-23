@@ -112,6 +112,20 @@ exports.restoreDeleteUser = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.approveDeleteUser = async (req, res, next) => {
+  try {
+    console.log(req.body.id);
+
+    const data = await service.hardRemove(req.body.id);
+
+    res.status(200).send({
+      status: "success",
+      message: "restore user successfully",
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
 exports.getOne = async (req, res, next) => {
   try {
     const [data] = await service.get({

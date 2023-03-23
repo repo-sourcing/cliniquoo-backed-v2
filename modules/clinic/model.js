@@ -33,7 +33,6 @@ const Clinic = sequelize.define(
     },
     mobile: {
       type: Sequelize.STRING,
-      unique: true,
       allowNull: false,
       get() {
         const storedValue = this.getDataValue("mobile");
