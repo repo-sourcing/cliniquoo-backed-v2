@@ -15,6 +15,9 @@ exports.update = async (id, data) => {
 exports.remove = async (id) => {
   return User.destroy({ where: { id } });
 };
+exports.count = async (condition) => {
+  return User.count(condition);
+};
 exports.hardRemove = async (id) => {
   return User.destroy({ where: { id }, force: true });
 };

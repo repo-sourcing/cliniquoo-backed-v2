@@ -247,7 +247,31 @@ exports.remove = async (req, res, next) => {
 
 exports.sendOTP = async (req, res, next) => {
   try {
+    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
+    let encryptedMobile = cipher.update(
+      req.body.mobile.toString(),
+      "utf8",
+      "hex"
+    );
+    encryptedMobile += cipher.final("hex");
+
+    const deletedUser = await count.get({
+      where: {
+        deletedAt: { [Op.not]: null },
+        mobile: encryptedMobile.toString(),
+      },
+      paranoid: false,
+    });
+
+    // user with same phone number is  found.
+    if (deletedUser > 0) {
+      return res.status(200).json({
+        message: "please wait for admin approve ",
+      });
+    }
+
     let mobile = `+91${req.body.mobile * 1}`;
+
     const token = await auth.singMobileToken(req.body.mobile * 1, false);
     const Services = axios.create({
       headers: {
