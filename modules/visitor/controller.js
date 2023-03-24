@@ -92,7 +92,7 @@ exports.schedule = async (req, res, next) => {
     );
     res.status(201).json({
       status: "success",
-      message: "Add Visitor successfully",
+      message: "Patient scheduled successfully",
       data,
     });
   } catch (error) {

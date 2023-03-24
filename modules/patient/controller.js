@@ -52,9 +52,9 @@ exports.create = async (req, res, next) => {
       JSON.stringify(storeData)
     );
 
-    res.status(201).json({
+    res.status(200).json({
       status: "success",
-      message: "Add Patient successfully",
+      message: "Patient added successfully",
       data,
     });
   } catch (error) {
