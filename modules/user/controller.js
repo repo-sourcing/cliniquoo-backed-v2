@@ -255,7 +255,7 @@ exports.sendOTP = async (req, res, next) => {
     );
     encryptedMobile += cipher.final("hex");
 
-    const deletedUser = await count.get({
+    const deletedUser = await service.count({
       where: {
         deletedAt: { [Op.not]: null },
         mobile: encryptedMobile.toString(),
@@ -266,6 +266,7 @@ exports.sendOTP = async (req, res, next) => {
     // user with same phone number is  found.
     if (deletedUser > 0) {
       return res.status(200).json({
+        status: "fail",
         message: "please wait for admin approve ",
       });
     }
