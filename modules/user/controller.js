@@ -114,9 +114,15 @@ exports.restoreDeleteUser = async (req, res, next) => {
 };
 exports.approveDeleteUser = async (req, res, next) => {
   try {
-    console.log(req.body.id);
+    const userId = req.body.id;
 
-    const data = await service.hardRemove(req.body.id);
+    await service.hardRemove(userId);
+    await Clinic.destroy({
+      where: {
+        userId,
+      },
+      force: true,
+    });
 
     res.status(200).send({
       status: "success",

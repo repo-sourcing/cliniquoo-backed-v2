@@ -102,6 +102,17 @@ exports.create = async (req, res, next) => {
           },
         }
       );
+
+      //remove feature appointment
+      await visitorService.remove({
+        where: {
+          clinicId,
+          patientId,
+          date: {
+            [Op.gt]: new Date(moment().utcOffset("+05:30")),
+          },
+        },
+      });
     }
     if (req.body?.date) {
       await visitorService.remove({
