@@ -1,15 +1,18 @@
 const Sequelize = require("sequelize");
 require("dotenv").config();
 const env = process.env.NODE_ENV;
-const config = require("./config.json")[env];
+const db_config = require("./config")[env];
 const sequelize = new Sequelize(
-  config.database,
-  config.username,
-  config.password,
-  config
+  db_config.database,
+  db_config.username,
+  db_config.password,
+  db_config,
+  {
+    logging: false,
+  }
 );
 
-console.log(config);
+console.log(db_config);
 sequelize
   .authenticate()
   .then(() => {
