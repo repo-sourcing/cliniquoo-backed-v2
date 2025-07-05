@@ -2,7 +2,7 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
-const crypto = require("crypto");
+const { encrypt, decrypt } = require("../../utils/encryption");
 const Clinic = sequelize.define(
   "clinic",
   {
@@ -18,16 +18,11 @@ const Clinic = sequelize.define(
       get() {
         const storedValue = this.getDataValue("name");
         if (storedValue) {
-          let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-          let decrypted = decipher.update(storedValue, "hex", "utf8");
-          decrypted += decipher.final("utf8");
-          return decrypted.toString();
+          return decrypt(storedValue, process.env.CYPHERKEY);
         }
       },
       set(value) {
-        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        let encrypted = cipher.update(value, "utf8", "hex");
-        encrypted += cipher.final("hex");
+        const encrypted = encrypt(value, process.env.CYPHERKEY);
         this.setDataValue("name", encrypted);
       },
     },
@@ -37,21 +32,13 @@ const Clinic = sequelize.define(
       get() {
         const storedValue = this.getDataValue("mobile");
         if (storedValue) {
-          let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-          let decrypted = decipher.update(
-            storedValue.toString(),
-            "hex",
-            "utf8"
-          );
-          decrypted += decipher.final("utf8");
-          return decrypted.toString();
+          return decrypt(storedValue, process.env.CYPHERKEY);
         }
       },
       set(value) {
-        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        let encrypted = cipher.update(value.toString(), "utf8", "hex");
-        encrypted += cipher.final("hex");
-        this.setDataValue("mobile", encrypted.toString());
+        const encrypted = encrypt(value, process.env.CYPHERKEY);
+        console.log(encrypted);
+        this.setDataValue("mobile", encrypted);
       },
     },
     location: {

@@ -2,6 +2,11 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const crypto = require("crypto");
+const { decrypt, encrypt } = require("../../utils/encryption");
+
+// Encryption utility functions
+const ALGORITHM = "aes-256-cbc";
+const IV_LENGTH = 16; // For AES, this is always 16
 
 const User = sequelize.define(
   "user",
@@ -18,21 +23,15 @@ const User = sequelize.define(
       get() {
         const storedValue = this.getDataValue("name");
         if (storedValue) {
-          let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-          let decrypted = decipher.update(
-            storedValue.toString(),
-            "hex",
-            "utf8"
-          );
-          decrypted += decipher.final("utf8");
-          return decrypted.toString();
+          return decrypt(storedValue, process.env.CYPHERKEY);
         }
+        return null;
       },
       set(value) {
-        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        let encrypted = cipher.update(value, "utf8", "hex");
-        encrypted += cipher.final("hex");
-        this.setDataValue("name", encrypted);
+        if (value) {
+          const encrypted = encrypt(value, process.env.CYPHERKEY);
+          this.setDataValue("name", encrypted);
+        }
       },
     },
 
@@ -43,17 +42,15 @@ const User = sequelize.define(
       get() {
         const storedValue = this.getDataValue("email");
         if (storedValue) {
-          let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-          let decrypted = decipher.update(storedValue, "hex", "utf8");
-          decrypted += decipher.final("utf8");
-          return decrypted.toString();
+          return decrypt(storedValue, process.env.CYPHERKEY);
         }
+        return null;
       },
       set(value) {
-        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        let encrypted = cipher.update(value, "utf8", "hex");
-        encrypted += cipher.final("hex");
-        this.setDataValue("email", encrypted);
+        if (value) {
+          const encrypted = encrypt(value, process.env.CYPHERKEY);
+          this.setDataValue("email", encrypted);
+        }
       },
     },
     profilePic: {
@@ -66,21 +63,15 @@ const User = sequelize.define(
       get() {
         const storedValue = this.getDataValue("mobile");
         if (storedValue) {
-          let decipher = crypto.createDecipher("aes128", process.env.CYPHERKEY);
-          let decrypted = decipher.update(
-            storedValue.toString(),
-            "hex",
-            "utf8"
-          );
-          decrypted += decipher.final("utf8");
-          return decrypted.toString();
+          return decrypt(storedValue, process.env.CYPHERKEY);
         }
+        return null;
       },
       set(value) {
-        const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-        let encrypted = cipher.update(value.toString(), "utf8", "hex");
-        encrypted += cipher.final("hex");
-        this.setDataValue("mobile", encrypted.toString());
+        if (value) {
+          const encrypted = encrypt(value.toString(), process.env.CYPHERKEY);
+          this.setDataValue("mobile", encrypted);
+        }
       },
     },
     about: {

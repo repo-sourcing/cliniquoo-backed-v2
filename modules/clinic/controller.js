@@ -4,30 +4,6 @@ const userModel = require("../user/model");
 const { sqquery, usersqquery } = require("../../utils/query");
 exports.create = async (req, res, next) => {
   try {
-    // Find clinic with e phone number
-    // If clinic found with this  phone number. Then throw error
-    // otherwise add new data
-    // const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    // let encrypted = cipher.update(req.body.mobile.toString(), "utf8", "hex");
-    // encrypted += cipher.final("hex");
-
-    // const [clinicWithSamePhoneNo] = await service.get({
-    //   where: { mobile: encrypted.toString() },
-    // });
-    // // clinic with same phone number is  found.
-    // if (clinicWithSamePhoneNo) {
-    //   return res.status(200).json({
-    //     message: "This Phone Number is already register,try with another one",
-    //   });
-    // }
-    // const [clinic] = await service.get({
-    //   where: {
-    //     mobile: req.body.mobile,
-    //   },
-    // });
-
-    // if (clinic) return next(createError(200, "user already exist"));
-
     req.body.userId = req.requestor.id;
 
     const noOfClinic = await service.count({
@@ -38,6 +14,10 @@ exports.create = async (req, res, next) => {
 
     if (noOfClinic >= 3)
       return next(createError(200, "You Can Add max 3 clinic"));
+
+    // Convert mobile to string before saving
+    req.body.mobile = req.body.mobile.toString();
+
     const data = await service.create(req.body);
 
     res.status(200).json({

@@ -39,9 +39,6 @@ router.post(
   userValidation,
   signup
 );
-router
-  .route("/:id")
-  .delete(remove)
-  .patch(auth.authMiddleware, update);
+router.route("/:id").delete(remove).patch(auth.authMiddleware, update);
 router.get("/search/:name", search);
 module.exports = router;

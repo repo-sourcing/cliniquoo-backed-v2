@@ -15,6 +15,7 @@ const sequelize = new Sequelize(
 console.log(db_config);
 sequelize
   .authenticate()
+  // .sync()
   .then(() => {
     console.log("database connected successfully");
   })

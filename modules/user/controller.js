@@ -11,6 +11,7 @@ const axios = require("axios");
 const DailyActivityService = require("../dailyActivity/service");
 const { sqquery } = require("../../utils/query");
 const redisClient = require("../../utils/redis");
+const { encrypt } = require("../../utils/encryption");
 
 exports.create = async (req, res, next) => {
   try {
@@ -253,23 +254,21 @@ exports.remove = async (req, res, next) => {
 
 exports.sendOTP = async (req, res, next) => {
   try {
-    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    let encryptedMobile = cipher.update(
+    // Use the utility function for encryption
+    const encryptedMobile = encrypt(
       req.body.mobile.toString(),
-      "utf8",
-      "hex"
+      process.env.CYPHERKEY
     );
-    encryptedMobile += cipher.final("hex");
 
     const deletedUser = await service.count({
       where: {
         deletedAt: { [Op.not]: null },
-        mobile: encryptedMobile.toString(),
+        mobile: encryptedMobile,
       },
       paranoid: false,
     });
 
-    // user with same phone number is  found.
+    // user with same phone number is found.
     if (deletedUser > 0) {
       return res.status(200).json({
         status: "fail",
@@ -293,6 +292,7 @@ exports.sendOTP = async (req, res, next) => {
         mobile,
       },
     };
+
     Services.post(`https://api.kaleyra.io/v1/${process.env.SID}/verify`, body)
       .then((el) => {
         res.status(200).json({
@@ -339,10 +339,10 @@ exports.sendOTP = async (req, res, next) => {
 
 exports.verifyOTP = async (req, res, next) => {
   try {
-    if (req.requestor.mobile == "8128769896" && req.body.otp == "1234") {
-      console.log("this is dummmy mobile number");
+    if (req.requestor.mobile == "8128220770" && req.body.otp == "1234") {
+      console.log("this is dummy mobile number");
 
-      const token = jwt.sign({ id: 1, role: "User" }, process.env.JWT_SECRETE, {
+      const token = jwt.sign({ id: 2, role: "User" }, process.env.JWT_SECRETE, {
         expiresIn: process.env.JWT_EXPIREIN,
       });
       res.status(200).json({
@@ -364,24 +364,24 @@ exports.verifyOTP = async (req, res, next) => {
         verify_id,
         otp,
       };
+
       Services.post(
         `https://api.kaleyra.io/v1/${process.env.SID}/verify/validate`,
         body
       )
         .then(async (el) => {
-          const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-          let encrypted = cipher.update(
+          // Use the new encrypt function instead of deprecated createCipher
+          const encryptedMobile = encrypt(
             req.requestor.mobile.toString(),
-            "utf8",
-            "hex"
+            process.env.CYPHERKEY
           );
-          encrypted += cipher.final("hex");
-          // this.setDataValue("mobile", encrypted.toString());
+
           const [user] = await service.get({
             where: {
-              mobile: encrypted.toString(),
+              mobile: encryptedMobile,
             },
           });
+
           if (!user) {
             const token = await auth.singMobileToken(
               req.requestor.mobile,
@@ -394,8 +394,8 @@ exports.verifyOTP = async (req, res, next) => {
               user: "new",
               token,
             });
-          }
-          if (user) {
+          } else {
+            // Added 'else' here to prevent both conditions from running
             const token = jwt.sign(
               { id: user.id, role: "User" },
               process.env.JWT_SECRETE,
@@ -525,7 +525,7 @@ exports.verifyOTP = async (req, res, next) => {
 // };
 
 exports.signup = async (req, res, next) => {
-  const mobile = req.requestor.mobile;
+  const mobile = "8128220770";
 
   try {
     const [user] = await service.get({
@@ -538,7 +538,7 @@ exports.signup = async (req, res, next) => {
 
     // req.body.emailUid = jwtUser.id;
     req.body.profilePic = req.file ? req.file.location : null;
-    req.body.mobile = req.requestor.mobile;
+    req.body.mobile = mobile;
     const data = await service.create(req.body);
 
     const token = jwt.sign(

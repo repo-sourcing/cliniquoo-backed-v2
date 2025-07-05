@@ -58,9 +58,9 @@ exports.authMiddleware = async (req, res, next) => {
     });
 
   const token = req.headers.authorization.split(" ")[1];
-
   try {
     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
+
     let requestor;
     if (jwtUser.role === "Admin") {
       [requestor] = await adminService.get({
@@ -75,6 +75,7 @@ exports.authMiddleware = async (req, res, next) => {
           id: jwtUser.id,
         },
       });
+
       requestor.role = "User";
     }
     if (!requestor) {
@@ -87,6 +88,7 @@ exports.authMiddleware = async (req, res, next) => {
       next();
     }
   } catch (error) {
+    console.log(error);
     res.status(401).json({
       status: "fail",
       message: "User not authorized",
