@@ -85,8 +85,15 @@ exports.sendOTPValidation = async (req, res, next) => {
 };
 exports.verifyOTPValidation = async (req, res, next) => {
   try {
+    const phoneRegExp =
+      /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
     const userSchema = yup.object().shape({
-      verify_id: yup.string().required("verify_id number is required field"),
+      mobile: yup
+        .string()
+        .matches(phoneRegExp, "mobile number should be valid 10 digits")
+        .min(10, "mobile number should be valid 10 digits")
+        .max(10, "mobile number should be valid 10 digits")
+        .required("mobile number is required field"),
       otp: yup
         .number()
         .min(1000, "OTP should be valid 4 digits")

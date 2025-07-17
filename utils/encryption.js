@@ -6,7 +6,7 @@ const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 /**
- * Encrypts text using AES-256-CBC encryption
+ * Encrypts text using AES-256-CBC encryption with deterministic IV
  * @param {string} text - Text to encrypt
  * @param {string} key - Encryption key
  * @returns {string|null} - Encrypted text with IV prepended, or null if text is empty
@@ -17,7 +17,12 @@ function encrypt(text, key) {
   try {
     // Create a hash of the key to ensure it's the right length
     const keyHash = crypto.createHash("sha256").update(key).digest();
-    const iv = crypto.randomBytes(IV_LENGTH);
+
+    // Create deterministic IV from text + key for consistent encryption
+    const ivSource = text + key;
+    const ivHash = crypto.createHash("md5").update(ivSource).digest();
+    const iv = ivHash.slice(0, IV_LENGTH);
+
     const cipher = crypto.createCipheriv(ALGORITHM, keyHash, iv);
 
     let encrypted = cipher.update(text, "utf8", "hex");

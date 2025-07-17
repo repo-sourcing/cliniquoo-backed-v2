@@ -12,7 +12,7 @@ const DailyActivityService = require("../dailyActivity/service");
 const { sqquery } = require("../../utils/query");
 const redisClient = require("../../utils/redis");
 const { encrypt } = require("../../utils/encryption");
-
+const msg91Services = require("../../utils/msg91");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
@@ -254,11 +254,9 @@ exports.remove = async (req, res, next) => {
 
 exports.sendOTP = async (req, res, next) => {
   try {
+    const { mobile, countryCode = 91 } = req.body;
     // Use the utility function for encryption
-    const encryptedMobile = encrypt(
-      req.body.mobile.toString(),
-      process.env.CYPHERKEY
-    );
+    const encryptedMobile = encrypt(mobile.toString(), process.env.CYPHERKEY);
 
     const deletedUser = await service.count({
       where: {
@@ -276,39 +274,49 @@ exports.sendOTP = async (req, res, next) => {
       });
     }
 
-    let mobile = `+91${req.body.mobile * 1}`;
+    // let mobile = `+91${req.body.mobile * 1}`;
 
     const token = await auth.singMobileToken(req.body.mobile * 1, false);
-    const Services = axios.create({
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": process.env.API_KEY,
-      },
+    // const Services = axios.create({
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "api-key": process.env.API_KEY,
+    //   },
+    // });
+
+    // const body = {
+    //   flow_id: process.env.FLOW_ID,
+    //   to: {
+    //     mobile,
+    //   },
+    // };
+
+    // Services.post(`https://api.kaleyra.io/v1/${process.env.SID}/verify`, body)
+    //   .then((el) => {
+    //     res.status(200).json({
+    //       status: "success",
+    //       message: "OTP send successfully",
+    //       data: el.data.data,
+    //       token,
+    //     });
+    //   })
+    //   .catch((err) => {
+    //     console.log(err);
+    //     res.status(200).json({
+    //       status: "fail",
+    //       message: "OTP send failed",
+    //     });
+    //   });
+
+    const otpResponse = await msg91Services.sendOTP(mobile, countryCode);
+    if (otpResponse.type !== "success")
+      return next(createError(400, otpResponse.message));
+
+    return res.status(200).json({
+      status: "success",
+      message: "OTP send successfully",
+      token,
     });
-
-    const body = {
-      flow_id: process.env.FLOW_ID,
-      to: {
-        mobile,
-      },
-    };
-
-    Services.post(`https://api.kaleyra.io/v1/${process.env.SID}/verify`, body)
-      .then((el) => {
-        res.status(200).json({
-          status: "success",
-          message: "OTP send successfully",
-          data: el.data.data,
-          token,
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-        res.status(200).json({
-          status: "fail",
-          message: "OTP send failed",
-        });
-      });
   } catch (error) {
     console.log(error);
     next(error || createError(404, "Data not found"));
@@ -339,7 +347,8 @@ exports.sendOTP = async (req, res, next) => {
 
 exports.verifyOTP = async (req, res, next) => {
   try {
-    if (req.requestor.mobile == "8128220770" && req.body.otp == "1234") {
+    const { otp, mobile, countryCode = 91 } = req.body;
+    if (req.requestor.mobile == "8128220770" && otp == "1234") {
       console.log("this is dummy mobile number");
 
       const token = jwt.sign({ id: 2, role: "User" }, process.env.JWT_SECRETE, {
@@ -352,72 +361,48 @@ exports.verifyOTP = async (req, res, next) => {
         token,
       });
     } else {
-      const { verify_id, otp } = req.body;
-      const Services = axios.create({
-        headers: {
-          "Content-Type": "application/json",
-          "api-key": process.env.API_KEY,
+      let otpResponse;
+      otpResponse = await msg91Services.verifyOTP(otp, mobile, countryCode);
+      console.log(otpResponse);
+      if (otpResponse.type != "success") {
+        return next(createError(200, msg91Services.getMessage(otpResponse)));
+      }
+      console.log(req.requestor.mobile);
+      const encryptedMobile = encrypt(
+        req.requestor.mobile.toString(),
+        process.env.CYPHERKEY
+      );
+      console.log(encryptedMobile);
+      const [user] = await service.get({
+        where: {
+          mobile: encryptedMobile,
         },
       });
 
-      const body = {
-        verify_id,
-        otp,
-      };
-
-      Services.post(
-        `https://api.kaleyra.io/v1/${process.env.SID}/verify/validate`,
-        body
-      )
-        .then(async (el) => {
-          // Use the new encrypt function instead of deprecated createCipher
-          const encryptedMobile = encrypt(
-            req.requestor.mobile.toString(),
-            process.env.CYPHERKEY
-          );
-
-          const [user] = await service.get({
-            where: {
-              mobile: encryptedMobile,
-            },
-          });
-
-          if (!user) {
-            const token = await auth.singMobileToken(
-              req.requestor.mobile,
-              true
-            );
-            res.status(200).json({
-              status: "success",
-              message: "OTP verify successfully",
-              data: el.data.data,
-              user: "new",
-              token,
-            });
-          } else {
-            // Added 'else' here to prevent both conditions from running
-            const token = jwt.sign(
-              { id: user.id, role: "User" },
-              process.env.JWT_SECRETE,
-              {
-                expiresIn: process.env.JWT_EXPIREIN,
-              }
-            );
-            res.status(200).json({
-              status: "success",
-              message: "OTP verify successfully",
-              user: "old",
-              token,
-            });
-          }
-        })
-        .catch((err) => {
-          console.log(err);
-          res.status(200).json({
-            status: "fail",
-            message: "OTP verification failed",
-          });
+      if (!user) {
+        const token = await auth.singMobileToken(req.requestor.mobile, true);
+        res.status(200).json({
+          status: "success",
+          message: "OTP verify successfully",
+          user: "new",
+          token,
         });
+      } else {
+        // Added 'else' here to prevent both conditions from running
+        const token = jwt.sign(
+          { id: user.id, role: "User" },
+          process.env.JWT_SECRETE,
+          {
+            expiresIn: process.env.JWT_EXPIREIN,
+          }
+        );
+        res.status(200).json({
+          status: "success",
+          message: "OTP verify successfully",
+          user: "old",
+          token,
+        });
+      }
     }
   } catch (error) {
     console.log(error);
@@ -524,8 +509,24 @@ exports.verifyOTP = async (req, res, next) => {
 //     });
 // };
 
+exports.resendOTP = async (req, res, next) => {
+  try {
+    const { mobile, countryCode = 91 } = req.body;
+    const otpResponse = await msg91Services.resendOTP(mobile, countryCode);
+    if (otpResponse.type !== "success")
+      return next(createError(200, otpResponse.message));
+    const token = await auth.singMobileToken(req.body.mobile * 1, false);
+    res.status(200).json({
+      status: "success",
+      message: "We have sent you an OTP again.",
+      token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 exports.signup = async (req, res, next) => {
-  const mobile = "8128220770";
+  const mobile = req.requestor.mobile;
 
   try {
     const [user] = await service.get({

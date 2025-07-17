@@ -12,6 +12,7 @@ const {
   search,
   mobileCheck,
   verifyOTP,
+  resendOTP,
 } = require("./controller");
 const {
   userValidation,
@@ -19,6 +20,11 @@ const {
   updateUserValidation,
   verifyOTPValidation,
 } = require("./validation");
+const {
+  otpSendLimit,
+  otpVerificationLimit,
+  resendOTPLimit,
+} = require("../../middleware/rateLimiter");
 
 router
   .route("/")
@@ -29,8 +35,16 @@ router
     update
   );
 router.get("/getMe", auth.authMiddleware, getMe);
-router.post("/sendOTP", sendOTPValidation, sendOTP);
-router.post("/verifyOTP", verifyOTPValidation, auth.mobileProtected, verifyOTP);
+router.post("/sendOTP", otpSendLimit, sendOTPValidation, sendOTP);
+router.post("/resendOTP", resendOTPLimit, sendOTPValidation, resendOTP);
+
+router.post(
+  "/verifyOTP",
+  otpVerificationLimit,
+  verifyOTPValidation,
+  auth.mobileProtected,
+  verifyOTP
+);
 router.post("/mobileCheck", mobileCheck);
 router.post(
   "/signup",
