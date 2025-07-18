@@ -112,12 +112,12 @@ exports.getOne = async (req, res, next) => {
         patientId: req.params.id,
       },
     });
-    const onProcessTreatment = await treatmentService.get({
-      where: {
-        patientId: req.params.id,
-        status: "OnGoing",
-      },
-    });
+    // const onProcessTreatment = await treatmentService.get({
+    //   where: {
+    //     patientId: req.params.id,
+    //     status: "OnGoing",
+    //   },
+    // });
 
     const [nextSchedule] = await visitorService.get({
       where: {
@@ -127,16 +127,18 @@ exports.getOne = async (req, res, next) => {
         },
       },
     });
-    let onProcessTeeth = onProcessTreatment.map((el) => el.toothNumber);
-    onProcessTeeth = [...new Set(flatten(onProcessTeeth))];
+    // let onProcessTeeth = onProcessTreatment.map((el) => el.toothNumber);
+    // onProcessTeeth = [...new Set(flatten(onProcessTeeth))];
 
     res.status(200).send({
       status: "success",
       data,
       receivedPayment: receivedPayment ? receivedPayment : 0,
-      pendingPayment: data.remainBill,
+      pendingPayment: data.remainBill - data.discountAmount,
       totalPayment: data.remainBill + receivedPayment,
-      onProcessTeeth,
+      finalPayment: data.remainBill + receivedPayment - data.discountAmount,
+
+      // onProcessTeeth,
       nextSchedule,
     });
   } catch (error) {

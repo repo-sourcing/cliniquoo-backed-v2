@@ -71,5 +71,4 @@ const Patient = sequelize.define(
 
 User.hasMany(Patient);
 Patient.belongsTo(User);
-Patient.sync({ alter: true });
 module.exports = Patient;
