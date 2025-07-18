@@ -9,10 +9,18 @@ const rateLimitIs = ({ max, windowMs, message, apiName }) => {
     max: max,
     standardHeaders: true,
     legacyHeaders: false,
+    // keyGenerator: (req, res) => {
+    // return `${apiName}-${req?.headers?.["x-forwarded-for"]} ||
+    //           ${req?.headers?.["x-real-ip"]} ||
+    //            ${ipKeyGenerator(req)}`;
     keyGenerator: (req, res) => {
-      return `${apiName}-${req?.headers?.["x-forwarded-for"]} ||
-                ${req?.headers?.["x-real-ip"]} ||
-                 ${ipKeyGenerator(req)}`;
+      const ip =
+        req?.headers?.["x-forwarded-for"] ||
+        req?.headers?.["x-real-ip"] ||
+        req?.ip;
+      const ua = req?.headers?.["user-agent"] || "unknown";
+      return `${apiName}-${ip}-${ua}`;
+      //}
     },
     store: new RedisStore({
       sendCommand: (...args) => client.sendCommand(args),
