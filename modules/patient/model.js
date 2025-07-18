@@ -59,6 +59,10 @@ const Patient = sequelize.define(
     lastVisitedDate: {
       type: Sequelize.DATEONLY,
     },
+    discountAmount: {
+      type: Sequelize.INTEGER,
+      defaultValue: 0,
+    },
   },
   {
     paranoid: true,
@@ -67,5 +71,5 @@ const Patient = sequelize.define(
 
 User.hasMany(Patient);
 Patient.belongsTo(User);
-
+Patient.sync({ alter: true });
 module.exports = Patient;
