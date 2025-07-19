@@ -100,7 +100,7 @@ exports.remove = async (req, res, next) => {
 
     res.status(200).send({
       status: "success",
-      message: "delete treatment successfully.",
+      message: "delete treatment successfully",
       data,
     });
   } catch (error) {
