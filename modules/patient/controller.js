@@ -134,9 +134,10 @@ exports.getOne = async (req, res, next) => {
       status: "success",
       data,
       receivedPayment: receivedPayment ? receivedPayment : 0,
-      pendingPayment: data.remainBill - data.discountAmount,
-      totalPayment: data.remainBill + receivedPayment,
-      finalPayment: data.remainBill + receivedPayment - data.discountAmount,
+      discountAmount: data?.discountAmount,
+      pendingPayment: data?.remainBill - data?.discountAmount,
+      totalPayment: data?.remainBill + receivedPayment,
+      finalPayment: data?.remainBill + receivedPayment - data?.discountAmount,
 
       // onProcessTeeth,
       nextSchedule,
