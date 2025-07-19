@@ -95,7 +95,6 @@ exports.remove = async (req, res, next) => {
     const data = await service.remove({
       where: {
         id,
-        userId: req.requestor.id,
       },
     });
 
