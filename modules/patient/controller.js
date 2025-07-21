@@ -8,7 +8,7 @@ const treatmentService = require("../treatment/service");
 const Transaction = require("../transaction/model");
 const transactionService = require("../transaction/service");
 const redisClient = require("../../utils/redis");
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const Visitor = require("../visitor/model");
 const { sqquery, usersqquery } = require("../../utils/query");
 
@@ -118,7 +118,9 @@ exports.getOne = async (req, res, next) => {
     //     status: "OnGoing",
     //   },
     // });
-
+    const totalPayment = await treatmentService.sum("amount", {
+      where: { patientId: req.params.id },
+    });
     const [nextSchedule] = await visitorService.get({
       where: {
         patientId: req.params.id,
@@ -136,8 +138,8 @@ exports.getOne = async (req, res, next) => {
       receivedPayment: receivedPayment ? receivedPayment : 0,
       discountAmount: data?.discountAmount,
       pendingPayment: data?.remainBill - data?.discountAmount,
-      totalPayment: data?.remainBill + receivedPayment,
-      finalPayment: data?.remainBill + receivedPayment - data?.discountAmount,
+      totalPayment: totalPayment || 0,
+      finalPayment: totalPayment || 0 - data?.discountAmount,
 
       // onProcessTeeth,
       nextSchedule,

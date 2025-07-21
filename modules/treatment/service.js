@@ -1,20 +1,24 @@
-const Post = require("./model");
+const Treatment = require("./model");
 
 exports.create = async (data) => {
-  return Post.create(data);
+  return Treatment.create(data);
 };
 
 exports.get = async (condition) => {
-  return Post.findAll(condition);
+  return Treatment.findAll(condition);
 };
 exports.getSum = async (condition) => {
-  return Post.sum(condition);
+  return Treatment.sum(condition);
 };
 
 exports.update = async (data, condition) => {
-  return Post.update(data, condition);
+  return Treatment.update(data, condition);
 };
 
 exports.remove = async (condition) => {
-  return Post.destroy(condition);
+  return Treatment.destroy(condition);
+};
+
+exports.sum = async (data, query) => {
+  return await Treatment.sum(data, query);
 };
