@@ -7,6 +7,7 @@ const transactionService = require("../transaction/service");
 const Treatment = require("../treatment/model");
 const moment = require("moment");
 const { sqquery, usersqquery } = require("../../utils/query");
+const sequelize = require("../../config/db");
 
 exports.create = async (req, res, next) => {
   try {
@@ -195,44 +196,127 @@ exports.getAllVisitorByDate = async (req, res, next) => {
         },
       ],
     });
-    const totalAmount = await transactionService.sum("amount", {
-      where: {
-        clinicId: req.query.clinicId,
-        createdAt: {
-          [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
-          [Op.lte]: moment(req.query.date)
-            .add(1, "day")
-            .subtract(330, "minutes")
-            .toDate(),
+
+    // Extract unique patient IDs from the data
+    const patientIds = [
+      ...new Set(data.rows.map((row) => row.patient?.id).filter(Boolean)),
+    ];
+
+    // Use Promise.all to run both queries concurrently
+    const [treatmentTotals, transactionTotals] = await Promise.all([
+      Treatment.findAll({
+        attributes: [
+          "patientId",
+          [
+            sequelize.fn("SUM", sequelize.col("amount")),
+            "totalTreatmentAmount",
+          ],
+        ],
+        where: {
+          patientId: {
+            [Op.in]: patientIds,
+          },
         },
-      },
-    });
-    const cashAmount = await transactionService.sum("amount", {
-      where: {
-        clinicId: req.query.clinicId,
-        type: "Cash",
-        createdAt: {
-          [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
-          [Op.lte]: moment(req.query.date)
-            .add(1, "day")
-            .subtract(330, "minutes")
-            .toDate(),
+        group: ["patientId"],
+        raw: true,
+      }),
+      Transaction.findAll({
+        attributes: [
+          "patientId",
+          [
+            sequelize.fn("SUM", sequelize.col("amount")),
+            "totalTransactionAmount",
+          ],
+        ],
+        where: {
+          patientId: {
+            [Op.in]: patientIds,
+          },
         },
-      },
-    });
-    const visited = await service.count({
-      where: {
-        date: req.query.date,
-        clinicId: req.query.clinicId,
-        isVisited: true,
-      },
-    });
-    const totalVisitor = await service.count({
-      where: {
-        date: req.query.date,
-        clinicId: req.query.clinicId,
-      },
-    });
+        group: ["patientId"],
+        raw: true,
+      }),
+    ]);
+
+    // Create lookup maps for O(1) access
+    const treatmentTotalMap = treatmentTotals.reduce((acc, item) => {
+      acc[item.patientId] = parseFloat(item.totalTreatmentAmount) || 0;
+      return acc;
+    }, {});
+
+    const transactionTotalMap = transactionTotals.reduce((acc, item) => {
+      acc[item.patientId] = parseFloat(item.totalTransactionAmount) || 0;
+      return acc;
+    }, {});
+
+    // Add totals to each patient object
+    const enrichedData = {
+      ...data,
+      rows: data.rows.map((row) => {
+        const rowData = row.toJSON ? row.toJSON() : row;
+        if (rowData.patient) {
+          rowData.patient.totalTreatmentAmount =
+            treatmentTotalMap[rowData.patient.id] || 0;
+          rowData.patient.totalTransactionAmount =
+            transactionTotalMap[rowData.patient.id] || 0;
+
+          // Calculate totalRemainBill
+          const totalTreatmentAmount =
+            rowData.patient.totalTreatmentAmount || 0;
+          const totalTransactionAmount =
+            rowData.patient.totalTransactionAmount || 0;
+          const discountAmount = rowData.patient.discountAmount || 0;
+
+          // Corrected formula: totalRemainBill = totalTreatmentAmount - totalTransactionAmount - discountAmount
+          rowData.patient.totalRemainBill =
+            totalTreatmentAmount - totalTransactionAmount - discountAmount;
+        }
+        return rowData;
+      }),
+    };
+
+    // Existing aggregations for clinic totals
+    // Use Promise.all to run all count and sum queries concurrently
+    const [totalAmount, cashAmount, visited, totalVisitor] = await Promise.all([
+      transactionService.sum("amount", {
+        where: {
+          clinicId: req.query.clinicId,
+          createdAt: {
+            [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
+            [Op.lte]: moment(req.query.date)
+              .add(1, "day")
+              .subtract(330, "minutes")
+              .toDate(),
+          },
+        },
+      }),
+      transactionService.sum("amount", {
+        where: {
+          clinicId: req.query.clinicId,
+          type: "Cash",
+          createdAt: {
+            [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
+            [Op.lte]: moment(req.query.date)
+              .add(1, "day")
+              .subtract(330, "minutes")
+              .toDate(),
+          },
+        },
+      }),
+      service.count({
+        where: {
+          date: req.query.date,
+          clinicId: req.query.clinicId,
+          isVisited: true,
+        },
+      }),
+      service.count({
+        where: {
+          date: req.query.date,
+          clinicId: req.query.clinicId,
+        },
+      }),
+    ]);
 
     res.status(200).send({
       status: "success",
@@ -241,7 +325,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       visited: visited ? visited : 0,
       totalVisitor: totalVisitor ? totalVisitor : 0,
       pendingVisitor: totalVisitor - visited,
-      data,
+      data: enrichedData,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
