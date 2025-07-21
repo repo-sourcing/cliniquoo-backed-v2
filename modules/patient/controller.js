@@ -87,62 +87,69 @@ function flatten(arr) {
 
 exports.getOne = async (req, res, next) => {
   try {
-    const [data] = await service.get({
-      where: { userId: req.requestor.id, id: req.params.id },
-      include: [
-        {
-          model: Treatment,
-          required: false,
-          order: [["createdAt", "DESC"]],
-        },
-        {
-          model: Transaction,
-          required: false,
-          order: [["createdAt", "DESC"]],
-        },
-        {
-          model: MedicalHistory,
-          required: false,
-          order: [["createdAt", "DESC"]],
-        },
-      ],
-    });
-    const receivedPayment = await transactionService.sum("amount", {
-      where: {
-        patientId: req.params.id,
-      },
-    });
-    // const onProcessTreatment = await treatmentService.get({
-    //   where: {
-    //     patientId: req.params.id,
-    //     status: "OnGoing",
-    //   },
-    // });
-    const totalPayment = await treatmentService.sum("amount", {
-      where: { patientId: req.params.id },
-    });
-    const [nextSchedule] = await visitorService.get({
-      where: {
-        patientId: req.params.id,
-        date: {
-          [Op.gt]: new Date(moment().utcOffset("+05:30")),
-        },
-      },
-    });
-    // let onProcessTeeth = onProcessTreatment.map((el) => el.toothNumber);
-    // onProcessTeeth = [...new Set(flatten(onProcessTeeth))];
+    const patientId = req.params.id;
+    const userId = req.requestor.id;
+
+    // Run all database queries in parallel
+    const [patientData, receivedPayment, totalPayment, nextSchedule] =
+      await Promise.all([
+        // Get patient data with related models
+        service.get({
+          where: { userId, id: patientId },
+          include: [
+            {
+              model: Treatment,
+              required: false,
+              order: [["createdAt", "DESC"]],
+            },
+            {
+              model: Transaction,
+              required: false,
+              order: [["createdAt", "DESC"]],
+            },
+            {
+              model: MedicalHistory,
+              required: false,
+              order: [["createdAt", "DESC"]],
+            },
+          ],
+        }),
+        // Get received payments
+        transactionService.sum("amount", {
+          where: { patientId },
+        }),
+        // Get total payment
+        treatmentService.sum("amount", {
+          where: { patientId },
+        }),
+        // Get next schedule
+        visitorService.get({
+          where: {
+            patientId,
+            date: {
+              [Op.gt]: new Date(moment().utcOffset("+05:30")),
+            },
+          },
+        }),
+      ]);
+
+    const data = patientData[0]; // Extract the first item from patient data array
+
+    // Handle possible null values
+    const safeReceivedPayment = receivedPayment || 0;
+    const safeTotalPayment = totalPayment || 0;
+    const discountAmount = data?.discountAmount || 0;
+    const finalPayment = safeTotalPayment - discountAmount;
 
     res.status(200).send({
       status: "success",
       data,
-      receivedPayment: receivedPayment ? receivedPayment : 0,
-      discountAmount: data?.discountAmount,
-      pendingPayment: data?.remainBill - data?.discountAmount,
-      totalPayment: totalPayment || 0,
-      finalPayment: totalPayment || 0 - data?.discountAmount,
-
-      // onProcessTeeth,
-      nextSchedule,
+      receivedPayment: safeReceivedPayment,
+      discountAmount,
+      totalPayment: safeTotalPayment,
+      pendingPayment: finalPayment - safeReceivedPayment,
+      finalPayment,
+      nextSchedule: nextSchedule[0],
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
