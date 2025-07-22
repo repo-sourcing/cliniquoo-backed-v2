@@ -13,45 +13,45 @@ exports.create = async (req, res, next) => {
   try {
     const { clinicId, patientId } = req.body;
 
-    if (!req.body.processedToothNumber)
-      return next(createError(200, "tooth number must be required"));
+    // if (!req.body.processedToothNumber)
+    //   return next(createError(200, "tooth number must be required"));
 
-    const selectTooth = req.body.processedToothNumber.split(",");
+    // const selectTooth = req.body.processedToothNumber.split(",");
 
-    let final = [];
-    await Promise.all(
-      selectTooth.map(async (el) => {
-        const runningTreatment = await Treatment.findAll({
-          where: {
-            status: "OnGoing",
-            patientId: req.body.patientId,
-            toothNumber: {
-              [Op.like]: `%${el}%`,
-            },
-          },
-        });
-        runningTreatment.map((el) => {
-          const tempString = el.toothNumber.toString().replaceAll(" ", "");
-          const matchTooth = selectTooth.filter((element) =>
-            tempString.includes(element)
-          );
+    // let final = [];
+    // await Promise.all(
+    //   selectTooth.map(async (el) => {
+    //     const runningTreatment = await Treatment.findAll({
+    //       where: {
+    //         status: "OnGoing",
+    //         patientId: req.body.patientId,
+    //         toothNumber: {
+    //           [Op.like]: `%${el}%`,
+    //         },
+    //       },
+    //     });
+    //     runningTreatment.map((el) => {
+    //       const tempString = el.toothNumber.toString().replaceAll(" ", "");
+    //       const matchTooth = selectTooth.filter((element) =>
+    //         tempString.includes(element)
+    //       );
 
-          if (matchTooth.length > 0) {
-            final.push({
-              treatment: el.name,
-              tooth: matchTooth,
-            });
-          }
-        });
-      })
-    );
+    //       if (matchTooth.length > 0) {
+    //         final.push({
+    //           treatment: el.name,
+    //           tooth: matchTooth,
+    //         });
+    //       }
+    //     });
+    //   })
+    // );
 
-    const ids = final.map((o) => o.treatment);
-    const filtered = final.filter(
-      ({ treatment }, index) => !ids.includes(treatment, index + 1)
-    );
+    // const ids = final.map((o) => o.treatment);
+    // const filtered = final.filter(
+    //   ({ treatment }, index) => !ids.includes(treatment, index + 1)
+    // );
 
-    req.body.processedToothNumber = filtered;
+    // req.body.processedToothNumber = filtered;
     const data = await service.create(req.body);
 
     await visitorService.findOrCreate({
@@ -76,10 +76,11 @@ exports.create = async (req, res, next) => {
       }
     );
 
-    await Patient.decrement("remainBill", {
-      by: req.body.amount,
-      where: { id: req.body.patientId },
-    });
+    // // Use the calculated amount from the saved transaction
+    // await Patient.decrement("remainBill", {
+    //   by: data.amount,
+    //   where: { id: req.body.patientId },
+    // });
     await Patient.update(
       {
         lastVisitedDate: moment().utcOffset("+05:30"),
@@ -214,11 +215,26 @@ exports.getByDate = async (req, res, next) => {
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const data = await service.update(req.body, {
-      where: {
-        id,
+    const { clinicId, patientId, cash, online, notes } = req.body;
+
+    // Calculate the amount directly to ensure it's updated
+    const amount = (cash || 0) + (online || 0);
+
+    const data = await service.update(
+      {
+        notes,
+        cash,
+        online,
+        amount, // Explicitly set the calculated amount
       },
-    });
+      {
+        where: {
+          id,
+          clinicId,
+          patientId,
+        },
+      }
+    );
 
     res.status(200).send({
       status: 200,

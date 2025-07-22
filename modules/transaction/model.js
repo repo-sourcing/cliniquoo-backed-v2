@@ -12,13 +12,17 @@ const Transaction = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    type: {
-      type: Sequelize.ENUM("Cash", "Online"),
-      defaultValue: "Cash",
+    cash: {
+      type: Sequelize.INTEGER,
+      defaultValue: 0,
+    },
+    online: {
+      type: Sequelize.INTEGER,
+      defaultValue: 0,
     },
     amount: {
       type: Sequelize.INTEGER,
-      allowNull: false,
+      defaultValue: 0,
     },
     notes: {
       type: Sequelize.TEXT,
@@ -37,6 +41,16 @@ const Transaction = sequelize.define(
   },
   {
     paranoid: true,
+    hooks: {
+      beforeCreate: (transaction) => {
+        transaction.amount =
+          (transaction.cash || 0) + (transaction.online || 0);
+      },
+      beforeUpdate: (transaction) => {
+        transaction.amount =
+          (transaction.cash || 0) + (transaction.online || 0);
+      },
+    },
   }
 );
 
@@ -53,5 +67,4 @@ Clinic.hasMany(Transaction, {
   },
 });
 Transaction.belongsTo(Clinic);
-
 module.exports = Transaction;

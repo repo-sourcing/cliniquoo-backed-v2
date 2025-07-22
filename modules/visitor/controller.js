@@ -290,10 +290,9 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           },
         },
       }),
-      transactionService.sum("amount", {
+      transactionService.sum("cash", {
         where: {
           clinicId: req.query.clinicId,
-          type: "Cash",
           createdAt: {
             [Op.gte]: moment(req.query.date).subtract(330, "minutes").toDate(),
             [Op.lte]: moment(req.query.date)
