@@ -104,7 +104,34 @@ exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
       ...sqquery(req.query),
-      include: [Patient],
+      include: [
+        {
+          model: Patient,
+          attributes: {
+            include: [
+              // Add treatment totals as virtual attributes using subqueries
+              [
+                sequelize.literal(`(
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM treatments 
+                WHERE treatments.patientId = patient.id 
+                AND treatments.deletedAt IS NULL
+              )`),
+                "totalTreatmentAmount",
+              ],
+              [
+                sequelize.literal(`(
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM transactions 
+                WHERE transactions.patientId = patient.id 
+                AND transactions.deletedAt IS NULL
+              )`),
+                "totalTransactionAmount",
+              ],
+            ],
+          },
+        },
+      ],
     });
     res.status(200).send({
       status: "success",
