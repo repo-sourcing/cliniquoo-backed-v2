@@ -252,13 +252,14 @@ exports.remove = async (req, res, next) => {
     const data = await service.remove({
       where: {
         id,
-        userId: req.requestor.id,
+        clinicId: req.body.clinicId,
+        patientId: req.body.patientId,
       },
     });
 
     res.status(200).send({
       status: "success",
-      message: "delete Post successfully",
+      message: "delete Transaction successfully",
       data,
     });
   } catch (error) {
