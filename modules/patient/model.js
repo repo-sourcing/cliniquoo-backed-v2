@@ -63,6 +63,10 @@ const Patient = sequelize.define(
       type: Sequelize.INTEGER,
       defaultValue: 0,
     },
+    isActive: {
+      type: Sequelize.BOOLEAN,
+      defaultValue: true,
+    },
   },
   {
     paranoid: true,
@@ -71,4 +75,5 @@ const Patient = sequelize.define(
 
 User.hasMany(Patient);
 Patient.belongsTo(User);
+
 module.exports = Patient;

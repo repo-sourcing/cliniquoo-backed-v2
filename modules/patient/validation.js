@@ -44,6 +44,7 @@ exports.updatePatientValidation = async (req, res, next) => {
       remainBill: yup.number(),
       lastVisitedDate: yup.date(),
       discountAmount: yup.number(),
+      isActive: yup.boolean(),
     });
     await patientSchema.validate(req.body);
     next();

@@ -277,9 +277,14 @@ exports.edit = async (req, res, next) => {
     });
     redisClient.DEL(`patient?userId=${req.requestor.id}`);
 
+    let message = "edit patient successfully";
+
+    if (req.body.isActive === false) {
+      message = "patient deactivated successfully";
+    }
     res.status(200).send({
       status: "success",
-      message: "edit transaction successfully",
+      message,
       data,
     });
   } catch (error) {
@@ -317,7 +322,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
 
     // Get all patients for the user with treatment and transaction totals
     const patients = await service.get({
-      where: { userId },
+      where: { userId, isActive: true },
 
       attributes: {
         include: [
