@@ -9,6 +9,7 @@ const {
   countOfvisitorForAllDates,
   findNotVisited,
   schedule,
+  reschedule,
 } = require("./controller");
 const {
   visitorValidation,
@@ -18,11 +19,11 @@ const {
 } = require("./validation");
 
 router.route("/").get(getAll).post(visitorValidation, create);
+router.route("/reschedule").patch(rescheduleValidation, reschedule);
+router.route("/schedule").post(scheduleValidation, schedule);
 router.route("/:id").patch(updateVisitorValidation, edit).delete(remove);
 router.route("/info/visiterInfoByDate").get(getAllVisitorByDate);
 router.route("/info/findNotVisited").get(findNotVisited);
 router.route("/info/countOfVisitors").get(countOfvisitorForAllDates);
-router.route("/reschedule").post(rescheduleValidation, create);
-router.route("/schedule").post(scheduleValidation, schedule);
 
 module.exports = router;

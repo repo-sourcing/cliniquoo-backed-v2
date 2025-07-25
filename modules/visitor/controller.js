@@ -474,3 +474,42 @@ exports.remove = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+exports.reschedule = async (req, res, next) => {
+  try {
+    const { date, clinicId, patientId, previousScheduleDate } = req.body;
+
+    const [visitor] = await service.get({
+      where: {
+        date,
+        clinicId,
+        patientId,
+      },
+    });
+
+    if (visitor)
+      return next(
+        createError(200, "this patient already schedule on this date")
+      );
+
+    const data = await service.update(
+      {
+        date,
+      },
+      {
+        where: {
+          patientId,
+          clinicId,
+          date: previousScheduleDate,
+        },
+      }
+    );
+
+    res.status(200).json({
+      status: "success",
+      message: "Patient Rescheduled successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
