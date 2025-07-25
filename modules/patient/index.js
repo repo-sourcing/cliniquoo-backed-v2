@@ -10,10 +10,12 @@ const {
   getAllByUser,
   getOne,
   getSearchByDate,
+  getPatientsWithPendingAmount,
 } = require("./controller");
 const { patientValidation, updatePatientValidation } = require("./validation");
 
 router.route("/").get(getAllByUser).post(patientValidation, create);
+router.route("/pending-amounts").get(getPatientsWithPendingAmount);
 router
   .route("/:id")
   .patch(updatePatientValidation, edit)
