@@ -215,7 +215,7 @@ exports.getByDate = async (req, res, next) => {
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
-    const { clinicId, patientId, cash, online, notes } = req.body;
+    const { clinicId, patientId, cash, online, notes, createdAt } = req.body;
 
     // Calculate the amount directly to ensure it's updated
     const amount = (cash || 0) + (online || 0);
@@ -226,6 +226,7 @@ exports.edit = async (req, res, next) => {
         cash,
         online,
         amount, // Explicitly set the calculated amount
+        createdAt,
       },
       {
         where: {

@@ -23,6 +23,7 @@ exports.updateTransactionValidation = async (req, res, next) => {
       online: yup.number(),
       patientId: yup.number(),
       clinicId: yup.number(),
+      createdAt: yup.date(),
     });
     await transactionSchema.validate(req.body);
     next();
