@@ -102,18 +102,20 @@ exports.getOne = async (req, res, next) => {
             {
               model: Treatment,
               required: false,
-              order: [["createdAt", "DESC"]],
             },
             {
               model: Transaction,
               required: false,
-              order: [["createdAt", "DESC"]],
             },
             {
               model: MedicalHistory,
               required: false,
-              order: [["createdAt", "DESC"]],
             },
+          ],
+          order: [
+            // [Treatment, "createdAt", "DESC"],
+            [Transaction, "createdAt", "DESC"],
+            [MedicalHistory, "createdAt", "DESC"],
           ],
         }),
         // Get received payments
