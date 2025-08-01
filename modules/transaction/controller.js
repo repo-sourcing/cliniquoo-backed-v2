@@ -239,7 +239,7 @@ exports.edit = async (req, res, next) => {
 
     await visitorService.findOrCreate({
       where: {
-        date: moment().utcOffset("+05:30"),
+        date: moment(createdAt).utcOffset("+05:30"),
         clinicId,
         patientId,
       },
