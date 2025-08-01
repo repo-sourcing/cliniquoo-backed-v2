@@ -8,6 +8,7 @@ const Treatment = require("../treatment/model");
 const moment = require("moment");
 const Visitor = require("../visitor/model");
 const visitorService = require("../visitor/service");
+const createError = require("http-errors");
 
 exports.create = async (req, res, next) => {
   try {
@@ -217,6 +218,21 @@ exports.edit = async (req, res, next) => {
     const id = req.params.id;
     const { clinicId, patientId, cash, online, notes, createdAt } = req.body;
 
+    // Get the current transaction to check the previous createdAt
+    const currentTransaction = await service.get({
+      where: {
+        id,
+        clinicId,
+        patientId,
+      },
+    });
+
+    if (!currentTransaction || currentTransaction.length === 0) {
+      return next(createError(404, "Transaction not found"));
+    }
+
+    const previousCreatedAt = currentTransaction[0].createdAt;
+
     // Calculate the amount directly to ensure it's updated
     const amount = (cash || 0) + (online || 0);
 
@@ -237,6 +253,7 @@ exports.edit = async (req, res, next) => {
       }
     );
 
+    // Create visitor entry for the new createdAt date
     await visitorService.findOrCreate({
       where: {
         date: moment(createdAt).utcOffset("+05:30"),
@@ -245,6 +262,41 @@ exports.edit = async (req, res, next) => {
       },
       defaults: { isVisited: true },
     });
+
+    // Check if createdAt has changed
+    if (
+      previousCreatedAt &&
+      moment(previousCreatedAt).format("YYYY-MM-DD") !==
+        moment(createdAt).format("YYYY-MM-DD")
+    ) {
+      // Check if there are any other transactions on the previous date
+      const otherTransactionsOnPreviousDate = await service.get({
+        where: {
+          clinicId,
+          patientId,
+          createdAt: {
+            [Op.between]: [
+              moment(previousCreatedAt).startOf("day").toDate(),
+              moment(previousCreatedAt).endOf("day").toDate(),
+            ],
+          },
+          id: {
+            [Op.ne]: id, // Exclude the current transaction
+          },
+        },
+      });
+
+      // If no other transactions exist on the previous date, delete the visitor entry
+      if (otherTransactionsOnPreviousDate.length === 0) {
+        await visitorService.remove({
+          where: {
+            date: moment(previousCreatedAt).utcOffset("+05:30"),
+            clinicId,
+            patientId,
+          },
+        });
+      }
+    }
 
     res.status(200).send({
       status: 200,
