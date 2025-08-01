@@ -237,6 +237,15 @@ exports.edit = async (req, res, next) => {
       }
     );
 
+    await visitorService.findOrCreate({
+      where: {
+        date: moment().utcOffset("+05:30"),
+        clinicId,
+        patientId,
+      },
+      defaults: { isVisited: true },
+    });
+
     res.status(200).send({
       status: 200,
       message: "edit transaction successfully",
