@@ -58,6 +58,7 @@ router.use(
   auth.authMiddleware,
   require("../modules/userTransaction")
 );
+router.use("/download", auth.authMiddleware, require("../modules/download"));
 router.use("/payment", require("../modules/razorpay"));
 router.use("/user", require("../modules/user"));
 router.use("/config", require("../modules/config"));
