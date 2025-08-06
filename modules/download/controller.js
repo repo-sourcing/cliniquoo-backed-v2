@@ -18,7 +18,7 @@ exports.downloadPatientsWithTreatments = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      message: "CSV file generated successfully",
+      message: "Patient treatment file downloaded successfully",
       data: {
         downloadUrl: result.downloadUrl,
         fileName: result.fileName,
@@ -65,7 +65,7 @@ exports.downloadPatientsWithTransactions = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      message: "CSV file generated successfully",
+      message: "Patient transaction file downloaded successfully",
       data: {
         downloadUrl: result.downloadUrl,
         fileName: result.fileName,
