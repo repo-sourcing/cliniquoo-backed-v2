@@ -31,6 +31,7 @@
     "multer-s3": "^2.10.0",
     "mysql2": "^2.3.3",
     "ngrok": "^4.3.3",
+    "node-cron": "^4.2.1",
     "rate-limit-redis": "^4.2.1",
     "razorpay": "^2.8.4",
     "redis": "^4.5.1",

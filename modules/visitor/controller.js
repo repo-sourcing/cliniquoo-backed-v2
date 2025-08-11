@@ -8,6 +8,7 @@ const Treatment = require("../treatment/model");
 const moment = require("moment");
 const { sqquery, usersqquery } = require("../../utils/query");
 const sequelize = require("../../config/db");
+const { runWhatsAppAppointmentConfirmationJob } = require("./utils");
 
 exports.create = async (req, res, next) => {
   try {
@@ -96,6 +97,9 @@ exports.schedule = async (req, res, next) => {
       message: "Patient scheduled successfully",
       data,
     });
+
+    // after scheduling, send a WhatsApp reminder
+    runWhatsAppAppointmentConfirmationJob(data[0].id);
   } catch (error) {
     next(error || createError(404, "Data not found"));
   }
@@ -503,6 +507,9 @@ exports.reschedule = async (req, res, next) => {
         },
       }
     );
+
+    // after scheduling, send a WhatsApp reminder
+    runWhatsAppAppointmentConfirmationJob(visitor.id);
 
     res.status(200).json({
       status: "success",

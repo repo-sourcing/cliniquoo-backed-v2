@@ -70,3 +70,125 @@ exports.getMessage = (data) => {
       return "Your OTP is invalid. Please enter the correct OTP.";
   }
 };
+
+// -------------------- WhatsApp Template Messaging (MSG91) --------------------
+
+// Default WhatsApp bulk endpoint (can be overridden by env var if added later)
+const MSG91_WHATSAPP_BULK_ENDPOINT =
+  process.env.MSG91_WHATSAPP_BULK_ENDPOINT ||
+  "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
+
+// Static WhatsApp template config (can be overridden by env vars)
+const MSG91_WA_INTEGRATED_NUMBER = process.env.MSG91_WA_INTEGRATED_NUMBER;
+const MSG91_WA_NAMESPACE = process.env.MSG91_WA_NAMESPACE;
+
+/**
+ * Internal helper to build components object like { body_1: {type:'text', value:''}, ... }
+ * @param {Array<string|number>} values - Ordered values for body_1..body_5
+ */
+function buildBodyComponents(values = []) {
+  const components = {};
+  values.forEach((val, idx) => {
+    if (val !== undefined && val !== null && val !== "") {
+      components[`body_${idx + 1}`] = { type: "text", value: String(val) };
+    }
+  });
+  return components;
+}
+
+/**
+ * Internal generic sender for WhatsApp template messages
+ * @param {Object} params
+ * @param {string} params.templateName - MSG91 template name
+ * @param {string[]} params.to - Array of destination numbers as strings with country code (no +)
+ * @param {Array<string|number>} params.bodyValues - Ordered values for placeholders (maps to body_1..body_5)
+ * @param {string} [params.languageCode="en"] - Language code
+ * @param {string} [params.policy="deterministic"] - Language policy
+ * @param {string} [params.authKey] - Optional override for auth key; defaults to msg91Config.authKey
+ * @param {string} [params.integratedNumber] - Optional override (defaults to MSG91_WA_INTEGRATED_NUMBER)
+ * @param {string} [params.namespace] - Optional override (defaults to MSG91_WA_NAMESPACE)
+ */
+async function sendWhatsAppTemplate({
+  templateName,
+  integratedNumber,
+  namespace,
+  to,
+  bodyValues = [],
+  languageCode = "en",
+  policy = "deterministic",
+  authKey,
+}) {
+  const headers = {
+    "Content-Type": "application/json",
+    authkey: authKey || msg91Config.authKey,
+  };
+
+  const integrated_number_final =
+    integratedNumber || MSG91_WA_INTEGRATED_NUMBER;
+  const namespace_final = namespace || MSG91_WA_NAMESPACE;
+
+  const payload = {
+    integrated_number: integrated_number_final,
+    content_type: "template",
+    payload: {
+      messaging_product: "whatsapp",
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: languageCode, policy },
+        namespace: namespace_final,
+        to_and_components: [
+          {
+            to,
+            components: buildBodyComponents(bodyValues),
+          },
+        ],
+      },
+    },
+  };
+
+  const resp = await axios.post(MSG91_WHATSAPP_BULK_ENDPOINT, payload, {
+    headers,
+  });
+  return resp.data;
+}
+
+/**
+ * Send WhatsApp appointment confirmation template via MSG91
+ * Uses static integrated number and namespace (overridable via env or params).
+ * @param {Object} params - Variables for the template
+ * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_5 in order
+ * @param {string} [params.languageCode="en"]
+ * @param {string} [params.policy="deterministic"]
+ * @param {string} [params.authKey]
+ * @param {string} [params.integratedNumber] - Optional override
+ * @param {string} [params.namespace] - Optional override
+ * @returns {Promise<any>} MSG91 API response data
+ */
+exports.sendWhatsAppAppointmentConfirmation = async (params) => {
+  return sendWhatsAppTemplate({
+    ...params,
+    templateName: "appointment_confirmation",
+  });
+};
+
+/**
+ * Send WhatsApp appointment reminder template via MSG91
+ * Uses static integrated number and namespace (overridable via env or params).
+ * @param {Object} params - Variables for the template
+ * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_5 in order
+ * @param {string} [params.languageCode="en"]
+ * @param {string} [params.policy="deterministic"]
+ * @param {string} [params.authKey]
+ * @param {string} [params.integratedNumber] - Optional override
+ * @param {string} [params.namespace] - Optional override
+ * @returns {Promise<any>} MSG91 API response data
+ */
+exports.sendWhatsAppAppointmentReminder = async (params) => {
+  return sendWhatsAppTemplate({
+    ...params,
+    templateName: "appointment_reminder",
+  });
+};

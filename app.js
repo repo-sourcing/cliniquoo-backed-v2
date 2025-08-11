@@ -17,6 +17,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 app.use("/", indexRouter);
 
+// Start cron jobs (daily WhatsApp reminders, etc.)
+require("./utils/cron");
+
 app.use(function (req, res, next) {
   next(createError(404, "URL Not Found"));
 });
