@@ -59,16 +59,16 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
         continue;
       }
 
-      //   console.log({
-      //     to: [toNumber],
-      //     bodyValues: [
-      //       clinicName,
-      //       patientName,
-      //       prettyDate,
-      //       doctorName,
-      //       clinicMobile,
-      //     ],
-      //   });
+      console.log({
+        to: [toNumber],
+        bodyValues: [
+          clinicName,
+          patientName,
+          prettyDate,
+          doctorName,
+          clinicMobile,
+        ],
+      });
       sendWhatsAppAppointmentReminder({
         to: [toNumber],
         bodyValues: [
@@ -126,16 +126,16 @@ exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
       return 0;
     }
 
-    // console.log({
-    //   to: [toNumber],
-    //   bodyValues: [
-    //     clinicName,
-    //     patientName,
-    //     prettyDate,
-    //     doctorName,
-    //     clinicMobile,
-    //   ],
-    // });
+    console.log({
+      to: [toNumber],
+      bodyValues: [
+        clinicName,
+        patientName,
+        prettyDate,
+        doctorName,
+        clinicMobile,
+      ],
+    });
     sendWhatsAppAppointmentConfirmation({
       to: [toNumber],
       bodyValues: [
