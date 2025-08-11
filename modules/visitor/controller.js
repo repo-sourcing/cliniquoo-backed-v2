@@ -508,10 +508,6 @@ exports.reschedule = async (req, res, next) => {
       }
     );
 
-    console.log(visitor);
-    // after scheduling, send a WhatsApp reminder
-    runWhatsAppAppointmentConfirmationJob(visitor.id);
-
     res.status(200).json({
       status: "success",
       message: "Patient Rescheduled successfully",
