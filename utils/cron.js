@@ -7,6 +7,7 @@ const {
 const {
   manageScheduleAndReschedule,
 } = require("../modules/scheduleCronTable/utils");
+const { sendPaymentConfirmtion } = require("../modules/transaction/utils");
 
 // Schedule daily at 08:00 IST
 cron.schedule("30 2 * * *", () => {
@@ -17,4 +18,11 @@ cron.schedule("30 2 * * *", () => {
 
 cron.schedule("* * * * *", () => {
   manageScheduleAndReschedule();
+});
+
+//schedule a payment confirmation message
+// schedule and reschedule cron job
+
+cron.schedule("* * * * *", () => {
+  sendPaymentConfirmtion();
 });
