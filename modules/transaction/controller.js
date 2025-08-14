@@ -53,6 +53,11 @@ exports.create = async (req, res, next) => {
     // );
 
     // req.body.processedToothNumber = filtered;
+
+    //add 10 minutes in current time
+
+    req.body.messageTime = moment().utc().add(10, "minutes");
+    req.body.messageStatus = 0;
     const data = await service.create(req.body);
 
     await visitorService.findOrCreate({
@@ -243,6 +248,8 @@ exports.edit = async (req, res, next) => {
         online,
         amount, // Explicitly set the calculated amount
         createdAt,
+        messageTime: moment().utc().add(10, "minutes"),
+        messageStatus: 0,
       },
       {
         where: {

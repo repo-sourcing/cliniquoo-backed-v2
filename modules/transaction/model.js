@@ -27,6 +27,16 @@ const Transaction = sequelize.define(
     notes: {
       type: Sequelize.TEXT,
     },
+    messageTime: {
+      type: Sequelize.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+    messageStatus: {
+      type: Sequelize.BOOLEAN,
+      allowNull: true,
+      defaultValue: null,
+    },
     processedToothNumber: {
       type: Sequelize.TEXT,
       get: function () {
@@ -42,11 +52,11 @@ const Transaction = sequelize.define(
   {
     paranoid: true,
     hooks: {
-      beforeCreate: (transaction) => {
+      beforeCreate: transaction => {
         transaction.amount =
           (transaction.cash || 0) + (transaction.online || 0);
       },
-      beforeUpdate: (transaction) => {
+      beforeUpdate: transaction => {
         transaction.amount =
           (transaction.cash || 0) + (transaction.online || 0);
       },

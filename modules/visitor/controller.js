@@ -1,4 +1,5 @@
 const service = require("./service");
+const scheduleCronService = require("../scheduleCronTable/service");
 const Visitor = require("./model");
 const { Op, Sequelize } = require("sequelize");
 const Patient = require("../patient/model");
@@ -73,6 +74,7 @@ exports.schedule = async (req, res, next) => {
         },
       },
     });
+
     const data = await service.findOrCreate({
       where: {
         date,
@@ -92,6 +94,14 @@ exports.schedule = async (req, res, next) => {
         },
       }
     );
+
+    //remove old cron entry if exists for same visitor
+    await scheduleCronService.remove({ where: { visitorId: data[0].id } });
+    await scheduleCronService.create({
+      visitorId: data[0].id,
+      time: moment(data[0].createdAt).add(10, "minutes"),
+      status: "scheduled",
+    });
     res.status(201).json({
       status: "success",
       message: "Patient scheduled successfully",
@@ -99,7 +109,7 @@ exports.schedule = async (req, res, next) => {
     });
 
     // after scheduling, send a WhatsApp reminder
-    runWhatsAppAppointmentConfirmationJob(data[0].id);
+    //runWhatsAppAppointmentConfirmationJob(data[0].id);
   } catch (error) {
     next(error || createError(404, "Data not found"));
   }
@@ -230,7 +240,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 
     // Extract unique patient IDs from the data
     const patientIds = [
-      ...new Set(data.rows.map((row) => row.patient?.id).filter(Boolean)),
+      ...new Set(data.rows.map(row => row.patient?.id).filter(Boolean)),
     ];
 
     // Use Promise.all to run both queries concurrently
@@ -283,7 +293,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     // Add totals to each patient object
     const enrichedData = {
       ...data,
-      rows: data.rows.map((row) => {
+      rows: data.rows.map(row => {
         const rowData = row.toJSON ? row.toJSON() : row;
         if (rowData.patient) {
           rowData.patient.totalTreatmentAmount =
@@ -494,6 +504,60 @@ exports.reschedule = async (req, res, next) => {
       return next(
         createError(200, "this patient already schedule on this date")
       );
+
+    const [findData] = await service.get({
+      where: {
+        date: previousScheduleDate,
+        clinicId,
+        patientId,
+      },
+    });
+    console.log("findData", findData);
+    if (!findData) return next(createError(404, "Data not found"));
+
+    const now = new Date();
+    // check the findData created it with current time comparition that is less than 10 minute or greater than 10 minute
+    const createdAt = new Date(findData.createdAt);
+
+    const diffMinutes = Math.floor((now - createdAt) / (1000 * 60));
+
+    console.log("difference in minutes:", diffMinutes);
+
+    //findScheduleCronData
+    const [findScheduleCronData] = await scheduleCronService.get({
+      where: {
+        visitorId: findData.id,
+      },
+    });
+
+    //if notification already sent and data is schedule cron is deleted
+    if (!findScheduleCronData && diffMinutes > 10) {
+      // If no scheduleCron exists, create a new one
+      await scheduleCronService.create({
+        visitorId: findData.id,
+        time: moment().add(10, "minutes"),
+        status: "rescheduled",
+      });
+    } else {
+      if (diffMinutes <= 10) {
+        // Within 10 minutes → update schedule only
+        let status =
+          findScheduleCronData.status == "scheduled"
+            ? "scheduled"
+            : "rescheduled";
+
+        await scheduleCronService.update(
+          { status: status, time: moment().add(10, "minutes") },
+          { where: { visitorId: findData.id } }
+        );
+      } else {
+        // More than 10 minutes → update schedule and status to 'reschedule'
+        await scheduleCronService.update(
+          { status: "rescheduled", time: moment().add(10, "minutes") },
+          { where: { visitorId: findData.id } }
+        );
+      }
+    }
 
     const data = await service.update(
       {
