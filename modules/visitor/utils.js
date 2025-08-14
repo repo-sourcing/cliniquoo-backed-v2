@@ -8,6 +8,7 @@ const User = require("../user/model");
 const {
   sendWhatsAppAppointmentReminder,
   sendWhatsAppAppointmentConfirmation,
+  sendWhatsAppAppointmentRescheduleConfirmation,
 } = require("../../utils/msg91");
 
 exports.runWhatsAppAppointmentReminderJob = async () => {
@@ -85,7 +86,7 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
     return 0;
   }
 };
-exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
+exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
   try {
     const [visitors] = await visitor.get({
       where: {
@@ -148,6 +149,74 @@ exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
     });
   } catch (err) {
     console.error("[CRON] Appointment reminder job failed:", err?.stack || err);
+    return 0;
+  }
+};
+
+exports.runWhatsAppAppointmentReschedule = async visitorId => {
+  try {
+    const [visitors] = await visitor.get({
+      where: {
+        id: visitorId,
+      },
+      include: [
+        { model: Clinic, include: [User], required: true },
+        { model: Patient, required: true },
+      ],
+    });
+
+    if (!visitors || visitors.length === 0) {
+      console.log(`[CRON] No appointments for ${todayStr} (IST)`);
+      return;
+    }
+
+    const prettyDate = moment(visitors?.date).format("DD-MMM-YYYY");
+    // Build recipients payloads
+
+    const clinic = visitors?.clinic;
+    const patient = visitors?.patient;
+    const doctor = clinic && clinic.user;
+
+    const clinicName = clinic?.name;
+    const patientName = patient?.name;
+    const doctorName = doctor?.name;
+    const clinicMobile = clinic?.mobile;
+
+    const toNumber = `91${patient?.mobile}`;
+
+    if (
+      !toNumber ||
+      !clinicName ||
+      !patientName ||
+      !doctorName ||
+      !clinicMobile
+    ) {
+      return 0;
+    }
+
+    console.log({
+      to: [toNumber],
+      bodyValues: [
+        clinicName,
+        patientName,
+        prettyDate,
+        doctorName,
+        clinicMobile,
+      ],
+    });
+
+    sendWhatsAppAppointmentRescheduleConfirmation({
+      to: [toNumber],
+      bodyValues: [
+        clinicName,
+        patientName,
+        prettyDate,
+        doctorName,
+        clinicMobile,
+      ],
+    });
+  } catch (err) {
+    console.error("[CRON] Appointment rescheduled failed:", err?.stack || err);
     return 0;
   }
 };
