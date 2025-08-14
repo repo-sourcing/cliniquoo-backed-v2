@@ -84,7 +84,7 @@ const MSG91_WA_NAMESPACE = process.env.MSG91_WA_NAMESPACE;
 
 /**
  * Internal helper to build components object like { body_1: {type:'text', value:''}, ... }
- * @param {Array<string|number>} values - Ordered values for body_1..body_5
+ * @param {Array<string|number>} values - Ordered values for body_1..body_10 (supports up to 10 body components)
  */
 function buildBodyComponents(values = []) {
   const components = {};
@@ -101,7 +101,7 @@ function buildBodyComponents(values = []) {
  * @param {Object} params
  * @param {string} params.templateName - MSG91 template name
  * @param {string[]} params.to - Array of destination numbers as strings with country code (no +)
- * @param {Array<string|number>} params.bodyValues - Ordered values for placeholders (maps to body_1..body_5)
+ * @param {Array<string|number>} params.bodyValues - Ordered values for placeholders (maps to body_1..body_10)
  * @param {string} [params.languageCode="en"] - Language code
  * @param {string} [params.policy="deterministic"] - Language policy
  * @param {string} [params.authKey] - Optional override for auth key; defaults to msg91Config.authKey
@@ -210,5 +210,25 @@ exports.sendWhatsAppAppointmentRescheduleConfirmation = async (params) => {
   return sendWhatsAppTemplate({
     ...params,
     templateName: "appoitment_reschedual_confirmation",
+  });
+};
+
+/**
+ * Send WhatsApp payment confirmation template via MSG91
+ * Uses static integrated number and namespace (overridable via env or params).
+ * @param {Object} params - Variables for the template
+ * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_6 in order
+ * @param {string} [params.languageCode="en"]
+ * @param {string} [params.policy="deterministic"]
+ * @param {string} [params.authKey]
+ * @param {string} [params.integratedNumber] - Optional override
+ * @param {string} [params.namespace] - Optional override
+ * @returns {Promise<any>} MSG91 API response data
+ */
+exports.sendWhatsAppPaymentConfirmation = async (params) => {
+  return sendWhatsAppTemplate({
+    ...params,
+    templateName: "payment_confirmation_final",
   });
 };
