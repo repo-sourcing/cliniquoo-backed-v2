@@ -2,6 +2,13 @@ const service = require("./service");
 const userModel = require("../user/model");
 // let crypto = require("crypto");
 const { sqquery, usersqquery } = require("../../utils/query");
+
+function normalizeTimeRangesInput(input) {
+  if (!input) return undefined; // don't set if absent
+  const str = Array.isArray(input) ? input : String(input);
+  return str; // model will normalize; validation already checks
+}
+
 exports.create = async (req, res, next) => {
   try {
     req.body.userId = req.requestor.id;
@@ -16,7 +23,12 @@ exports.create = async (req, res, next) => {
       return next(createError(200, "You Can Add max 3 clinic"));
 
     // Convert mobile to string before saving
-    req.body.mobile = req.body.mobile.toString();
+    if (req.body.mobile != null) req.body.mobile = req.body.mobile.toString();
+
+    // Normalize optional time fields
+    if ("timeRanges" in req.body) {
+      req.body.timeRanges = normalizeTimeRangesInput(req.body.timeRanges);
+    }
 
     const data = await service.create(req.body);
 
@@ -69,6 +81,12 @@ exports.getAll = async (req, res, next) => {
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
+
+    if (req.body.mobile != null) req.body.mobile = req.body.mobile.toString();
+    if ("timeRanges" in req.body) {
+      req.body.timeRanges = normalizeTimeRangesInput(req.body.timeRanges);
+    }
+
     const data = await service.update(req.body, {
       where: {
         id,
