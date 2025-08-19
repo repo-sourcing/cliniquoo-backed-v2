@@ -13,7 +13,12 @@ function parseTimeRanges(input) {
   let arr = [];
   if (Array.isArray(input)) {
     arr = input.map((r) =>
-      typeof r === "string" ? toObj(r) : { start: r.start, end: r.end }
+      typeof r === "string"
+        ? toObj(r)
+        : {
+            start: String(r.start || r.starts || "").trim(),
+            end: String(r.end || "").trim(),
+          }
     );
   } else if (typeof input === "string") {
     arr = input
@@ -23,18 +28,32 @@ function parseTimeRanges(input) {
       .map(toObj);
   } else return [];
 
-  const valid = arr.filter(
-    (r) =>
-      timeHHmm.test(r.start || "") &&
-      timeHHmm.test(r.end || "") &&
-      r.start < r.end
-  );
+  // Keep original values; basic validation only
+  const valid = arr.filter((r) => {
+    const s = r.start || "";
+    const e = r.end || "";
+    if (!timeHHmm.test(s) || !timeHHmm.test(e)) return false;
+    if (s === e) return false; // zero-length not allowed
+    return true;
+  });
   return valid;
 }
 
-function rangesOverlap(a, b) {
-  // a and b: {start,end} with start<end strings in HH:mm
-  return a.start < b.end && b.start < a.end;
+function toMinutes(hhmm) {
+  const [h, m] = hhmm.split(":").map((n) => parseInt(n, 10));
+  return h * 60 + m; // 0..1439
+}
+
+function expandToSegments(range) {
+  // Returns 1 or 2 segments on [0,1440): [startMin,endMin)
+  const s = toMinutes(range.start);
+  const e = toMinutes(range.end);
+  if (s < e) return [[s, e]]; // same-day
+  // overnight: start -> 1440 and 0 -> end
+  return [
+    [s, 1440],
+    [0, e],
+  ];
 }
 
 const timeRangesFlexibleSchema = yup
@@ -46,14 +65,18 @@ const timeRangesFlexibleSchema = yup
       if (value == null) return true; // handled by when()
       const parsed = parseTimeRanges(value);
       if (!Array.isArray(parsed)) return false;
-      // non-empty and <= 6
       if (parsed.length === 0 || parsed.length > 6) return false;
-      // no overlaps
-      for (let i = 0; i < parsed.length; i++) {
-        for (let j = i + 1; j < parsed.length; j++) {
-          if (rangesOverlap(parsed[i], parsed[j])) return false;
-        }
+
+      // Check overlaps using expanded segments, preserving original values (including 00:00)
+      const segments = [];
+      for (const r of parsed) segments.push(...expandToSegments(r));
+      segments.sort((a, b) => a[0] - b[0]);
+      for (let i = 1; i < segments.length; i++) {
+        const [prevStart, prevEnd] = segments[i - 1];
+        const [curStart, curEnd] = segments[i];
+        if (prevEnd > curStart) return false; // overlap
       }
+
       return true;
     }
   );
@@ -61,13 +84,12 @@ const timeRangesFlexibleSchema = yup
 exports.clinicDataValidation = async (req, res, next) => {
   try {
     const phoneRegExp =
-      /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
+      /^(\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*?([0-9]{3,4})[ \\-]*([0-9]{3,4})$/;
     const clinicDataSchema = yup.object().shape({
       name: yup.string().required("Name is required"),
       mobile: yup
         .string()
         .required("mobile number is required")
-        .matches(phoneRegExp, "mobile number should be valid 10 digits")
         .min(10, "mobile number should be valid 10 digits")
         .max(10, "mobile number should be valid 10 digits"),
       location: yup.string().required("Location is required"),
@@ -94,12 +116,11 @@ exports.clinicDataValidation = async (req, res, next) => {
 exports.updateClinicDataValidation = async (req, res, next) => {
   try {
     const phoneRegExp =
-      /^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/;
+      /^(\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*?([0-9]{3,4})[ \\-]*([0-9]{3,4})$/;
     const clinicDataSchema = yup.object().shape({
       name: yup.string("please give valid name"),
       mobile: yup
         .string()
-        .matches(phoneRegExp, "mobile number should be valid 10 digits")
         .min(10, "mobile number should be valid 10 digits")
         .max(10, "mobile number should be valid 10 digits"),
       location: yup.string(),

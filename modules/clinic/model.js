@@ -8,6 +8,7 @@ const { encrypt, decrypt } = require("../../utils/encryption");
 // an array of objects: [{ start: "HH:mm", end: "HH:mm" }, ...]
 function parseTimeRanges(input) {
   if (!input) return [];
+  const timeHHmm = /^([01]\d|2[0-3]):[0-5]\d$/; // 24h HH:mm
   const toObj = (s) => {
     const [start, end] = String(s)
       .split("-")
@@ -17,10 +18,15 @@ function parseTimeRanges(input) {
   let arr = [];
   if (Array.isArray(input)) {
     arr = input.map((r) =>
-      typeof r === "string" ? toObj(r) : { start: r.start, end: r.end }
+      typeof r === "string"
+        ? toObj(r)
+        : {
+            start: String(r.start || r.starts || "").trim(),
+            end: String(r.end || "").trim(),
+          }
     );
   } else if (typeof input === "string") {
-    // e.g. "05:00-11:00,16:00-22:00"
+    // e.g. "05:00-11:00,16:00-00:00"
     arr = input
       .split(",")
       .map((s) => s.trim())
@@ -30,12 +36,16 @@ function parseTimeRanges(input) {
     // Unknown type
     return [];
   }
-  const timeRe = /^(?:[01]\d|2[0-3]):[0-5]\d$/; // HH:mm 24h
-  // sanitize and keep only valid ranges with start < end lexicographically (works for HH:mm)
-  const valid = arr.filter(
-    (r) =>
-      timeRe.test(r.start || "") && timeRe.test(r.end || "") && r.start < r.end
-  );
+
+  // Keep original values, validate format and non-zero length only
+  const valid = arr.filter((r) => {
+    const s = r.start || "";
+    const e = r.end || "";
+    if (!timeHHmm.test(s) || !timeHHmm.test(e)) return false;
+    if (s === e) return false; // zero-length not allowed
+    return true;
+  });
+
   return valid;
 }
 
