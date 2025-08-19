@@ -1,4 +1,24 @@
 const yup = require("yup");
+
+const timeHHmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+const timeSlotSchema = yup
+  .array()
+  .of(yup.string().matches(timeHHmm, "time must be HH:mm"))
+  .length(2, "timeSlot must have [start,end]")
+  .test(
+    "one-hour",
+    "timeSlot must be exactly 1 hour and on the hour",
+    (val) => {
+      if (!Array.isArray(val)) return false;
+      const [start, end] = val;
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      if (sm !== 0 || em !== 0) return false;
+      const duration = eh * 60 + em - (sh * 60 + sm);
+      return duration === 60;
+    }
+  );
+
 exports.visitorValidation = async (req, res, next) => {
   try {
     const visitorSchema = yup.object().shape({
@@ -6,6 +26,7 @@ exports.visitorValidation = async (req, res, next) => {
       patientId: yup.number().required("patientId is required"),
       clinicId: yup.number().required("clinicId is required"),
       isCanceled: yup.boolean(),
+      timeSlot: timeSlotSchema.notRequired().nullable(),
     });
     await visitorSchema.validate(req.body);
     next();
@@ -24,6 +45,7 @@ exports.updateVisitorValidation = async (req, res, next) => {
       patientId: yup.number(),
       clinicId: yup.number(),
       isCanceled: yup.boolean(),
+      timeSlot: timeSlotSchema.notRequired().nullable(),
     });
     await visitorSchema.validate(req.body);
     next();
@@ -44,6 +66,7 @@ exports.rescheduleValidation = async (req, res, next) => {
       patientId: yup.number().required("patientId is required"),
       clinicId: yup.number().required("clinicId is required"),
       isCanceled: yup.boolean(),
+      timeSlot: timeSlotSchema.notRequired().nullable(),
     });
     await visitorSchema.validate(req.body);
     next();
@@ -62,6 +85,7 @@ exports.scheduleValidation = async (req, res, next) => {
       date: yup.date().required("schedule date is required field"),
       patientId: yup.number().required("patientId is required"),
       clinicId: yup.number().required("clinicId is required"),
+      timeSlot: timeSlotSchema.notRequired().nullable(),
     });
     await visitorSchema.validate(req.body);
     next();

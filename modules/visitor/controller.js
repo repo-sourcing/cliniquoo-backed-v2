@@ -13,7 +13,7 @@ const { runWhatsAppAppointmentConfirmationJob } = require("./utils");
 
 exports.create = async (req, res, next) => {
   try {
-    const { date, clinicId, patientId } = req.body;
+    const { date, clinicId, patientId, timeSlot } = req.body;
     // let previousScheduleData;
     // //logic for reschedule if reschedule previous appointment date isCancelled true and add new entry
     // if (req.body.previousScheduleDate) {
@@ -40,11 +40,11 @@ exports.create = async (req, res, next) => {
       return next(
         createError(200, "this patient already schedule on this date")
       );
-
     const data = await service.create({
       date,
       clinicId,
       patientId,
+      timeSlot: timeSlot ? timeSlot : null,
     });
 
     res.status(201).json({
@@ -59,7 +59,7 @@ exports.create = async (req, res, next) => {
 
 exports.schedule = async (req, res, next) => {
   try {
-    const { date, clinicId, patientId } = req.body;
+    const { date, clinicId, patientId, timeSlot } = req.body;
 
     // if (moment(date) < new Date(moment().utcOffset("+05:30")))
     //   return next(
@@ -75,13 +75,24 @@ exports.schedule = async (req, res, next) => {
       },
     });
 
+    // create if not exists; if exists and timeSlot provided, update it
     const data = await service.findOrCreate({
       where: {
         date,
         clinicId,
         patientId,
       },
+      defaults: {
+        timeSlot: timeSlot ?? null,
+      },
     });
+
+    if (!data[1] && typeof timeSlot !== "undefined") {
+      await service.update(
+        { timeSlot: timeSlot ?? null },
+        { where: { id: data[0].id } }
+      );
+    }
 
     await service.update(
       {
@@ -240,7 +251,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 
     // Extract unique patient IDs from the data
     const patientIds = [
-      ...new Set(data.rows.map(row => row.patient?.id).filter(Boolean)),
+      ...new Set(data.rows.map((row) => row.patient?.id).filter(Boolean)),
     ];
 
     // Use Promise.all to run both queries concurrently
@@ -293,7 +304,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
     // Add totals to each patient object
     const enrichedData = {
       ...data,
-      rows: data.rows.map(row => {
+      rows: data.rows.map((row) => {
         const rowData = row.toJSON ? row.toJSON() : row;
         if (rowData.patient) {
           rowData.patient.totalTreatmentAmount =
@@ -490,7 +501,8 @@ exports.remove = async (req, res, next) => {
 };
 exports.reschedule = async (req, res, next) => {
   try {
-    const { date, clinicId, patientId, previousScheduleDate } = req.body;
+    const { date, clinicId, patientId, previousScheduleDate, timeSlot } =
+      req.body;
 
     const [visitor] = await service.get({
       where: {
@@ -562,6 +574,7 @@ exports.reschedule = async (req, res, next) => {
     const data = await service.update(
       {
         date,
+        timeSlot: typeof timeSlot !== "undefined" ? timeSlot : null,
       },
       {
         where: {
