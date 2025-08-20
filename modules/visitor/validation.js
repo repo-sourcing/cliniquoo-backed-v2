@@ -5,14 +5,26 @@ const timeSlotSchema = yup
   .array()
   .of(yup.string().matches(timeHHmm, "time must be HH:mm"))
   .length(2, "timeSlot must have [start,end]")
+  .nullable()
+  .notRequired()
   .test(
     "one-hour",
     "timeSlot must be exactly 1 hour and on the hour",
     (val) => {
+      // Allow missing or null timeSlot
+      if (val == null) return true;
       if (!Array.isArray(val)) return false;
       const [start, end] = val;
+      if (!start || !end) return false;
       const [sh, sm] = start.split(":").map(Number);
       const [eh, em] = end.split(":").map(Number);
+      if (
+        Number.isNaN(sh) ||
+        Number.isNaN(sm) ||
+        Number.isNaN(eh) ||
+        Number.isNaN(em)
+      )
+        return false;
       if (sm !== 0 || em !== 0) return false;
       const duration = eh * 60 + em - (sh * 60 + sm);
       return duration === 60;
