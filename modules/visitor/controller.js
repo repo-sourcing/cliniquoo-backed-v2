@@ -512,7 +512,7 @@ exports.reschedule = async (req, res, next) => {
       },
     });
 
-    if (visitor)
+    if (visitor && !timeSlot)
       return next(
         createError(200, "this patient already schedule on this date")
       );
