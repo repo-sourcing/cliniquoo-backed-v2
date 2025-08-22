@@ -1,0 +1,239 @@
+const service = require("./service");
+const { Op } = require("sequelize");
+
+const { sqquery, usersqquery } = require("../../utils/query");
+const sequelize = require("../../config/db");
+const medicineService = require("../medicine/service");
+const frequencyUsedMedicineService = require("../frequentlyUsedMedicine/service");
+
+exports.create = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const { prescription } = req.body;
+    const userId = req.requestor.id;
+    req.body.userId = userId;
+
+    // Step 1: Fetch existing medicines in one query
+    const medicineNames = prescription.map(p => p.name);
+    const existingMedicines = await medicineService.get({
+      where: {
+        name: medicineNames,
+        [Op.or]: [
+          { userId: req.requestor.id }, // userId equals requestor id
+          { userId: { [Op.is]: null } }, // userId is null
+        ],
+      },
+    });
+
+    const existingMap = {};
+    existingMedicines.forEach(med => (existingMap[med.name] = med));
+
+    // Step 2: Bulk create missing medicines
+    const newMedicinesData = prescription
+      .filter(p => !existingMap[p.name])
+      .map(p => ({
+        name: p.name,
+        userId,
+        qty: p.qty,
+        days: p.days,
+        frequency: p.frequency,
+      }));
+
+    const newMedicines = await medicineService.bulkCreate(newMedicinesData, {
+      transaction: t,
+      returning: true,
+    });
+
+    newMedicines.forEach(med => (existingMap[med.name] = med));
+
+    // Step 3: Prepare frequency updates & prescription entries
+
+    for (const item of prescription) {
+      const medicineId = existingMap[item.name].id;
+      console.log("medicined-------->", medicineId);
+
+      const [freqUsage, created] =
+        await frequencyUsedMedicineService.findOrCreate({
+          where: { medicineId, userId },
+          defaults: { count: 1 },
+          transaction: t,
+        });
+
+      if (!created) {
+        await freqUsage.increment("count", { by: 1, transaction: t });
+      }
+    }
+
+    // prepare prescription data{}
+
+    const data = await service.create(req.body, { transaction: t });
+
+    await t.commit();
+
+    res.status(201).json({
+      status: "success",
+      message: "Prescription created successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.edit = async (req, res, next) => {
+  try {
+    const { prescription } = req.body;
+    const userId = req.requestor.id;
+
+    const [prescriptionRecord] = await service.get({
+      where: { id: req.params.id, userId },
+    });
+
+    if (!prescriptionRecord) {
+      return res.status(404).json({
+        status: "error",
+        message: "Prescription not found",
+      });
+    }
+
+    // Compare only date part (ignoring time)
+    const createdDate = prescriptionRecord.createdAt
+      .toISOString()
+      .split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
+
+    if (createdDate !== today) {
+      return res.status(400).json({
+        status: "error",
+        message: "You can only update prescription created today",
+      });
+    }
+
+    if (prescription && prescription.length > 0) {
+      // Step 1: Fetch existing medicines in one query
+      const medicineNames = prescription.map(p => p.name);
+      const existingMedicines = await medicineService.get({
+        where: {
+          name: medicineNames,
+          [Op.or]: [
+            { userId: req.requestor.id }, // userId equals requestor id
+            { userId: { [Op.is]: null } }, // userId is null
+          ],
+        },
+      });
+
+      const existingMap = {};
+      existingMedicines.forEach(med => (existingMap[med.name] = med));
+
+      // Step 2: Bulk create missing medicines
+      const newMedicinesData = prescription
+        .filter(p => !existingMap[p.name])
+        .map(p => ({
+          name: p.name,
+          userId,
+          qty: p.qty,
+          days: p.days,
+          frequency: p.frequency,
+        }));
+
+      const newMedicines = await medicineService.bulkCreate(newMedicinesData, {
+        returning: true,
+      });
+      // Step 3: Update frequentlyUsedMedicine count only for newly created medicines
+      newMedicines.forEach(med => (existingMap[med.name] = med));
+      for (const med of newMedicines) {
+        await frequencyUsedMedicineService.findOrCreate({
+          where: { medicineId: med.id, userId },
+          defaults: { count: 1 },
+        });
+      }
+    }
+
+    const data = await service.update(req.body, {
+      where: {
+        id: req.params.id,
+        userId,
+      },
+    });
+
+    res.status(201).json({
+      status: "success",
+      message: "Prescription updated successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.getOne = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        id: req.params.id,
+        userId: req.requestor.id,
+      },
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get prescription data",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.getAllByUser = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      where: {
+        userId: req.requestor.id,
+      },
+      ...usersqquery(req.query),
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get All daily activities of user successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.getAll = async (req, res, next) => {
+  try {
+    const data = await service.get({
+      ...sqquery(req.query),
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "get All daily activities of user successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.remove = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+
+    const data = await service.remove({
+      where: {
+        id,
+      },
+    });
+
+    res.status(200).send({
+      status: "success",
+      message: "Delete Daily Activity successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
