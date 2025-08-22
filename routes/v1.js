@@ -63,5 +63,17 @@ router.use("/payment", require("../modules/razorpay"));
 router.use("/user", require("../modules/user"));
 router.use("/config", require("../modules/config"));
 router.use("/service", require("../modules/log"));
+router.use("/medicine", auth.authMiddleware, require("../modules/medicine"));
+router.use(
+  "/prescription",
+  auth.authMiddleware,
+  require("../modules/prescription")
+);
+router.use("/template", auth.authMiddleware, require("../modules/template"));
+router.use(
+  "/frequentlyUsedMedicine",
+  auth.authMiddleware,
+  require("../modules/frequentlyUsedMedicine")
+);
 
 module.exports = router;
