@@ -1,12 +1,7 @@
 "use strict";
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
-const crypto = require("crypto");
-const { decrypt, encrypt } = require("../../utils/encryption");
-
-// Encryption utility functions
-const ALGORITHM = "aes-256-cbc";
-const IV_LENGTH = 16; // For AES, this is always 16
+const { validate } = require("node-cron");
 
 const User = sequelize.define(
   "user",
@@ -20,37 +15,18 @@ const User = sequelize.define(
     name: {
       type: Sequelize.STRING,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("name");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-        return null;
-      },
-      set(value) {
-        if (value) {
-          const encrypted = encrypt(value, process.env.CYPHERKEY);
-          this.setDataValue("name", encrypted);
-        }
-      },
     },
-
     email: {
       type: Sequelize.STRING,
       allowNull: false,
       unique: true,
-      get() {
-        const storedValue = this.getDataValue("email");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-        return null;
-      },
-      set(value) {
-        if (value) {
-          const encrypted = encrypt(value, process.env.CYPHERKEY);
-          this.setDataValue("email", encrypted);
-        }
+      validate: {
+        isEmail: {
+          msg: "Please enter a valid email address",
+        },
+        notEmpty: {
+          msg: "Email address cannot be empty",
+        },
       },
     },
     profilePic: {
@@ -60,19 +36,6 @@ const User = sequelize.define(
       type: Sequelize.STRING,
       unique: true,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("mobile");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-        return null;
-      },
-      set(value) {
-        if (value) {
-          const encrypted = encrypt(value.toString(), process.env.CYPHERKEY);
-          this.setDataValue("mobile", encrypted);
-        }
-      },
     },
     about: {
       type: Sequelize.TEXT,
@@ -94,6 +57,40 @@ const User = sequelize.define(
 
     FcmToken: {
       type: Sequelize.TEXT,
+    },
+    degree: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      validate: {
+        isIn: {
+          args: [["BDS", "MDS"]],
+          msg: "Degree must be either BDS or MDS",
+        },
+        notEmpty: {
+          msg: "Degree cannot be empty",
+        },
+      },
+    },
+    specialization: {
+      type: Sequelize.STRING,
+      allowNull: true,
+      validate: {
+        specializationValidation(value) {
+          if (this.degree === "MDS" && !value) {
+            throw new Error("Specialization is required for MDS degree");
+          }
+        },
+      },
+    },
+    registrationNumber: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
+    signature: {
+      type: Sequelize.STRING,
     },
   },
   {

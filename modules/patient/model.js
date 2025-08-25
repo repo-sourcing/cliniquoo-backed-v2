@@ -2,8 +2,6 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
-const crypto = require("crypto");
-const { decrypt, encrypt } = require("../../utils/encryption");
 const Patient = sequelize.define(
   "patient",
   {
@@ -16,16 +14,6 @@ const Patient = sequelize.define(
     name: {
       type: Sequelize.STRING,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("name");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-      },
-      set(value) {
-        const encrypted = encrypt(value, process.env.CYPHERKEY);
-        this.setDataValue("name", encrypted);
-      },
     },
     location: {
       type: Sequelize.STRING,
@@ -33,16 +21,6 @@ const Patient = sequelize.define(
     mobile: {
       type: Sequelize.STRING,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("mobile");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-      },
-      set(value) {
-        const encrypted = encrypt(value.toString(), process.env.CYPHERKEY);
-        this.setDataValue("mobile", encrypted);
-      },
     },
     gender: {
       type: Sequelize.ENUM("M", "F", "O"),

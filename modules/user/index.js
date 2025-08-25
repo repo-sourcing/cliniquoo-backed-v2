@@ -26,14 +26,15 @@ const {
   resendOTPLimit,
 } = require("../../middleware/rateLimiter");
 
-router
-  .route("/")
-  .patch(
-    auth.authMiddleware,
-    upload.single("profilePic"),
-    updateUserValidation,
-    update
-  );
+router.route("/").patch(
+  auth.authMiddleware,
+  upload.fields([
+    { name: "profilePic", maxCount: 1 },
+    { name: "signature", maxCount: 1 },
+  ]),
+  updateUserValidation,
+  update
+);
 router.get("/getMe", auth.authMiddleware, getMe);
 router.post("/sendOTP", otpSendLimit, sendOTPValidation, sendOTP);
 router.post("/resendOTP", resendOTPLimit, sendOTPValidation, resendOTP);
@@ -49,7 +50,10 @@ router.post("/mobileCheck", mobileCheck);
 router.post(
   "/signup",
   auth.verifiedCheck,
-  upload.single("profilePic"),
+  upload.fields([
+    { name: "profilePic", maxCount: 1 },
+    { name: "signature", maxCount: 1 },
+  ]),
   userValidation,
   signup
 );

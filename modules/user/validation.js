@@ -25,6 +25,19 @@ exports.userValidation = async (req, res, next) => {
         .mixed()
         .oneOf(["M", "F", "O"])
         .required("gender is required field"),
+      degree: yup
+        .string()
+        .oneOf(["BDS", "MDS"])
+        .required("degree is required field"),
+      specialization: yup.string().when("degree", {
+        is: "MDS",
+        then: () =>
+          yup.string().required("specialization is required for MDS degree"),
+        otherwise: () => yup.string(),
+      }),
+      registrationNumber: yup
+        .string()
+        .required("registration number is required field"),
     });
     await userSchema.validate(req.body);
     next();
@@ -52,6 +65,14 @@ exports.updateUserValidation = async (req, res, next) => {
       FcmToken: yup.string(),
       dob: yup.date(),
       gender: yup.mixed().oneOf(["M", "F", "O"]),
+      degree: yup.string().oneOf(["BDS", "MDS"]),
+      specialization: yup.string().when("degree", {
+        is: "MDS",
+        then: () =>
+          yup.string().required("specialization is required for MDS degree"),
+        otherwise: () => yup.string(),
+      }),
+      registrationNumber: yup.string(),
     });
     await userSchema.validate(req.body);
     next();

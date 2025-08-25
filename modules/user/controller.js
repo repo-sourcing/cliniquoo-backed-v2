@@ -6,35 +6,18 @@ const auth = require("../../middleware/auth");
 const firebase = require("../../utils/firebaseConfige");
 const Clinic = require("../clinic/model");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const axios = require("axios");
-const DailyActivityService = require("../dailyActivity/service");
 const { sqquery } = require("../../utils/query");
 const redisClient = require("../../utils/redis");
-const { encrypt } = require("../../utils/encryption");
 const msg91Services = require("../../utils/msg91");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
     // If user found with this  phone number or email. Then throw error
     // otherwise add new data
-    const cipher = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    let encryptedMobile = cipher.update(
-      req.body.mobile.toString(),
-      "utf8",
-      "hex"
-    );
-    encryptedMobile += cipher.final("hex");
-    const cipherEmail = crypto.createCipher("aes128", process.env.CYPHERKEY);
-    let encryptedEmail = cipherEmail.update(
-      req.body.email.toString(),
-      "utf8",
-      "hex"
-    );
-    encrypteEmail += cipherEmail.final("hex");
 
+    const { mobile, email } = req.body;
     const [userWithSamePhoneNo] = await service.get({
-      where: { mobile: encryptedMobile.toString() },
+      where: { mobile },
     });
 
     // user with same phone number is  found.
@@ -45,10 +28,10 @@ exports.create = async (req, res, next) => {
     }
 
     const [userWithSameEmail] = await service.get({
-      where: { mobile: encryptedEmail.toString() },
+      where: { email },
     });
 
-    // user with same phone number is  found.
+    // user with same email is found.
     if (userWithSameEmail) {
       return res.status(400).json({
         message: "This Email is already register,try with another one",
@@ -155,8 +138,12 @@ exports.update = async (req, res, next) => {
   try {
     const id = req.requestor.id;
     delete req.body.mobile;
-    if (req.file) {
-      req.body.profilePic = req.file.location;
+    // Handle both profilePic and signature files if they exist
+    if (req.files?.profilePic?.[0]) {
+      req.body.profilePic = req.files.profilePic[0].location;
+    }
+    if (req.files?.signature?.[0]) {
+      req.body.signature = req.files.signature[0].location;
     }
 
     const data = await service.update(id, req.body);
@@ -187,81 +174,14 @@ exports.remove = async (req, res, next) => {
   }
 };
 
-// Temp
-// exports.sendOTP = async (req, res, next) => {
-//   const mobile = req.body.mobile;
-//   const token = jwt.sign(
-//     {
-//       phone_number: req.body.mobile,
-//       uid: req.body.uid,
-//     },
-//     process.env.JWT_SECRETE,
-//     {
-//       expiresIn: process.env.JWT_EXPIREIN,
-//     }
-//   );
-
-//   res.status(200).json({
-//     message: "Verification is sent",
-//     phoneNumber: mobile,
-//     token,
-//   });
-// };
-
-// exports.sendOTP = async (req, res, next) => {
-//   try {
-//     let mobileNo = `+91${req.body.mobile}`;
-//     const OTP = Math.floor(100000 + Math.random() * 900000);
-//     console.log(OTP);
-//     const token = jwt.sign(
-//       {
-//         mobile: req.body.mobile,
-//         OTP: OTP,
-//       },
-//       process.env.JWT_SECRETE,
-//       {
-//         expiresIn: 80,
-//       }
-//     );
-//     let params = {
-//       Message: `${OTP} is the OTP to login to your Dento account. Do Not Disclose it to anyone.`,
-//       PhoneNumber: mobileNo,
-//       //       EntityId :1101782810000058028,
-//       //       TemplateId :1107165124279967724
-//     };
-//     return new AWS.SNS({
-//       apiVersion: "2010–03–31",
-//     })
-//       .publish(params)
-//       .promise()
-//       .then((message) => {
-//         console.log("OTP send successfully");
-
-//         res.status(200).json({
-//           status: "success",
-//           message: "OTP send successfully",
-//           token,
-//         });
-//       })
-//       .catch((err) => {
-//         console.log("Error" + err);
-//         return err;
-//       });
-//   } catch (error) {
-//     next(error || createError(404, "Data not found"));
-//   }
-// };
-
 exports.sendOTP = async (req, res, next) => {
   try {
     const { mobile, countryCode = 91 } = req.body;
-    // Use the utility function for encryption
-    const encryptedMobile = encrypt(mobile.toString(), process.env.CYPHERKEY);
 
     const deletedUser = await service.count({
       where: {
         deletedAt: { [Op.not]: null },
-        mobile: encryptedMobile,
+        mobile: mobile,
       },
       paranoid: false,
     });
@@ -276,37 +196,7 @@ exports.sendOTP = async (req, res, next) => {
 
     // let mobile = `+91${req.body.mobile * 1}`;
 
-    const token = await auth.singMobileToken(req.body.mobile * 1, false);
-    // const Services = axios.create({
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     "api-key": process.env.API_KEY,
-    //   },
-    // });
-
-    // const body = {
-    //   flow_id: process.env.FLOW_ID,
-    //   to: {
-    //     mobile,
-    //   },
-    // };
-
-    // Services.post(`https://api.kaleyra.io/v1/${process.env.SID}/verify`, body)
-    //   .then((el) => {
-    //     res.status(200).json({
-    //       status: "success",
-    //       message: "OTP send successfully",
-    //       data: el.data.data,
-    //       token,
-    //     });
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //     res.status(200).json({
-    //       status: "fail",
-    //       message: "OTP send failed",
-    //     });
-    //   });
+    const token = auth.singMobileToken(req.body.mobile * 1, false);
 
     const otpResponse = await msg91Services.sendOTP(mobile, countryCode);
     if (otpResponse.type !== "success")
@@ -322,28 +212,6 @@ exports.sendOTP = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-
-// exports.verifyOTP = async (req, res, next) => {
-//   try {
-//     const token = req.headers.authorization.split(" ")[1];
-//     const jwtUser = await jwt.verify(token, process.env.JWT_SECRETE);
-//     if (jwtUser.OTP == req.body.OTP) {
-//       // const token = singMobileToken(jwtUser.mobile, true);
-//       res.status(200).json({
-//         status: "success",
-//         message: "User Verified",
-//         token,
-//       });
-//     } else {
-//       res.status(401).json({
-//         status: "fail",
-//         message: "Incorrect OTP",
-//       });
-//     }
-//   } catch (error) {
-//     next(error || createError(404, "Data not found"));
-//   }
-// };
 
 exports.verifyOTP = async (req, res, next) => {
   try {
@@ -368,14 +236,9 @@ exports.verifyOTP = async (req, res, next) => {
         return next(createError(200, msg91Services.getMessage(otpResponse)));
       }
       console.log(req.requestor.mobile);
-      const encryptedMobile = encrypt(
-        req.requestor.mobile.toString(),
-        process.env.CYPHERKEY
-      );
-      console.log(encryptedMobile);
       const [user] = await service.get({
         where: {
-          mobile: encryptedMobile,
+          mobile: req.requestor.mobile,
         },
       });
 
@@ -409,105 +272,6 @@ exports.verifyOTP = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-// exports.verifyUser = async (req, res, next) => {
-//   firebase
-//     .auth()
-//     .verifyIdToken(req.body.firebase_token)
-//     .then(async (jwtUser) => {
-//       let token;
-//       const [avlUser] = await service.get({
-//         where: {
-//           [Op.or]: { mobileUid: jwtUser.uid, emailUid: jwtUser.uid },
-//         },
-//         attributes: ["id", "mobile"],
-//       });
-//       console.log("available user", avlUser);
-//       // Sign a JWT Token for login/signup
-//       if (!avlUser) {
-//         token = jwt.sign(
-//           { id: jwtUser.uid, role: "User" },
-//           process.env.JWT_SECRETE,
-//           {
-//             expiresIn: process.env.JWT_EXPIREIN,
-//           }
-//         );
-//         res.status(200).json({
-//           status: "success",
-//           message: "user verified",
-//           user: "new",
-//           token,
-//         });
-//       } else {
-//         token = jwt.sign(
-//           { id: avlUser.id, role: "User" },
-//           process.env.JWT_SECRETE,
-//           {
-//             expiresIn: process.env.JWT_EXPIREIN,
-//           }
-//         );
-//         res.status(200).json({
-//           status: "success",
-//           message: "user verified",
-//           user: "old",
-//           token,
-//         });
-//       }
-//     })
-//     .catch(async (err) => {
-//       try {
-//         let token;
-//         // const jwtUser = await decodeToken(req);
-//         const jwtUser = await jwt.verify(
-//           req.body.firebase_token,
-//           process.env.JWT_SECRETE
-//         );
-//         console.log(jwtUser);
-//         const [avlUser] = await service.get({
-//           where: {
-//             [Op.or]: [{ mobileUid: jwtUser.uid }, { emailUid: jwtUser.uid }],
-//           },
-//           attributes: ["id", "mobile"],
-//         });
-//         // console.log("available user", avlUser);
-//         // Sign a JWT Token for login/signup
-
-//         if (!avlUser) {
-//           token = jwt.sign(
-//             { id: jwtUser.uid, role: "User" },
-//             process.env.JWT_SECRETE,
-//             {
-//               expiresIn: process.env.JWT_EXPIREIN,
-//             }
-//           );
-//           res.status(200).json({
-//             status: "success",
-//             message: "user verified",
-//             user: "new",
-//             token,
-//           });
-//         } else {
-//           token = jwt.sign(
-//             { id: avlUser.id, role: "User" },
-//             process.env.JWT_SECRETE,
-//             {
-//               expiresIn: process.env.JWT_EXPIREIN,
-//             }
-//           );
-
-//           res.status(200).json({
-//             status: "success",
-//             message: "user verified",
-//             user: "old",
-//             token,
-//           });
-//         }
-//       } catch (err) {
-//         next(err);
-//       }
-
-//       //  next(err)
-//     });
-// };
 
 exports.resendOTP = async (req, res, next) => {
   try {
@@ -538,7 +302,9 @@ exports.signup = async (req, res, next) => {
     if (user) return next(createError(200, "user already exist"));
 
     // req.body.emailUid = jwtUser.id;
-    req.body.profilePic = req.file ? req.file.location : null;
+    // Handle both profilePic and signature files
+    req.body.profilePic = req.files?.profilePic?.[0]?.location || null;
+    req.body.signature = req.files?.signature?.[0]?.location || null;
     req.body.mobile = mobile;
     const data = await service.create(req.body);
 

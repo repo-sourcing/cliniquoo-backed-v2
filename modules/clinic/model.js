@@ -2,7 +2,6 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
-const { encrypt, decrypt } = require("../../utils/encryption");
 
 // Helper to normalize time ranges input (string or array) into
 // an array of objects: [{ start: "HH:mm", end: "HH:mm" }, ...]
@@ -61,31 +60,10 @@ const Clinic = sequelize.define(
     name: {
       type: Sequelize.STRING,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("name");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-      },
-      set(value) {
-        const encrypted = encrypt(value, process.env.CYPHERKEY);
-        this.setDataValue("name", encrypted);
-      },
     },
     mobile: {
       type: Sequelize.STRING,
       allowNull: false,
-      get() {
-        const storedValue = this.getDataValue("mobile");
-        if (storedValue) {
-          return decrypt(storedValue, process.env.CYPHERKEY);
-        }
-      },
-      set(value) {
-        const encrypted = encrypt(value, process.env.CYPHERKEY);
-        console.log(encrypted);
-        this.setDataValue("mobile", encrypted);
-      },
     },
     location: {
       type: Sequelize.STRING,
