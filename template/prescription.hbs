@@ -120,10 +120,13 @@
             {{/each}}
           </tbody>
         </table>
-        <div class="note">
-          Note :
-          {{notes}}
-        </div>
+        {{#if notes}}
+          <div class="note">
+            Note :
+            {{notes}}
+          </div>
+        {{/if}}
+
         <div class="signature">
           <div>
             {{#if signature}}
