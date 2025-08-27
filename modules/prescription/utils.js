@@ -25,8 +25,7 @@ const generatePrescriptionPDF = async data => {
     // Launch Puppeteer
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath:
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // your installed Chrome
+      executablePath: process.env.executablePath,
 
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
