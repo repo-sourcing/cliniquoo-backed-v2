@@ -234,6 +234,10 @@ exports.sendPrescription = async (req, res, next) => {
     const { transaction, prescription: medicinesList, notes, createdAt } = data;
     const { clinic, patient } = transaction;
     const doctor = patient.user;
+    let degree =
+      doctor.degree == "MDS" && doctor.specialization !== null
+        ? `${doctor.degree} (${doctor.specialization})`
+        : doctor.degree;
 
     let prescriptionData = {
       clinic_name: clinic.name,
@@ -241,7 +245,7 @@ exports.sendPrescription = async (req, res, next) => {
       clinic_phone_number: clinic.mobile,
 
       dr_name: doctor.name,
-      degree: doctor.degree,
+      degree: degree,
       registration_no: doctor.registrationNumber,
       signature: doctor.signature || null,
 
