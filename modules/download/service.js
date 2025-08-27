@@ -42,8 +42,19 @@ const uploadToS3 = async (csvData, fileName) => {
     throw new Error("Failed to upload CSV to S3");
   }
 };
+const uploadPdfToS3 = async (buffer, fileName) => {
+  const params = {
+    Bucket: process.env.Bucket, // your S3 bucket
+    Key: fileName, // file name in S3
+    Body: buffer,
+    ContentType: "application/pdf",
+  };
 
-const generatePatientsWithTreatmentsCSV = async (userId) => {
+  const uploadResult = await s3.upload(params).promise();
+  return uploadResult.Location; // returns public URL
+};
+
+const generatePatientsWithTreatmentsCSV = async userId => {
   try {
     // Validate userId
     if (!userId) {
@@ -82,10 +93,10 @@ const generatePatientsWithTreatmentsCSV = async (userId) => {
     // Transform data for CSV
     const csvData = [];
 
-    patients.forEach((patient) => {
+    patients.forEach(patient => {
       if (patient.treatments && patient.treatments.length > 0) {
         // Patient has treatments - create one row per treatment
-        patient.treatments.forEach((treatment) => {
+        patient.treatments.forEach(treatment => {
           csvData.push({
             "Patient ID": patient.id,
             "Patient Name": patient.name,
@@ -167,7 +178,7 @@ const generatePatientsWithTreatmentsCSV = async (userId) => {
   }
 };
 
-const generatePatientsWithTransactionsCSV = async (userId) => {
+const generatePatientsWithTransactionsCSV = async userId => {
   try {
     // Validate userId
     if (!userId) {
@@ -206,10 +217,10 @@ const generatePatientsWithTransactionsCSV = async (userId) => {
     // Transform data for CSV
     const csvData = [];
 
-    patients.forEach((patient) => {
+    patients.forEach(patient => {
       if (patient.transactions && patient.transactions.length > 0) {
         // Patient has transactions - create one row per transaction
-        patient.transactions.forEach((transaction) => {
+        patient.transactions.forEach(transaction => {
           csvData.push({
             "Patient ID": patient.id,
             "Patient Name": patient.name,
@@ -299,4 +310,5 @@ const generatePatientsWithTransactionsCSV = async (userId) => {
 module.exports = {
   generatePatientsWithTreatmentsCSV,
   generatePatientsWithTransactionsCSV,
+  uploadPdfToS3,
 };

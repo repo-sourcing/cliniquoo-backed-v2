@@ -5,6 +5,16 @@ const { sqquery, usersqquery } = require("../../utils/query");
 const sequelize = require("../../config/db");
 const medicineService = require("../medicine/service");
 const frequencyUsedMedicineService = require("../frequentlyUsedMedicine/service");
+const Transaction = require("../transaction/model");
+const Patient = require("../patient/model");
+const Clinic = require("../clinic/model");
+const User = require("../user/model");
+const moment = require("moment/moment");
+const {
+  generatePrescriptionPDF,
+  buildSchedule,
+  buildInstructions,
+} = require("./utils");
 
 exports.create = async (req, res, next) => {
   const t = await sequelize.transaction();
@@ -50,7 +60,6 @@ exports.create = async (req, res, next) => {
 
     for (const item of prescription) {
       const medicineId = existingMap[item.name].id;
-      console.log("medicined-------->", medicineId);
 
       const [freqUsage, created] =
         await frequencyUsedMedicineService.findOrCreate({
@@ -97,10 +106,12 @@ exports.edit = async (req, res, next) => {
     }
 
     // Compare only date part (ignoring time)
-    const createdDate = prescriptionRecord.createdAt
-      .toISOString()
-      .split("T")[0];
-    const today = new Date().toISOString().split("T")[0];
+
+    const createdDate = moment(prescriptionRecord.createdAt)
+      .tz("Asia/Kolkata")
+      .format("YYYY-MM-DD");
+
+    const today = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
     if (createdDate !== today) {
       return res.status(400).json({
@@ -178,6 +189,85 @@ exports.getOne = async (req, res, next) => {
       status: "success",
       message: "get prescription data",
       data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.sendPrescription = async (req, res, next) => {
+  try {
+    const [data] = await service.get({
+      where: {
+        id: req.params.id,
+        userId: req.requestor.id,
+      },
+      include: [
+        {
+          model: Transaction,
+          attributes: ["id"],
+          include: [
+            {
+              model: Patient,
+              attributes: ["id", "name", "age", "gender"],
+              include: [
+                {
+                  model: User,
+                  attributes: [
+                    "id",
+                    "name",
+                    "degree",
+                    "specialization",
+                    "registrationNumber",
+                    "signature",
+                  ],
+                },
+              ],
+            },
+            {
+              model: Clinic,
+              attributes: ["id", "name", "location", "mobile"],
+            },
+          ],
+        },
+      ],
+    });
+    const { transaction, prescription: medicinesList, notes, createdAt } = data;
+    const { clinic, patient } = transaction;
+    const doctor = patient.user;
+
+    let prescriptionData = {
+      clinic_name: clinic.name,
+      clinic_address: clinic.location,
+      clinic_phone_number: clinic.mobile,
+
+      dr_name: doctor.name,
+      degree: doctor.degree,
+      registration_no: doctor.registrationNumber,
+      signature: doctor.signature || null,
+
+      patient_name: patient.name,
+      patient_age: patient.age,
+      patient_gender: patient.gender,
+      prescription_date: new Date(createdAt).toLocaleDateString("en-GB"), // e.g. 25/08/2025
+
+      medicines: medicinesList.map((med, index) => ({
+        no: index + 1,
+        name: med.name,
+        quantity: med.qty,
+        duration: `${med.days} days`,
+        schedule: buildSchedule(med.frequency),
+        instruction: buildInstructions(med.frequency),
+      })),
+
+      notes: notes || "",
+    };
+
+    const url = await generatePrescriptionPDF(prescriptionData);
+
+    res.status(200).send({
+      status: "success",
+      message: "prescription send successfully",
+      data: url,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));

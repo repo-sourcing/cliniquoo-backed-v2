@@ -1,0 +1,138 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prescription</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root { --primaryBg: linear-gradient(90deg, #0547a4 0%, #0154ca 100%);
+      --primaryText: #00419d; --secondaryText: #121212; --thirdText: #0154ca;
+      font-family: "Roboto", serif; } body { font-family: "Roboto", serif;
+      background: #f5f5f5; padding: 2rem 2rem 0 2rem; /* padding: 2rem; */
+      display: flex; justify-content: center; } .prescription { background:
+      #fff; max-width: 48rem; width: 100%; border: 1px solid #ccc; box-shadow: 0
+      4px 8px rgba(0, 0, 0, 0.1); } .header { background: var(--primaryBg);
+      color: #fff; text-align: center; padding: 1.5rem 0; } .header h1 { margin:
+      0; } .header p { margin: 0.3rem 0; font-size: 0.9rem; } .doctor { padding:
+      1rem; } .doctor h2 { margin: 0; color: #1565c0; font-size: 1.2rem; }
+      .doctor p { margin: 0.2rem 0; font-size: 0.85rem; color: #414042; }
+      .patient-info { border: 1px solid #00419d; border-radius: 10px; margin: 0
+      1rem; padding: 0.5rem; font-size: 0.9rem; } .patient-info .info { display:
+      flex; } .patient-info label { font-weight: 600; margin-right: 0.3rem;
+      color: var(--primaryText); } .patient-info .details { font-weight: 600;
+      width: 85%; } .patient-info .details p { border-bottom: 1px solid #000;
+      width: 100%; padding-top: 4px; margin: 0; } .patient-info .other-info {
+      margin-top: 0.75rem; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1rem; } .rx-section { border: 1.5px solid #00419d; border-radius:
+      12px; margin: 1rem; padding: 1rem; } .rx-title { font-size: 2rem;
+      font-weight: bold; color: #1565c0; } table { width: 100%; border-collapse:
+      collapse; margin-top: 1.5rem; font-size: 0.9rem; } th, td { border: 2px
+      solid #9cc2f6; padding: 0.6rem; text-align: center; } th { background:
+      #cde0fa; color: #1565c0; } td:first-child { width: 2rem; } .note { margin:
+      1rem 0; font-style: italic; font-size: 1.1rem; color: #111; font-weight:
+      600; } .signature { margin-top: 10rem; display: flex; flex-direction:
+      column; align-items: flex-end; padding: 1rem 1rem 0 1rem; font-size:
+      0.8rem; } .signature p { border-top: 1.5px solid black; padding: 0.5rem
+      0.75rem 0 0.75rem; } .signature div { display: flex; flex-direction:
+      column; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <div class="prescription">
+      <div class="header">
+        <h1>{{clinic_name}}</h1>
+        <p>{{clinic_address}}</p>
+        <p>Phone Number : {{clinic_phone_number}}</p>
+      </div>
+      <div class="doctor">
+        <h2>Dr. {{dr_name}}</h2>
+        <p>{{degree}}</p>
+        <p>Registration No: {{registration_no}}</p>
+      </div>
+      <div class="patient-info">
+        <div class="info">
+          <label>Patient Name:</label>
+          <div class="details">
+            {{patient_name}}
+            <p class="underline w-full"></p>
+          </div>
+        </div>
+        <div class="other-info">
+          <div class="info">
+            <label>Age:</label>
+            <div class="details">
+              {{patient_age}}
+              <p class="underline w-full"></p>
+            </div>
+          </div>
+          <div class="info">
+            <label>Gender:</label>
+            <div class="details">
+              {{patient_age}}
+              <p class="underline w-full"></p>
+            </div>
+          </div>
+          <div class="info">
+            <label>Date:</label>
+            <div class="details">
+              {{prescription_date}}
+              <p class="underline w-full"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rx-section">
+        <div class="rx-title">
+          <img
+            src="https://dentosupportnew.s3.ap-south-1.amazonaws.com/logo.png"
+            height="45"
+            width="38"
+            alt="logo"
+          />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Medicine</th>
+              <th>Quantity</th>
+              <th>Schedule</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each medicines}}
+              <tr>
+                <td>{{no}}</td>
+                <td>
+                  {{name}}<br />
+                  <small>{{instruction}}</small>
+                </td>
+                <td>{{quantity}}</td>
+                <td>{{schedule}}</td>
+                <td>{{duration}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        <div class="note">
+          Note :
+          {{notes}}
+        </div>
+        <div class="signature">
+          <div>
+            {{#if signature}}
+              <img src="{{signature}}" alt="Doctor's Signature" height="40" />
+            {{/if}}
+            <p>Doctor's Signature &amp; Stamp</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
