@@ -122,7 +122,7 @@ exports.getOne = async (req, res, next) => {
           ],
           order: [
             // [Treatment, "createdAt", "DESC"],
-            [Transaction, "createdAt", "DESC"],
+            [Transaction, "createdAt", "ASC"],
             [MedicalHistory, "createdAt", "DESC"],
           ],
         }),
@@ -201,7 +201,7 @@ exports.getSearch = async (req, res, next) => {
         JSON.stringify(patientData)
       );
     }
-    const searchData = patientData.filter(data => {
+    const searchData = patientData.filter((data) => {
       return (
         data.name.includes(req.params.name) ||
         data.mobile.includes(req.params.name)
@@ -218,7 +218,7 @@ exports.getSearch = async (req, res, next) => {
 };
 const getUpdatedSchedule = async (patientData, search, selectedIds) => {
   let finalSearchData = [];
-  await patientData.filter(data => {
+  await patientData.filter((data) => {
     if (data.name.includes(search) || data.mobile.includes(search)) {
       if (selectedIds.includes(data.id)) {
         data.schedule = true;
@@ -241,7 +241,7 @@ exports.getSearchByDate = async (req, res, next) => {
         clinicId: req.query.clinicId,
       },
     });
-    selectedIds = data.map(searchIds => searchIds.patientId);
+    selectedIds = data.map((searchIds) => searchIds.patientId);
 
     patientData = await redisClient.GET(`patient?userId=${req.requestor.id}`);
     if (patientData) {
