@@ -113,6 +113,7 @@ async function sendWhatsAppTemplate({
   integratedNumber,
   namespace,
   to,
+  header,
   bodyValues = [],
   languageCode = "en",
   policy = "deterministic",
@@ -127,6 +128,11 @@ async function sendWhatsAppTemplate({
     integratedNumber || MSG91_WA_INTEGRATED_NUMBER;
   const namespace_final = namespace || MSG91_WA_NAMESPACE;
 
+  const components = buildBodyComponents(bodyValues);
+  if (header) {
+    components.header_1 = header;
+  }
+
   const payload = {
     integrated_number: integrated_number_final,
     content_type: "template",
@@ -140,7 +146,7 @@ async function sendWhatsAppTemplate({
         to_and_components: [
           {
             to,
-            components: buildBodyComponents(bodyValues),
+            components,
           },
         ],
       },
@@ -169,7 +175,7 @@ async function sendWhatsAppTemplate({
 exports.sendWhatsAppAppointmentConfirmation = async (params) => {
   return sendWhatsAppTemplate({
     ...params,
-    templateName: "appointment_confirmation",
+    templateName: "appointment_confirmation_new",
   });
 };
 
@@ -189,7 +195,7 @@ exports.sendWhatsAppAppointmentConfirmation = async (params) => {
 exports.sendWhatsAppAppointmentReminder = async (params) => {
   return sendWhatsAppTemplate({
     ...params,
-    templateName: "appointment_reminder",
+    templateName: "appointment_reminder_new",
   });
 };
 
@@ -199,7 +205,7 @@ exports.sendWhatsAppAppointmentReminder = async (params) => {
  * @param {Object} params - Variables for the template
  * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
  * @param {Array<string|number>} params.bodyValues - Values for body_1..body_5 in order
- * @param {string} [params.languageCode="en"]
+ * @param {string} [params.languageCode="en_US"]
  * @param {string} [params.policy="deterministic"]
  * @param {string} [params.authKey]
  * @param {string} [params.integratedNumber] - Optional override
@@ -209,7 +215,8 @@ exports.sendWhatsAppAppointmentReminder = async (params) => {
 exports.sendWhatsAppAppointmentRescheduleConfirmation = async (params) => {
   return sendWhatsAppTemplate({
     ...params,
-    templateName: "appoitment_reschedual_confirmation",
+    templateName: "appoitment_reschedual_confirmation_new_2",
+    languageCode: "en_US",
   });
 };
 
@@ -218,7 +225,7 @@ exports.sendWhatsAppAppointmentRescheduleConfirmation = async (params) => {
  * Uses static integrated number and namespace (overridable via env or params).
  * @param {Object} params - Variables for the template
  * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
- * @param {Array<string|number>} params.bodyValues - Values for body_1..body_6 in order
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_4 in order
  * @param {string} [params.languageCode="en"]
  * @param {string} [params.policy="deterministic"]
  * @param {string} [params.authKey]
@@ -230,5 +237,29 @@ exports.sendWhatsAppPaymentConfirmation = async (params) => {
   return sendWhatsAppTemplate({
     ...params,
     templateName: "payment_confirmation_final",
+  });
+};
+
+/**
+ * Send WhatsApp prescription template via MSG91
+ * Uses static integrated number and namespace (overridable via env or params).
+ * @param {Object} params - Variables for the template
+ * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
+ * @param {Object} params.header - Header component for the document
+ * @param {string} params.header.filename - The name of the file
+ * @param {string} params.header.value - The url of the media
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_5 in order
+ * @param {string} [params.languageCode="en"]
+ * @param {string} [params.policy="deterministic"]
+ * @param {string} [params.authKey]
+ * @param {string} [params.integratedNumber] - Optional override
+ * @param {string} [params.namespace] - Optional override
+ * @returns {Promise<any>} MSG91 API response data
+ */
+exports.sendWhatsAppPrescription = async (params) => {
+  return sendWhatsAppTemplate({
+    ...params,
+    templateName: "prescription_new",
+    header: { ...params.header, type: "document" },
   });
 };
