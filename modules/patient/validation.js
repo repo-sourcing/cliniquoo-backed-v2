@@ -16,7 +16,6 @@ exports.patientValidation = async (req, res, next) => {
       gender: yup.mixed().oneOf(["M", "F", "O"]).required("gender is required"),
       remainBill: yup.number(),
       lastVisitedDate: yup.date(),
-      discountAmount: yup.number(),
     });
     await patientSchema.validate(req.body);
     next();
@@ -43,7 +42,7 @@ exports.updatePatientValidation = async (req, res, next) => {
       gender: yup.mixed().oneOf(["M", "F", "O"]),
       remainBill: yup.number(),
       lastVisitedDate: yup.date(),
-      discountAmount: yup.number(),
+
       isActive: yup.boolean(),
     });
     await patientSchema.validate(req.body);

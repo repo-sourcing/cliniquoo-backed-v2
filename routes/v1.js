@@ -75,5 +75,10 @@ router.use(
   auth.authMiddleware,
   require("../modules/frequentlyUsedMedicine")
 );
+router.use(
+  "/treatmentPlan",
+  auth.authMiddleware,
+  require("../modules/treatmentPlan")
+);
 
 module.exports = router;

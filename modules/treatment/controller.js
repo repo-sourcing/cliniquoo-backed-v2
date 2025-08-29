@@ -4,10 +4,21 @@ const Patient = require("../patient/model");
 const visitorService = require("../visitor/service");
 const moment = require("moment");
 const { sqquery } = require("../../utils/query");
+const treatmentPlanService = require("../treatmentPlan/service");
 exports.create = async (req, res, next) => {
   try {
-    const { clinicId, patientId } = req.body;
+    const { treatmentPlanId } = req.body;
     const data = await service.create(req.body);
+
+    const [treatmentPlan] = await treatmentPlanService.get({
+      where: {
+        id: treatmentPlanId,
+      },
+    });
+    if (!treatmentPlan)
+      return next(createError(404, "Treatment Plan not found"));
+    const clinicId = treatmentPlan.clinicId;
+    const patientId = treatmentPlan.patientId;
 
     await visitorService.findOrCreate({
       where: {
@@ -19,7 +30,7 @@ exports.create = async (req, res, next) => {
     });
     await Patient.increment("remainBill", {
       by: req.body.amount,
-      where: { id: req.body.patientId },
+      where: { id: patientId },
     });
 
     await visitorService.update(
@@ -41,7 +52,7 @@ exports.create = async (req, res, next) => {
       },
       {
         where: {
-          id: req.body.patientId,
+          id: patientId,
         },
       }
     );

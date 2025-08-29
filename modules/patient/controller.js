@@ -14,6 +14,8 @@ const { sqquery, usersqquery } = require("../../utils/query");
 const sequelize = require("../../config/db");
 const createError = require("http-errors");
 const Prescription = require("../prescription/model");
+const TreatmentPlan = require("../treatmentPlan/model");
+const treatmentPlanService = require("../treatmentPlan/service");
 
 exports.create = async (req, res, next) => {
   try {
@@ -40,6 +42,11 @@ exports.create = async (req, res, next) => {
       date: moment().utcOffset("+05:30"),
       clinicId: req.body.clinicId,
       patientId: data.id,
+    });
+    await treatmentPlanService.create({
+      name: "Treatment List",
+      patientId: data.id,
+      clinicId: req.body.clinicId,
     });
 
     let patientData = await redisClient.GET(
@@ -94,64 +101,90 @@ exports.getOne = async (req, res, next) => {
     const userId = req.requestor.id;
 
     // Run all database queries in parallel
-    const [patientData, receivedPayment, totalPayment, nextSchedule] =
-      await Promise.all([
-        // Get patient data with related models
-        service.get({
-          where: { userId, id: patientId },
-          include: [
-            {
-              model: Treatment,
-              required: false,
-            },
-            {
-              model: Transaction,
-              required: false,
-              include: [
-                {
-                  model: Prescription, //  include prescription inside transaction
-                  required: false,
-                  attributes: ["id", "createdAt"],
-                },
-              ],
-            },
-            {
-              model: MedicalHistory,
-              required: false,
-            },
-          ],
-          order: [
-            // [Treatment, "createdAt", "DESC"],
-            [Transaction, "createdAt", "ASC"],
-            [MedicalHistory, "createdAt", "DESC"],
-          ],
-        }),
-        // Get received payments
-        transactionService.sum("amount", {
-          where: { patientId },
-        }),
-        // Get total payment
-        treatmentService.sum("amount", {
-          where: { patientId },
-        }),
-        // Get next schedule
-        visitorService.get({
-          where: {
-            patientId,
-            date: {
-              [Op.gt]: new Date(moment().utcOffset("+05:30")),
-            },
+    const [
+      patientData,
+      receivedPayment,
+      totalPayment,
+      nextSchedule,
+      totalDiscount,
+    ] = await Promise.all([
+      // Get patient data with related models
+      service.get({
+        where: { userId, id: patientId },
+        include: [
+          {
+            model: TreatmentPlan,
+            required: false,
+            include: [
+              {
+                model: Treatment,
+                required: false,
+              },
+            ],
           },
-        }),
-      ]);
+          {
+            model: Transaction,
+            required: false,
+            include: [
+              {
+                model: Prescription, //  include prescription inside transaction
+                required: false,
+                attributes: ["id", "createdAt"],
+              },
+            ],
+          },
+          {
+            model: MedicalHistory,
+            required: false,
+          },
+        ],
+        order: [
+          // [Treatment, "createdAt", "DESC"],
+          [Transaction, "createdAt", "ASC"],
+          [MedicalHistory, "createdAt", "DESC"],
+        ],
+      }),
+      // Get received payments
+      transactionService.sum("amount", {
+        where: { patientId },
+      }),
+      // Get total payment
+      treatmentService.sum("amount", {
+        where: {
+          "$treatmentPlan.patientId$": patientId,
+        },
+        include: [
+          {
+            model: TreatmentPlan,
+            attributes: [],
+          },
+        ],
+      }),
+      // Get next schedule
+      visitorService.get({
+        where: {
+          patientId,
+          date: {
+            [Op.gt]: new Date(moment().utcOffset("+05:30")),
+          },
+        },
+      }),
+
+      // Get received payments
+      treatmentPlanService.sum("discount", {
+        where: { patientId },
+      }),
+    ]);
 
     const data = patientData[0]; // Extract the first item from patient data array
 
     // Handle possible null values
     const safeReceivedPayment = receivedPayment || 0;
     const safeTotalPayment = totalPayment || 0;
-    const discountAmount = data?.discountAmount || 0;
-    const finalPayment = safeTotalPayment - discountAmount;
+    // const discountAmount = data?.discountAmount || 0;
+    const discountAmount = totalDiscount;
+    //totalDiscount=
+    const finalPayment = safeTotalPayment - totalDiscount;
 
     res.status(200).send({
       status: "success",
@@ -201,7 +234,7 @@ exports.getSearch = async (req, res, next) => {
         JSON.stringify(patientData)
       );
     }
-    const searchData = patientData.filter((data) => {
+    const searchData = patientData.filter(data => {
       return (
         data.name.includes(req.params.name) ||
         data.mobile.includes(req.params.name)
@@ -218,7 +251,7 @@ exports.getSearch = async (req, res, next) => {
 };
 const getUpdatedSchedule = async (patientData, search, selectedIds) => {
   let finalSearchData = [];
-  await patientData.filter((data) => {
+  await patientData.filter(data => {
     if (data.name.includes(search) || data.mobile.includes(search)) {
       if (selectedIds.includes(data.id)) {
         data.schedule = true;
@@ -241,7 +274,7 @@ exports.getSearchByDate = async (req, res, next) => {
         clinicId: req.query.clinicId,
       },
     });
-    selectedIds = data.map((searchIds) => searchIds.patientId);
+    selectedIds = data.map(searchIds => searchIds.patientId);
 
     patientData = await redisClient.GET(`patient?userId=${req.requestor.id}`);
     if (patientData) {
@@ -316,6 +349,11 @@ exports.remove = async (req, res, next) => {
         patientId: id,
       },
     });
+    await treatmentPlanService.remove({
+      where: {
+        patientId: id,
+      },
+    });
     redisClient.DEL(`patient?userId=${req.requestor.id}`);
     res.status(200).send({
       status: "success",
@@ -326,55 +364,160 @@ exports.remove = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+// exports.getPatientsWithPendingAmount = async (req, res, next) => {
+//   try {
+//     const userId = req.requestor.id;
+
+//     // Get all patients for the user with treatment and transaction totals
+//     // const patients = await service.get({
+//     //   where: { userId, isActive: true },
+
+//     //   attributes: {
+//     //     include: [
+//     //       // Calculate total treatment amount
+//     //       [
+//     //         sequelize.literal(`(
+//     //           SELECT COALESCE(SUM(amount), 0)
+//     //           FROM treatments
+//     //           WHERE treatments.patientId = patient.id
+//     //           AND treatments.deletedAt IS NULL
+//     //         )`),
+//     //         "totalTreatmentAmount",
+//     //       ],
+//     //       // Calculate total transaction amount
+//     //       [
+//     //         sequelize.literal(`(
+//     //           SELECT COALESCE(SUM(amount), 0)
+//     //           FROM transactions
+//     //           WHERE transactions.patientId = patient.id
+//     //           AND transactions.deletedAt IS NULL
+//     //         )`),
+//     //         "totalTransactionAmount",
+//     //       ],
+//     //       // Calculate pending amount
+//     //       [
+//     //         sequelize.literal(`(
+//     //           SELECT COALESCE(
+//     //             (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) -
+//     //             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) -
+//     //             COALESCE(patient.discountAmount, 0), 0
+//     //           )
+//     //         )`),
+//     //         "pendingAmount",
+//     //       ],
+//     //     ],
+//     //   },
+//     //   // Filter only patients with pending amount > 0
+//     //   having: sequelize.literal(`(
+//     //     (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) -
+//     //     (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) -
+//     //     COALESCE(patient.discountAmount, 0)
+//     //   ) > 0`),
+//     //   ...usersqquery(req.query),
+//     // });
+
+//     res.status(200).send({
+//       status: "success",
+//       data: patients,
+//     });
+//   } catch (error) {
+//     next(error || createError(404, "Data not found"));
+//   }
+// };
+
 exports.getPatientsWithPendingAmount = async (req, res, next) => {
   try {
     const userId = req.requestor.id;
 
-    // Get all patients for the user with treatment and transaction totals
     const patients = await service.get({
       where: { userId, isActive: true },
 
       attributes: {
         include: [
-          // Calculate total treatment amount
+          // Total Treatment Amount (via TreatmentPlan -> Treatment)
           [
             sequelize.literal(`(
-              SELECT COALESCE(SUM(amount), 0) 
-              FROM treatments 
-              WHERE treatments.patientId = patient.id 
-              AND treatments.deletedAt IS NULL
+              SELECT COALESCE(SUM(t.amount), 0)
+              FROM TreatmentPlans tp
+              JOIN Treatments t ON t.treatmentPlanId = tp.id
+              WHERE tp.patientId = patient.id
+              AND tp.deletedAt IS NULL
+              AND t.deletedAt IS NULL
             )`),
             "totalTreatmentAmount",
           ],
-          // Calculate total transaction amount
+
+          // Total Transaction Amount
           [
             sequelize.literal(`(
-              SELECT COALESCE(SUM(amount), 0) 
-              FROM transactions 
-              WHERE transactions.patientId = patient.id 
-              AND transactions.deletedAt IS NULL
+              SELECT COALESCE(SUM(amount), 0)
+              FROM transactions trx
+              WHERE trx.patientId = patient.id
+              AND trx.deletedAt IS NULL
             )`),
             "totalTransactionAmount",
           ],
-          // Calculate pending amount
+
+          // Total Discount
           [
             sequelize.literal(`(
-              SELECT COALESCE(
-                (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) - 
-                (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) - 
-                COALESCE(patient.discountAmount, 0), 0
+              SELECT COALESCE(SUM(tp.discount), 0)
+              FROM TreatmentPlans tp
+              WHERE tp.patientId = patient.id
+              AND tp.deletedAt IS NULL
+            )`),
+            "totalDiscountAmount",
+          ],
+
+          // Pending Amount
+          [
+            sequelize.literal(`(
+              (
+                (SELECT COALESCE(SUM(t.amount), 0)
+                 FROM TreatmentPlans tp
+                 JOIN Treatments t ON t.treatmentPlanId = tp.id
+                 WHERE tp.patientId = patient.id
+                 AND tp.deletedAt IS NULL
+                 AND t.deletedAt IS NULL)
+              -
+                (SELECT COALESCE(SUM(amount), 0)
+                 FROM transactions trx
+                 WHERE trx.patientId = patient.id
+                 AND trx.deletedAt IS NULL)
+              -
+                (SELECT COALESCE(SUM(tp.discount), 0)
+                 FROM TreatmentPlans tp
+                 WHERE tp.patientId = patient.id
+                 AND tp.deletedAt IS NULL)
               )
             )`),
             "pendingAmount",
           ],
         ],
       },
-      // Filter only patients with pending amount > 0
+
+      // only patients with pending amount > 0
       having: sequelize.literal(`(
-        (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) - 
-        (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) - 
-        COALESCE(patient.discountAmount, 0)
-      ) > 0`),
+        (
+          (SELECT COALESCE(SUM(t.amount), 0)
+           FROM TreatmentPlans tp
+           JOIN Treatments t ON t.treatmentPlanId = tp.id
+           WHERE tp.patientId = patient.id
+           AND tp.deletedAt IS NULL
+           AND t.deletedAt IS NULL)
+        -
+          (SELECT COALESCE(SUM(amount), 0)
+           FROM transactions trx
+           WHERE trx.patientId = patient.id
+           AND trx.deletedAt IS NULL)
+        -
+          (SELECT COALESCE(SUM(tp.discount), 0)
+           FROM TreatmentPlans tp
+           WHERE tp.patientId = patient.id
+           AND tp.deletedAt IS NULL)
+        ) > 0
+      )`),
+
       ...usersqquery(req.query),
     });
 

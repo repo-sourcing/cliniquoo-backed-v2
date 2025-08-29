@@ -10,6 +10,7 @@ const moment = require("moment");
 const { sqquery, usersqquery } = require("../../utils/query");
 const sequelize = require("../../config/db");
 const { runWhatsAppAppointmentConfirmationJob } = require("./utils");
+const TreatmentPlan = require("../treatmentPlan/model");
 
 exports.create = async (req, res, next) => {
   try {
@@ -212,21 +213,26 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           model: Patient,
           include: [
             {
-              model: Treatment,
-              where: {
-                createdAt: {
-                  [Op.gte]: moment(req.query.date)
-                    .subtract(330, "minutes")
-                    .toDate(),
-                  [Op.lte]: moment(req.query.date)
-                    .add(1, "day")
-                    .subtract(330, "minutes")
-                    .toDate(),
+              model: TreatmentPlan,
+              include: [
+                {
+                  model: Treatment,
+                  where: {
+                    createdAt: {
+                      [Op.gte]: moment(req.query.date)
+                        .subtract(330, "minutes")
+                        .toDate(),
+                      [Op.lte]: moment(req.query.date)
+                        .add(1, "day")
+                        .subtract(330, "minutes")
+                        .toDate(),
+                    },
+                  },
+                  required: false,
+                  order: [["createdAt", "DESC"]],
+                  limit: 1,
                 },
-              },
-              required: false,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
+              ],
             },
             {
               model: Transaction,
@@ -251,44 +257,65 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 
     // Extract unique patient IDs from the data
     const patientIds = [
-      ...new Set(data.rows.map((row) => row.patient?.id).filter(Boolean)),
+      ...new Set(data.rows.map(row => row.patient?.id).filter(Boolean)),
     ];
 
     // Use Promise.all to run both queries concurrently
-    const [treatmentTotals, transactionTotals] = await Promise.all([
-      Treatment.findAll({
-        attributes: [
-          "patientId",
-          [
-            sequelize.fn("SUM", sequelize.col("amount")),
-            "totalTreatmentAmount",
+    const [treatmentTotals, transactionTotals, discountTotals] =
+      await Promise.all([
+        Treatment.findAll({
+          attributes: [
+            [sequelize.col("treatmentPlan.patientId"), "patientId"],
+            [
+              sequelize.fn("SUM", sequelize.col("amount")),
+              "totalTreatmentAmount",
+            ],
           ],
-        ],
-        where: {
-          patientId: {
-            [Op.in]: patientIds,
-          },
-        },
-        group: ["patientId"],
-        raw: true,
-      }),
-      Transaction.findAll({
-        attributes: [
-          "patientId",
-          [
-            sequelize.fn("SUM", sequelize.col("amount")),
-            "totalTransactionAmount",
+          include: [
+            {
+              model: TreatmentPlan,
+              attributes: [],
+              where: {
+                patientId: {
+                  [Op.in]: patientIds,
+                },
+              },
+            },
           ],
-        ],
-        where: {
-          patientId: {
-            [Op.in]: patientIds,
+          group: ["treatmentPlan.patientId"],
+          raw: true,
+        }),
+        Transaction.findAll({
+          attributes: [
+            "patientId",
+            [
+              sequelize.fn("SUM", sequelize.col("amount")),
+              "totalTransactionAmount",
+            ],
+          ],
+          where: {
+            patientId: {
+              [Op.in]: patientIds,
+            },
           },
-        },
-        group: ["patientId"],
-        raw: true,
-      }),
-    ]);
+          group: ["patientId"],
+          raw: true,
+        }),
+        TreatmentPlan.findAll({
+          attributes: [
+            "patientId",
+            [
+              sequelize.fn("SUM", sequelize.col("discount")),
+              "totalDiscountAmount",
+            ],
+          ],
+          where: {
+            patientId: { [Op.in]: patientIds },
+          },
+          group: ["patientId"],
+          raw: true,
+        }),
+      ]);
 
     // Create lookup maps for O(1) access
     const treatmentTotalMap = treatmentTotals.reduce((acc, item) => {
@@ -300,24 +327,30 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       acc[item.patientId] = parseFloat(item.totalTransactionAmount) || 0;
       return acc;
     }, {});
+    const discountTotalMap = discountTotals.reduce((acc, item) => {
+      acc[item.patientId] = parseFloat(item.totalDiscountAmount) || 0;
+      return acc;
+    }, {});
 
     // Add totals to each patient object
     const enrichedData = {
       ...data,
-      rows: data.rows.map((row) => {
+      rows: data.rows.map(row => {
         const rowData = row.toJSON ? row.toJSON() : row;
         if (rowData.patient) {
           rowData.patient.totalTreatmentAmount =
             treatmentTotalMap[rowData.patient.id] || 0;
           rowData.patient.totalTransactionAmount =
             transactionTotalMap[rowData.patient.id] || 0;
+          rowData.patient.totalDiscountAmount =
+            discountTotalMap[rowData.patient.id] || 0;
 
           // Calculate totalRemainBill
           const totalTreatmentAmount =
             rowData.patient.totalTreatmentAmount || 0;
           const totalTransactionAmount =
             rowData.patient.totalTransactionAmount || 0;
-          const discountAmount = rowData.patient.discountAmount || 0;
+          const discountAmount = rowData.patient.totalDiscountAmount || 0;
 
           // Corrected formula: totalRemainBill = totalTreatmentAmount - totalTransactionAmount - discountAmount
           rowData.patient.totalRemainBill =
@@ -402,11 +435,18 @@ exports.findNotVisited = async (req, res, next) => {
           model: Patient,
           include: [
             {
-              model: Treatment,
+              model: TreatmentPlan,
               required: false,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
+              include: [
+                {
+                  model: Treatment,
+                  required: false,
+                  order: [["createdAt", "DESC"]],
+                  limit: 1,
+                },
+              ],
             },
+
             {
               model: Transaction,
               required: false,

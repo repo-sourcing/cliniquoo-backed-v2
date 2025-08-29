@@ -5,6 +5,7 @@ const Treatment = require("../treatment/model");
 const Transaction = require("../transaction/model");
 const Clinic = require("../clinic/model");
 const { Op } = require("sequelize");
+const TreatmentPlan = require("../treatmentPlan/model");
 
 // Configure AWS S3
 const s3 = new AWS.S3({
@@ -69,19 +70,23 @@ const generatePatientsWithTreatmentsCSV = async userId => {
       },
       include: [
         {
-          model: Treatment,
-          required: false, // LEFT JOIN to include patients even without treatments
+          model: TreatmentPlan,
+          required: false, // patient may not have treatment plans
           include: [
             {
+              model: Treatment,
+              required: false, // LEFT JOIN to include patients even without treatments
+            },
+            {
               model: Clinic,
-              attributes: ["name"],
+              attributes: ["name"], // clinic now belongs to the plan
             },
           ],
         },
       ],
       order: [
         ["name", "ASC"],
-        [Treatment, "createdAt", "DESC"],
+        [TreatmentPlan, "createdAt", "DESC"],
       ],
     });
 
@@ -94,26 +99,38 @@ const generatePatientsWithTreatmentsCSV = async userId => {
     const csvData = [];
 
     patients.forEach(patient => {
-      if (patient.treatments && patient.treatments.length > 0) {
-        // Patient has treatments - create one row per treatment
-        patient.treatments.forEach(treatment => {
-          csvData.push({
-            "Patient ID": patient.id,
-            "Patient Name": patient.name,
-            "Patient Mobile": patient.mobile,
-            "Patient Gender": patient.gender,
-            "Patient Age": patient.age,
-            "Patient Location": patient.location || "",
-            "Last Visited Date": patient.lastVisitedDate || "",
-            "Discount Amount": patient.discountAmount || 0,
-            "Treatment ID": treatment.id,
-            "Treatment Name": treatment.name,
-            "Treatment Amount": treatment.amount,
-            "Clinic Name": treatment.clinic ? treatment.clinic.name : "",
-            "Treatment Created Date": treatment.createdAt
-              ? new Date(treatment.createdAt).toLocaleDateString()
-              : "",
-          });
+      const totalDiscount =
+        patient.treatmentPlans?.reduce(
+          (sum, plan) => sum + (plan.discount || 0),
+          0
+        ) || 0;
+
+      if (patient.treatmentPlans && patient.treatmentPlans.length > 0) {
+        patient.treatmentPlans.forEach(plan => {
+          // Patient has treatments - create one row per treatment
+          if (plan.treatments && plan.treatments.length > 0) {
+            plan.treatments.forEach(treatment => {
+              csvData.push({
+                "Patient ID": patient.id,
+                "Patient Name": patient.name,
+                "Patient Mobile": patient.mobile,
+                "Patient Gender": patient.gender,
+                "Patient Age": patient.age,
+                "Patient Location": patient.location || "",
+                "Last Visited Date": patient.lastVisitedDate || "",
+                // "Discount Amount": patient.discountAmount || 0,
+                "Discount Amount": totalDiscount, // 👈 summed from all plans
+
+                "Treatment ID": treatment.id,
+                "Treatment Name": treatment.name,
+                "Treatment Amount": treatment.amount,
+                "Clinic Name": plan.clinic ? plan.clinic.name : "",
+                "Treatment Created Date": treatment.createdAt
+                  ? new Date(treatment.createdAt).toLocaleDateString()
+                  : "",
+              });
+            });
+          }
         });
       } else {
         // Patient has no treatments - create one row with patient data only
@@ -126,7 +143,7 @@ const generatePatientsWithTreatmentsCSV = async userId => {
           "Patient Location": patient.location || "",
 
           "Last Visited Date": patient.lastVisitedDate || "",
-          "Discount Amount": patient.discountAmount || 0,
+          "Discount Amount": 0,
           "Treatment ID": "",
           "Treatment Name": "",
           "Treatment Amount": "",
@@ -151,8 +168,8 @@ const generatePatientsWithTreatmentsCSV = async userId => {
       "Treatment ID",
       "Treatment Name",
       "Treatment Amount",
-      "Tooth Numbers",
-      "Treatment Status",
+      // "Tooth Numbers",
+      // "Treatment Status",
       "Clinic Name",
       "Treatment Created Date",
     ];
@@ -230,7 +247,7 @@ const generatePatientsWithTransactionsCSV = async userId => {
             "Patient Location": patient.location || "",
 
             "Last Visited Date": patient.lastVisitedDate || "",
-            "Discount Amount": patient.discountAmount || 0,
+            // "Discount Amount": patient.discountAmount || 0,
             "Transaction ID": transaction.id,
             "Cash Amount": transaction.cash || 0,
             "Online Amount": transaction.online || 0,
@@ -254,7 +271,7 @@ const generatePatientsWithTransactionsCSV = async userId => {
           "Patient Location": patient.location || "",
 
           "Last Visited Date": patient.lastVisitedDate || "",
-          "Discount Amount": patient.discountAmount || 0,
+          //"Discount Amount": patient.discountAmount || 0,
           "Transaction ID": "",
           "Cash Amount": "",
           "Online Amount": "",
@@ -276,7 +293,7 @@ const generatePatientsWithTransactionsCSV = async userId => {
       "Patient Location",
 
       "Last Visited Date",
-      "Discount Amount",
+      //"Discount Amount",
       "Transaction ID",
       "Cash Amount",
       "Online Amount",

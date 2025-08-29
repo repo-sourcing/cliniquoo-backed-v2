@@ -37,10 +37,10 @@ const Patient = sequelize.define(
     lastVisitedDate: {
       type: Sequelize.DATEONLY,
     },
-    discountAmount: {
-      type: Sequelize.INTEGER,
-      defaultValue: 0,
-    },
+    // discountAmount: {
+    //   type: Sequelize.INTEGER,
+    //   defaultValue: 0,
+    // },
     isActive: {
       type: Sequelize.BOOLEAN,
       defaultValue: true,
