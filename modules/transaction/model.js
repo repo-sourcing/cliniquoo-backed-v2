@@ -77,4 +77,5 @@ Clinic.hasMany(Transaction, {
   },
 });
 Transaction.belongsTo(Clinic);
+//Transaction.sync();
 module.exports = Transaction;

@@ -1,8 +1,7 @@
 "use strict";
 const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
-const Patient = require("../patient/model");
-const Clinic = require("../clinic/model");
+const TreatmentPlan = require("../treatmentPlan/model");
 const Treatment = sequelize.define(
   "treatment",
   {
@@ -20,39 +19,17 @@ const Treatment = sequelize.define(
       type: Sequelize.FLOAT,
       allowNull: false,
     },
-    toothNumber: {
-      type: Sequelize.TEXT,
-      get: function () {
-        return this.getDataValue("toothNumber")
-          ? JSON.parse(this.getDataValue("toothNumber"))
-          : [];
-      },
-      set: function (val) {
-        return this.setDataValue("toothNumber", JSON.stringify(val.split(",")));
-      },
-    },
-    status: {
-      type: Sequelize.ENUM("OnGoing", "Done"),
-      defaultValue: "OnGoing",
-    },
   },
   {
     paranoid: true,
   }
 );
 
-Patient.hasMany(Treatment, {
+TreatmentPlan.hasMany(Treatment, {
   foreignKey: {
     allowNull: false,
   },
 });
-Treatment.belongsTo(Patient);
-
-Clinic.hasMany(Treatment, {
-  foreignKey: {
-    allowNull: false,
-  },
-});
-Treatment.belongsTo(Clinic);
+Treatment.belongsTo(TreatmentPlan);
 
 module.exports = Treatment;
