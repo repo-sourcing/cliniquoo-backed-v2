@@ -15,6 +15,8 @@ const {
   buildSchedule,
   buildInstructions,
 } = require("./utils");
+const { sendWhatsAppPrescription } = require("../../utils/msg91");
+const Visitor = require("../visitor/model");
 
 exports.create = async (req, res, next) => {
   const t = await sequelize.transaction();
@@ -208,7 +210,7 @@ exports.sendPrescription = async (req, res, next) => {
           include: [
             {
               model: Patient,
-              attributes: ["id", "name", "age", "gender"],
+              attributes: ["id", "name", "age", "gender", "mobile"],
               include: [
                 {
                   model: User,
@@ -221,6 +223,15 @@ exports.sendPrescription = async (req, res, next) => {
                     "signature",
                   ],
                 },
+                {
+                  model: Visitor,
+                  where: {
+                    isVisited: true,
+                  },
+                  attributes: ["date", "timeSlot"],
+                  limit: 1,
+                  order: [["createdAt", "DESC"]],
+                },
               ],
             },
             {
@@ -231,9 +242,17 @@ exports.sendPrescription = async (req, res, next) => {
         },
       ],
     });
+
     const { transaction, prescription: medicinesList, notes, createdAt } = data;
     const { clinic, patient } = transaction;
     const doctor = patient.user;
+    const visitor = patient.visitors[0];
+
+    const visitorDate =
+      visitor?.timeSlot?.length && visitor?.timeSlot
+        ? `${visitor.date} ${visitor.timeSlot[0]} to ${visitor.timeSlot[1]}`
+        : `${visitor.date}`;
+
     let degree =
       doctor.degree == "MDS" && doctor.specialization !== null
         ? `${doctor.degree} (${doctor.specialization})`
@@ -267,6 +286,26 @@ exports.sendPrescription = async (req, res, next) => {
     };
 
     const url = await generatePrescriptionPDF(prescriptionData);
+    let toNumber = `91${patient?.mobile}`;
+
+    try {
+      sendWhatsAppPrescription({
+        to: [toNumber],
+        header: {
+          filename: "prescription.pdf",
+          value: url,
+        },
+        bodyValues: [
+          patient.name,
+          doctor.name,
+          visitorDate,
+          prescriptionData.clinic_phone_number,
+          prescriptionData.clinic_name,
+        ],
+      });
+    } catch (error) {
+      console.log("error in prescription send", error);
+    }
 
     res.status(200).send({
       status: "success",

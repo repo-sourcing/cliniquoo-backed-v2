@@ -211,46 +211,46 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       include: [
         {
           model: Patient,
-          include: [
-            {
-              model: TreatmentPlan,
-              include: [
-                {
-                  model: Treatment,
-                  where: {
-                    createdAt: {
-                      [Op.gte]: moment(req.query.date)
-                        .subtract(330, "minutes")
-                        .toDate(),
-                      [Op.lte]: moment(req.query.date)
-                        .add(1, "day")
-                        .subtract(330, "minutes")
-                        .toDate(),
-                    },
-                  },
-                  required: false,
-                  order: [["createdAt", "DESC"]],
-                  limit: 1,
-                },
-              ],
-            },
-            {
-              model: Transaction,
-              where: {
-                createdAt: {
-                  [Op.gte]: moment(req.query.date)
-                    .subtract(330, "minutes")
-                    .toDate(),
-                  [Op.lte]: moment(req.query.date)
-                    .add(1, "day")
-                    .subtract(330, "minutes")
-                    .toDate(),
-                },
-              },
-              order: [["createdAt", "DESC"]],
-              required: false,
-            },
-          ],
+          // include: [
+          //   {
+          //     model: TreatmentPlan,
+          //     include: [
+          //       {
+          //         model: Treatment,
+          //         where: {
+          //           createdAt: {
+          //             [Op.gte]: moment(req.query.date)
+          //               .subtract(330, "minutes")
+          //               .toDate(),
+          //             [Op.lte]: moment(req.query.date)
+          //               .add(1, "day")
+          //               .subtract(330, "minutes")
+          //               .toDate(),
+          //           },
+          //         },
+          //         required: false,
+          //         order: [["createdAt", "DESC"]],
+          //         limit: 1,
+          //       },
+          //     ],
+          //   },
+          //   {
+          //     model: Transaction,
+          //     where: {
+          //       createdAt: {
+          //         [Op.gte]: moment(req.query.date)
+          //           .subtract(330, "minutes")
+          //           .toDate(),
+          //         [Op.lte]: moment(req.query.date)
+          //           .add(1, "day")
+          //           .subtract(330, "minutes")
+          //           .toDate(),
+          //       },
+          //     },
+          //     order: [["createdAt", "DESC"]],
+          //     required: false,
+          //   },
+          // ],
         },
       ],
     });
@@ -433,29 +433,10 @@ exports.findNotVisited = async (req, res, next) => {
       include: [
         {
           model: Patient,
-          include: [
-            {
-              model: TreatmentPlan,
-              required: false,
-              include: [
-                {
-                  model: Treatment,
-                  required: false,
-                  order: [["createdAt", "DESC"]],
-                  limit: 1,
-                },
-              ],
-            },
-
-            {
-              model: Transaction,
-              required: false,
-              order: [["createdAt", "DESC"]],
-              limit: 1,
-            },
-          ],
+          required: true,
         },
       ],
+
       group: ["patientId"],
     });
 
