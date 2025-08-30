@@ -18,9 +18,9 @@ exports.remove = async condition => {
 exports.findOrCreate = async data => {
   return treatmentPlan.findOrCreate(data);
 };
-exports.count = async data => {
-  return treatmentPlan.count(data);
+exports.count = async (data, condition) => {
+  return treatmentPlan.count(data, condition);
 };
-exports.sum = async data => {
-  return treatmentPlan.sum(data);
+exports.sum = async (data, condition) => {
+  return treatmentPlan.sum(data, condition);
 };
