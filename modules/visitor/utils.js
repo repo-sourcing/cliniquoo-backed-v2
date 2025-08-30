@@ -47,6 +47,14 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
       const doctorName = doctor?.name;
       const clinicMobile = clinic?.mobile;
 
+      let prettyTime = "Any Time";
+      const timeSlot = v?.timeSlot;
+      if (timeSlot && Array.isArray(timeSlot) && timeSlot.length === 2) {
+        const startTime = moment(timeSlot[0], "HH:mm").format("h:mm A");
+        const endTime = moment(timeSlot[1], "HH:mm").format("h:mm A");
+        prettyTime = `${startTime} to ${endTime}`;
+      }
+
       const toNumber = `91${patient?.mobile}`;
 
       if (
@@ -63,21 +71,23 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
       console.log({
         to: [toNumber],
         bodyValues: [
-          clinicName,
           patientName,
           prettyDate,
+          prettyTime,
           doctorName,
           clinicMobile,
+          clinicName,
         ],
       });
       sendWhatsAppAppointmentReminder({
         to: [toNumber],
         bodyValues: [
-          clinicName,
           patientName,
           prettyDate,
+          prettyTime,
           doctorName,
           clinicMobile,
+          clinicName,
         ],
       });
     }
@@ -86,7 +96,7 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
     return 0;
   }
 };
-exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
+exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
   try {
     const [visitors] = await visitor.get({
       where: {
@@ -104,6 +114,13 @@ exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
     }
 
     const prettyDate = moment(visitors?.date).format("DD-MMM-YYYY");
+    let prettyTime = "Any Time";
+    const timeSlot = visitors?.timeSlot;
+    if (timeSlot && Array.isArray(timeSlot) && timeSlot.length === 2) {
+      const startTime = moment(timeSlot[0], "HH:mm").format("h:mm A");
+      const endTime = moment(timeSlot[1], "HH:mm").format("h:mm A");
+      prettyTime = `${startTime} to ${endTime}`;
+    }
     // Build recipients payloads
 
     const clinic = visitors?.clinic;
@@ -130,21 +147,23 @@ exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
     console.log({
       to: [toNumber],
       bodyValues: [
-        clinicName,
         patientName,
         prettyDate,
+        prettyTime,
         doctorName,
         clinicMobile,
+        clinicName,
       ],
     });
     sendWhatsAppAppointmentConfirmation({
       to: [toNumber],
       bodyValues: [
-        clinicName,
         patientName,
         prettyDate,
+        prettyTime,
         doctorName,
         clinicMobile,
+        clinicName,
       ],
     });
   } catch (err) {
@@ -153,7 +172,7 @@ exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
   }
 };
 
-exports.runWhatsAppAppointmentReschedule = async visitorId => {
+exports.runWhatsAppAppointmentReschedule = async (visitorId) => {
   try {
     const [visitors] = await visitor.get({
       where: {
@@ -170,7 +189,15 @@ exports.runWhatsAppAppointmentReschedule = async visitorId => {
       return;
     }
 
-    const prettyDate = moment(visitors?.date).format("DD-MMM-YYYY");
+    let prettyDate = moment(visitors?.date).format("DD-MMM-YYYY");
+    const timeSlot = visitors?.timeSlot;
+    if (timeSlot && Array.isArray(timeSlot) && timeSlot.length === 2) {
+      const startTime = moment(timeSlot[0], "HH:mm").format("h:mm A");
+      const endTime = moment(timeSlot[1], "HH:mm").format("h:mm A");
+      prettyDate = `(${moment(visitors?.date).format(
+        "DD-MM-YYYY"
+      )}, ${startTime} to ${endTime})`;
+    }
     // Build recipients payloads
 
     const clinic = visitors?.clinic;
@@ -196,24 +223,12 @@ exports.runWhatsAppAppointmentReschedule = async visitorId => {
 
     console.log({
       to: [toNumber],
-      bodyValues: [
-        clinicName,
-        patientName,
-        prettyDate,
-        doctorName,
-        clinicMobile,
-      ],
+      bodyValues: [patientName, prettyDate, clinicMobile, clinicName],
     });
 
     sendWhatsAppAppointmentRescheduleConfirmation({
       to: [toNumber],
-      bodyValues: [
-        clinicName,
-        patientName,
-        prettyDate,
-        doctorName,
-        clinicMobile,
-      ],
+      bodyValues: [patientName, prettyDate, clinicMobile, clinicName],
     });
   } catch (err) {
     console.error("[CRON] Appointment rescheduled failed:", err?.stack || err);
