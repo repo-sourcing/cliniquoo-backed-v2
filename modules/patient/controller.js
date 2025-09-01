@@ -234,10 +234,11 @@ exports.getSearch = async (req, res, next) => {
         JSON.stringify(patientData)
       );
     }
+
     const searchData = patientData.filter(data => {
       return (
         data.name.includes(req.params.name) ||
-        data.mobile.includes(req.params.name)
+        data.mobile.toString().includes(req.params.name)
       );
     });
 
