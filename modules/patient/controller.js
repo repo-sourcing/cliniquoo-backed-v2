@@ -365,66 +365,6 @@ exports.remove = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-// exports.getPatientsWithPendingAmount = async (req, res, next) => {
-//   try {
-//     const userId = req.requestor.id;
-
-//     // Get all patients for the user with treatment and transaction totals
-//     // const patients = await service.get({
-//     //   where: { userId, isActive: true },
-
-//     //   attributes: {
-//     //     include: [
-//     //       // Calculate total treatment amount
-//     //       [
-//     //         sequelize.literal(`(
-//     //           SELECT COALESCE(SUM(amount), 0)
-//     //           FROM treatments
-//     //           WHERE treatments.patientId = patient.id
-//     //           AND treatments.deletedAt IS NULL
-//     //         )`),
-//     //         "totalTreatmentAmount",
-//     //       ],
-//     //       // Calculate total transaction amount
-//     //       [
-//     //         sequelize.literal(`(
-//     //           SELECT COALESCE(SUM(amount), 0)
-//     //           FROM transactions
-//     //           WHERE transactions.patientId = patient.id
-//     //           AND transactions.deletedAt IS NULL
-//     //         )`),
-//     //         "totalTransactionAmount",
-//     //       ],
-//     //       // Calculate pending amount
-//     //       [
-//     //         sequelize.literal(`(
-//     //           SELECT COALESCE(
-//     //             (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) -
-//     //             (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) -
-//     //             COALESCE(patient.discountAmount, 0), 0
-//     //           )
-//     //         )`),
-//     //         "pendingAmount",
-//     //       ],
-//     //     ],
-//     //   },
-//     //   // Filter only patients with pending amount > 0
-//     //   having: sequelize.literal(`(
-//     //     (SELECT COALESCE(SUM(amount), 0) FROM treatments WHERE treatments.patientId = patient.id AND treatments.deletedAt IS NULL) -
-//     //     (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactions.patientId = patient.id AND transactions.deletedAt IS NULL) -
-//     //     COALESCE(patient.discountAmount, 0)
-//     //   ) > 0`),
-//     //   ...usersqquery(req.query),
-//     // });
-
-//     res.status(200).send({
-//       status: "success",
-//       data: patients,
-//     });
-//   } catch (error) {
-//     next(error || createError(404, "Data not found"));
-//   }
-// };
 
 exports.getPatientsWithPendingAmount = async (req, res, next) => {
   try {
@@ -439,8 +379,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
           [
             sequelize.literal(`(
               SELECT COALESCE(SUM(t.amount), 0)
-              FROM TreatmentPlans tp
-              JOIN Treatments t ON t.treatmentPlanId = tp.id
+              FROM treatmentPlans tp
+              JOIN treatments t ON t.treatmentPlanId = tp.id
               WHERE tp.patientId = patient.id
               AND tp.deletedAt IS NULL
               AND t.deletedAt IS NULL
@@ -463,7 +403,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
           [
             sequelize.literal(`(
               SELECT COALESCE(SUM(tp.discount), 0)
-              FROM TreatmentPlans tp
+              FROM treatmentPlans tp
               WHERE tp.patientId = patient.id
               AND tp.deletedAt IS NULL
             )`),
@@ -475,8 +415,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
             sequelize.literal(`(
               (
                 (SELECT COALESCE(SUM(t.amount), 0)
-                 FROM TreatmentPlans tp
-                 JOIN Treatments t ON t.treatmentPlanId = tp.id
+                 FROM treatmentPlans tp
+                 JOIN treatments t ON t.treatmentPlanId = tp.id
                  WHERE tp.patientId = patient.id
                  AND tp.deletedAt IS NULL
                  AND t.deletedAt IS NULL)
@@ -487,7 +427,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
                  AND trx.deletedAt IS NULL)
               -
                 (SELECT COALESCE(SUM(tp.discount), 0)
-                 FROM TreatmentPlans tp
+                 FROM treatmentPlans tp
                  WHERE tp.patientId = patient.id
                  AND tp.deletedAt IS NULL)
               )
@@ -501,8 +441,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
       having: sequelize.literal(`(
         (
           (SELECT COALESCE(SUM(t.amount), 0)
-           FROM TreatmentPlans tp
-           JOIN Treatments t ON t.treatmentPlanId = tp.id
+           FROM treatmentPlans tp
+           JOIN treatments t ON t.treatmentPlanId = tp.id
            WHERE tp.patientId = patient.id
            AND tp.deletedAt IS NULL
            AND t.deletedAt IS NULL)
@@ -513,7 +453,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
            AND trx.deletedAt IS NULL)
         -
           (SELECT COALESCE(SUM(tp.discount), 0)
-           FROM TreatmentPlans tp
+           FROM treatmentPlans tp
            WHERE tp.patientId = patient.id
            AND tp.deletedAt IS NULL)
         ) > 0
