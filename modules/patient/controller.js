@@ -379,8 +379,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
           [
             sequelize.literal(`(
               SELECT COALESCE(SUM(t.amount), 0)
-              FROM TreatmentPlans tp
-              JOIN Treatments t ON t.treatmentPlanId = tp.id
+              FROM treatmentPlans tp
+              JOIN treatments t ON t.treatmentPlanId = tp.id
               WHERE tp.patientId = patient.id
               AND tp.deletedAt IS NULL
               AND t.deletedAt IS NULL
@@ -403,7 +403,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
           [
             sequelize.literal(`(
               SELECT COALESCE(SUM(tp.discount), 0)
-              FROM TreatmentPlans tp
+              FROM treatmentPlans tp
               WHERE tp.patientId = patient.id
               AND tp.deletedAt IS NULL
             )`),
@@ -415,8 +415,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
             sequelize.literal(`(
               (
                 (SELECT COALESCE(SUM(t.amount), 0)
-                 FROM TreatmentPlans tp
-                 JOIN Treatments t ON t.treatmentPlanId = tp.id
+                 FROM treatmentPlans tp
+                 JOIN treatments t ON t.treatmentPlanId = tp.id
                  WHERE tp.patientId = patient.id
                  AND tp.deletedAt IS NULL
                  AND t.deletedAt IS NULL)
@@ -427,7 +427,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
                  AND trx.deletedAt IS NULL)
               -
                 (SELECT COALESCE(SUM(tp.discount), 0)
-                 FROM TreatmentPlans tp
+                 FROM treatmentPlans tp
                  WHERE tp.patientId = patient.id
                  AND tp.deletedAt IS NULL)
               )
@@ -441,8 +441,8 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
       having: sequelize.literal(`(
         (
           (SELECT COALESCE(SUM(t.amount), 0)
-           FROM TreatmentPlans tp
-           JOIN Treatments t ON t.treatmentPlanId = tp.id
+           FROM treatmentPlans tp
+           JOIN treatments t ON t.treatmentPlanId = tp.id
            WHERE tp.patientId = patient.id
            AND tp.deletedAt IS NULL
            AND t.deletedAt IS NULL)
@@ -453,7 +453,7 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
            AND trx.deletedAt IS NULL)
         -
           (SELECT COALESCE(SUM(tp.discount), 0)
-           FROM TreatmentPlans tp
+           FROM treatmentPlans tp
            WHERE tp.patientId = patient.id
            AND tp.deletedAt IS NULL)
         ) > 0
