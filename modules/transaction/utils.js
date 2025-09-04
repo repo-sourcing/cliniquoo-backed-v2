@@ -65,6 +65,7 @@ exports.sendPaymentConfirmtion = async () => {
             : "None";
 
         const toNumber = `91${patient?.mobile}`;
+
         if (
           !toNumber ||
           !clinicName ||
@@ -74,7 +75,7 @@ exports.sendPaymentConfirmtion = async () => {
           !amount ||
           !paymentMode
         ) {
-          return 0;
+          continue; // skip this entry, go to next loop iteration
         }
 
         console.log({
