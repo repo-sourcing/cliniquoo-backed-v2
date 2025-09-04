@@ -211,6 +211,24 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       include: [
         {
           model: Patient,
+          include: [
+            {
+              model: Transaction,
+              where: {
+                createdAt: {
+                  [Op.gte]: moment(req.query.date)
+                    .subtract(330, "minutes")
+                    .toDate(),
+                  [Op.lte]: moment(req.query.date)
+                    .add(1, "day")
+                    .subtract(330, "minutes")
+                    .toDate(),
+                },
+              },
+              order: [["createdAt", "DESC"]],
+              required: false,
+            },
+          ],
         },
       ],
     });
