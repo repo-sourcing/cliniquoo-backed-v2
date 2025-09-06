@@ -263,3 +263,27 @@ exports.sendWhatsAppPrescription = async (params) => {
     header: { ...params.header, type: "document" },
   });
 };
+
+/**
+ * Send WhatsApp bill template via MSG91
+ * Uses static integrated number and namespace (overridable via env or params).
+ * @param {Object} params - Variables for the template
+ * @param {string[]} params.to - List of phone numbers as strings with country code (no +)
+ * @param {Object} params.header - Header component for the document
+ * @param {string} params.header.filename - The name of the file
+ * @param {string} params.header.value - The url of the media
+ * @param {Array<string|number>} params.bodyValues - Values for body_1..body_5 in order
+ * @param {string} [params.languageCode="en"]
+ * @param {string} [params.policy="deterministic"]
+ * @param {string} [params.authKey]
+ * @param {string} [params.integratedNumber] - Optional override
+ * @param {string} [params.namespace] - Optional override
+ * @returns {Promise<any>} MSG91 API response data
+ */
+exports.sendWhatsAppBill = async (params) => {
+  return sendWhatsAppTemplate({
+    ...params,
+    templateName: "bill",
+    header: { ...params.header, type: "document" },
+  });
+};
