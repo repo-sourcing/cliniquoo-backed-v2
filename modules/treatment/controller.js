@@ -5,6 +5,10 @@ const visitorService = require("../visitor/service");
 const moment = require("moment");
 const { sqquery } = require("../../utils/query");
 const treatmentPlanService = require("../treatmentPlan/service");
+const Clinic = require("../clinic/model");
+const User = require("../user/model");
+const patientService = require("../patient/service");
+const { sendWhatsAppBill } = require("../../utils/msg91");
 exports.create = async (req, res, next) => {
   try {
     const { treatmentPlanId } = req.body;
@@ -113,6 +117,103 @@ exports.remove = async (req, res, next) => {
       status: "success",
       message: "delete treatment successfully",
       data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.sendBilling = async (req, res, next) => {
+  try {
+    const [patientData] = await patientService.get({
+      where: {
+        id: req.params.patientId,
+      },
+      attributes: ["id", "name", "age", "gender", "mobile"],
+      include: [
+        {
+          model: User,
+          where: {
+            id: req.requestor.id,
+          },
+          attributes: [
+            "id",
+            "name",
+            "degree",
+            "specialization",
+            "registrationNumber",
+            "signature",
+          ],
+          include: [
+            {
+              model: Clinic,
+              where: {
+                id: req.body.clinicId,
+              },
+              attributes: ["id", "name", "location", "mobile"],
+            },
+          ],
+        },
+      ],
+    });
+    if (!patientData) return next(createError(404, "Patient not found"));
+
+    const {
+      user: doctor,
+      name: patientName,
+      age: patientAge,
+      gender: patientGender,
+      mobile: patientMobile,
+    } = patientData;
+
+    let degree =
+      doctor.degree == "MDS" && doctor.specialization !== null
+        ? `${doctor.degree} (${doctor.specialization})`
+        : doctor.degree;
+
+    const clinic = doctor.clinics[0];
+    let billingData = {
+      clinic_name: clinic.name,
+      clinic_address: clinic.location,
+      clinic_phone_number: clinic.mobile,
+
+      dr_name: doctor.name,
+      degree: degree,
+      registration_no: doctor.registrationNumber,
+      signature: doctor.signature || null,
+      treatmentData: req.body.treatmentJson,
+
+      patient_name: patientName,
+      patient_age: patientAge,
+      patient_gender: patientGender,
+      billing_date: req.body.date, // e.g. 25/08/2025
+    };
+
+    // const url = await generatePrescriptionPDF(billingData);
+    // let toNumber = `91${patientMobile}`;
+
+    // try {
+    //   sendWhatsAppBill({
+    //     to: [toNumber],
+    //     header: {
+    //       filename: "bill.pdf",
+    //       value: url,
+    //     },
+    //     bodyValues: [
+    //       billingData.patient_name,
+    //       billingData.clinic_name,
+    //       billingData.clinic_phone_number,
+    //       `"Dr. ${billingData.dr_name}"`,
+    //     ],
+    //   });
+    // } catch (error) {
+    //   console.log("error in prescription send", error);
+    //}
+
+    res.status(200).send({
+      status: "success",
+      message: "Bill send successfully",
+      data: billingData,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));

@@ -33,3 +33,29 @@ exports.updateTreatmentValidation = async (req, res, next) => {
     });
   }
 };
+
+exports.billValidation = async (req, res, next) => {
+  try {
+    const billValidation = yup.object().shape({
+      clinicId: yup.number().required("clinicId is required field"),
+      date: yup.date().required("date is required field"),
+      treatmentJson: yup
+        .array()
+        .of(
+          yup.object().shape({
+            id: yup.number().required("id is required field"),
+            treatment: yup.string().required("treatment is required field"),
+            price: yup.number().required("price is required field"),
+          })
+        )
+        .required("treatmentJson is required field"),
+    });
+    await billValidation.validate(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+};
