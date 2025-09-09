@@ -3,19 +3,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoice</title>
-
     <style>
       body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding:
       2rem; color: #000; } .invoice-container { background: #fff; max-width:
       40rem; margin: auto; padding: 2rem; border: 1px solid #ddd; position:
       relative; overflow: hidden; } /* Blue side strip */
       .invoice-container::before { content: ""; position: absolute; top: 0;
-      left: 0; width: 1rem; height: 100%; background: #00419d; } header {
+      left: 0; width: 1rem; height: 100%; background: linear-gradient( to
+      bottom, #d9e8ff 0%, #d9e8ff 20%, #00419d 20%, #00419d 100% ); } header {
       padding-bottom: 1rem; border-bottom: 1px solid; } .header { display: flex;
       justify-content: space-between; } .header-left h2 { margin: 0; color:
       #111; letter-spacing: 2px; font-size: 1.75rem; font-weight: 600; }
       .header-right { text-align: right; } .header-right h1 { margin: 0;
-      font-size: 3rem; font-weight: 600; letter-spacing: 2px; } .invoice-meta {
+      font-size: 2rem; font-weight: 600; letter-spacing: 2px; } .invoice-meta {
       font-size: 0.9rem; /* margin-top: 0.3rem; */ } .invoice-meta p { margin:
       0.2rem 0; color: #595959; letter-spacing: 2px; } .bill-to { display: flex;
       justify-content: space-between; margin: 2rem 0 1rem 0; } .bill-to h2,
@@ -38,7 +38,8 @@
       10rem; display: flex; flex-direction: column; align-items: flex-end;
       padding: 1rem 1rem 0 1rem; font-size: 0.8rem; } .signature p { border-top:
       1.5px solid black; padding: 0.5rem 0.75rem 0 0.75rem; } .signature div {
-      display: flex; flex-direction: column; align-items: center; }
+      display: flex; flex-direction: column; align-items: center; } .w-30 {
+      width: 30%; } .w-48 { width: 48%; }
     </style>
   </head>
   <body>
@@ -68,7 +69,6 @@
           </div>
         </div>
       </header>
-
       <!-- Invoice To / Doctor -->
       <div class="bill-to">
         <div>
@@ -88,37 +88,34 @@
           </div>
         </div>
       </div>
-
       <!-- Treatments Table -->
       <table>
         <thead>
           <tr>
-            <th>Sr.</th>
-            <th>Treatment</th>
+            <th class="w-30">Sr.</th>
+            <th class="w-48">Treatment</th>
             <th>Price</th>
           </tr>
         </thead>
         <tbody>
           {{#each treatmentData}}
             <tr>
-              <td>{{no}}</td>
-              <td>{{treatment}}</td>
-              <td>₹ {{price}}</td>
+              <td class="w-30">{{no}}</td>
+              <td class="w-48">{{treatment}}</td>
+              <td>{{price}}</td>
             </tr>
           {{/each}}
         </tbody>
       </table>
-
       <!-- Totals -->
       <div class="text-right">
         <!-- Totals -->
         <div class="totals">
-          <div><span>Subtotal</span><span>₹ {{subtotal_amount}}</span></div>
-          <div><span>Discount</span><span>₹ {{discount}}</span></div>
-          <div><strong>TOTAL</strong><strong>₹ {{total_amount}}</strong></div>
+          <div><span>Subtotal</span><span>{{subtotal_amount}}</span></div>
+          <div><span>Discount</span><span>{{discount}}</span></div>
+          <div><strong>TOTAL</strong><strong>{{total_amount}}</strong></div>
         </div>
       </div>
-
       <!-- Signature -->
       <div class="signature">
         <div>

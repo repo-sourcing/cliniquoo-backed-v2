@@ -115,6 +115,8 @@ exports.getOne = async (req, res, next) => {
           {
             model: TreatmentPlan,
             required: false,
+            //order: [["createdAt", "ASC"]],
+            order: [["createdAt", "ASC"]],
             include: [
               {
                 model: Treatment,
@@ -140,6 +142,8 @@ exports.getOne = async (req, res, next) => {
         ],
         order: [
           // [Treatment, "createdAt", "DESC"],
+          [TreatmentPlan, "createdAt", "ASC"],
+          [TreatmentPlan, Treatment, "createdAt", "ASC"],
           [Transaction, "createdAt", "ASC"],
           [MedicalHistory, "createdAt", "DESC"],
         ],
