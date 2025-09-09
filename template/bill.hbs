@@ -1,0 +1,133 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice</title>
+
+    <style>
+      body { font-family: sans-serif; background: #f0f0f0; margin: 0; padding:
+      2rem; color: #000; } .invoice-container { background: #fff; max-width:
+      40rem; margin: auto; padding: 2rem; border: 1px solid #ddd; position:
+      relative; overflow: hidden; } /* Blue side strip */
+      .invoice-container::before { content: ""; position: absolute; top: 0;
+      left: 0; width: 1rem; height: 100%; background: #00419d; } header {
+      padding-bottom: 1rem; border-bottom: 1px solid; } .header { display: flex;
+      justify-content: space-between; } .header-left h2 { margin: 0; color:
+      #111; letter-spacing: 2px; font-size: 1.75rem; font-weight: 600; }
+      .header-right { text-align: right; } .header-right h1 { margin: 0;
+      font-size: 3rem; font-weight: 600; letter-spacing: 2px; } .invoice-meta {
+      font-size: 0.9rem; /* margin-top: 0.3rem; */ } .invoice-meta p { margin:
+      0.2rem 0; color: #595959; letter-spacing: 2px; } .bill-to { display: flex;
+      justify-content: space-between; margin: 2rem 0 1rem 0; } .bill-to h2,
+      .bill-to h3, .bill-to h4 { margin: 0.75rem 0; font-size: 1.5rem; }
+      .bill-to p { margin: 0.2rem 0; font-size: 0.75rem; font-weight: 600; }
+      .bill-to-info p { color: #595959; font-size: 0.8rem; font-weight: 400;
+      letter-spacing: 2px; } .text-right { text-align: right; } table { width:
+      100%; border-collapse: collapse; margin-bottom: 2rem; } table thead {
+      background: #00419d; color: #fff; } table th, table td { text-align: left;
+      padding: 0.6rem; font-size: 0.9rem; } table th { font-weight: 600; } table
+      td { border-bottom: 1px solid #111; } .totals { margin-top: 2rem;
+      background: #f7f8fd; display: inline-block; padding: 0.75rem 3rem;
+      letter-spacing: 2px; width: 35%; } .totals div { display: flex;
+      justify-content: space-between; margin: 0.3rem 0; font-size: 0.95rem; }
+      .totals div strong { font-size: 1rem; } .totals p { margin: 0.3rem 0;
+      font-size: 0.95rem; } .totals strong { font-size: 1rem; } /* .signature {
+      margin-top: 3rem; text-align: center; font-size: 0.9rem; }
+      .signature::before { content: ""; display: block; width: 60%; height: 1px;
+      background: #000; margin: 0 auto 0.5rem; } */ .signature { margin-top:
+      10rem; display: flex; flex-direction: column; align-items: flex-end;
+      padding: 1rem 1rem 0 1rem; font-size: 0.8rem; } .signature p { border-top:
+      1.5px solid black; padding: 0.5rem 0.75rem 0 0.75rem; } .signature div {
+      display: flex; flex-direction: column; align-items: center; }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-container">
+      <!-- Header -->
+      <header>
+        <div class="header">
+          <div class="header-left">
+            <h2>{{clinic_name}}</h2>
+          </div>
+          <div class="header-right">
+            <h1>INVOICE</h1>
+          </div>
+        </div>
+        <div class="header">
+          <div class="header-left">
+            <div class="invoice-meta">
+              <p>{{clinic_address}}</p>
+              <p>Phone Number : {{clinic_phone_number}}</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="invoice-meta">
+              <p>Invoice no. : {{invoice_number}}</p>
+              <p>Date : {{billing_date}}</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Invoice To / Doctor -->
+      <div class="bill-to">
+        <div>
+          <p>INVOICE TO</p>
+          <h2>{{patient_name}}</h2>
+          <div class="bill-to-info">
+            <p>Age: {{patient_age}} &nbsp;&nbsp; Gender: {{patient_gender}}</p>
+            <p>Phone Number: {{patient_phone_number}}</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p>DOCTOR NAME</p>
+          <h2>Dr. {{dr_name}}</h2>
+          <div class="bill-to-info">
+            <p>{{degree}}</p>
+            <p>Registration No: {{registration_no}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Treatments Table -->
+      <table>
+        <thead>
+          <tr>
+            <th>Sr.</th>
+            <th>Treatment</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each treatmentData}}
+            <tr>
+              <td>{{no}}</td>
+              <td>{{treatment}}</td>
+              <td>₹ {{price}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="text-right">
+        <!-- Totals -->
+        <div class="totals">
+          <div><span>Subtotal</span><span>₹ {{subtotal_amount}}</span></div>
+          <div><span>Discount</span><span>₹ {{discount}}</span></div>
+          <div><strong>TOTAL</strong><strong>₹ {{total_amount}}</strong></div>
+        </div>
+      </div>
+
+      <!-- Signature -->
+      <div class="signature">
+        <div>
+          {{#if signature}}
+            <img src="{{signature}}" alt="Doctor's Signature" height="40" />
+          {{/if}}
+          <p>Signature of Authorized Person</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
