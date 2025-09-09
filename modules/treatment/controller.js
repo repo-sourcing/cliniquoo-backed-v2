@@ -9,6 +9,7 @@ const Clinic = require("../clinic/model");
 const User = require("../user/model");
 const patientService = require("../patient/service");
 const { sendWhatsAppBill } = require("../../utils/msg91");
+const { generateBillPDF } = require("./utils");
 exports.create = async (req, res, next) => {
   try {
     const { treatmentPlanId } = req.body;
@@ -165,6 +166,11 @@ exports.sendBilling = async (req, res, next) => {
       gender: patientGender,
       mobile: patientMobile,
     } = patientData;
+    let treatment = req.body.treatmentJson;
+    //add one key no in index+!
+    treatment.map((data, i) => {
+      data.no = i + 1;
+    });
 
     let degree =
       doctor.degree == "MDS" && doctor.specialization !== null
@@ -181,34 +187,39 @@ exports.sendBilling = async (req, res, next) => {
       degree: degree,
       registration_no: doctor.registrationNumber,
       signature: doctor.signature || null,
-      treatmentData: req.body.treatmentJson,
+      treatmentData: treatment,
 
       patient_name: patientName,
       patient_age: patientAge,
       patient_gender: patientGender,
+      patient_phone_number: patientMobile,
       billing_date: req.body.date, // e.g. 25/08/2025
+      invoice_number: req.body.invoiceNumber,
+      subtotal_amount: req.body.subTotal,
+      discount: req.body.discount,
+      total_amount: req.body.subTotal - req.body.discount,
     };
 
-    // const url = await generatePrescriptionPDF(billingData);
-    // let toNumber = `91${patientMobile}`;
+    const url = await generateBillPDF(billingData);
+    let toNumber = `91${patientMobile}`;
 
-    // try {
-    //   sendWhatsAppBill({
-    //     to: [toNumber],
-    //     header: {
-    //       filename: "bill.pdf",
-    //       value: url,
-    //     },
-    //     bodyValues: [
-    //       billingData.patient_name,
-    //       billingData.clinic_name,
-    //       billingData.clinic_phone_number,
-    //       `"Dr. ${billingData.dr_name}"`,
-    //     ],
-    //   });
-    // } catch (error) {
-    //   console.log("error in prescription send", error);
-    //}
+    try {
+      sendWhatsAppBill({
+        to: [toNumber],
+        header: {
+          filename: "bill.pdf",
+          value: url,
+        },
+        bodyValues: [
+          billingData.patient_name,
+          billingData.clinic_name,
+          billingData.clinic_phone_number,
+          `"Dr. ${billingData.dr_name}"`,
+        ],
+      });
+    } catch (error) {
+      console.log("error in prescription send", error);
+    }
 
     res.status(200).send({
       status: "success",
