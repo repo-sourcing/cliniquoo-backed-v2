@@ -171,7 +171,7 @@ exports.sendBilling = async (req, res, next) => {
     //also add price symbol in treatment
     treatment.map((data, i) => {
       data.no = i + 1;
-      data.price = `₹ ${data.price}`;
+      data.price = `${data.price}`;
     });
 
     let degree =
@@ -197,9 +197,9 @@ exports.sendBilling = async (req, res, next) => {
       patient_phone_number: patientMobile,
       billing_date: req.body.date, // e.g. 25/08/2025
       invoice_number: req.body.invoiceNumber,
-      subtotal_amount: `₹ ${req.body.subTotal}`,
-      discount: `₹ ${req.body.discount}`,
-      total_amount: `₹ ${req.body.subTotal - req.body.discount}`,
+      subtotal_amount: `${req.body.subTotal}`,
+      discount: `${req.body.discount}`,
+      total_amount: `${req.body.subTotal - req.body.discount}`,
     };
 
     const url = await generateBillPDF(billingData);
