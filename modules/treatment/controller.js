@@ -10,6 +10,8 @@ const User = require("../user/model");
 const patientService = require("../patient/service");
 const { sendWhatsAppBill } = require("../../utils/msg91");
 const { generateBillPDF } = require("./utils");
+const { generateInvoice } = require("../patientBill/utils");
+const PatientBill = require("../patientBill/model");
 exports.create = async (req, res, next) => {
   try {
     const { treatmentPlanId } = req.body;
@@ -151,7 +153,7 @@ exports.sendBilling = async (req, res, next) => {
               where: {
                 id: req.body.clinicId,
               },
-              attributes: ["id", "name", "location", "mobile"],
+              attributes: ["id", "name", "location", "mobile", "location"],
             },
           ],
         },
@@ -202,6 +204,13 @@ exports.sendBilling = async (req, res, next) => {
       total_amount: `${req.body.subTotal - req.body.discount}`,
     };
 
+    // Save to DB
+    await PatientBill.create({
+      invoiceNumber: req.body.invoiceNumber,
+      treatment,
+      clinicId: req.body.clinicId,
+      patientId: req.params.patientId,
+    });
     const url = await generateBillPDF(billingData);
     let toNumber = `91${patientMobile}`;
 
@@ -226,9 +235,24 @@ exports.sendBilling = async (req, res, next) => {
     res.status(200).send({
       status: "success",
       message: "Bill send successfully",
-      data: billingData,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.getInvoiceNumber = async (req, res, next) => {
+  try {
+    const invoiceNumber = await generateInvoice(
+      req.params.clinicId,
+      req.params.patientId
+    );
+    res.status(200).send({
+      status: "success",
+      message: "Invoice Number",
+      data: { invoiceNumber },
+    });
+  } catch (error) {
+    next(error);
   }
 };
