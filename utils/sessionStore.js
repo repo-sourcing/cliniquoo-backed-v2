@@ -4,12 +4,10 @@ const { v4: uuidv4 } = require("uuid");
 const redisClient = require("./redis");
 const { summarizeConversation } = require("./aiWorkFlow");
 
-const TTL = parseInt(process.env.SESSION_TTL_SECONDS || "86", 10);
-const MAX = parseInt(process.env.SESSION_MAX_MESSAGES || "40", 10);
-const SUMMARY_EXP = parseInt(process.env.SESSION_EXP || "86", 10);
-const SUMMARY_LIMIT = parseInt(process.env.SUMMARY_LIMIT || "6", 10);
-const SUMMARY_BUFFER = 4; // how many raw messages we keep after summary
-const INITIAL_BUFFER = 4; // first batch before first summary
+const TTL = parseInt(process.env.SESSION_TTL_SECONDS || "86400", 10);
+const SUMMARY_EXP = parseInt(process.env.SESSION_EXP || "86400", 10);
+const SUMMARY_BUFFER = 5; // how many raw messages we keep after summary
+const INITIAL_BUFFER = 5; // first batch before first summary
 
 const keyForList = (userId, sessionId) =>
   `ai:session:${userId}:${sessionId}:msgs`;
