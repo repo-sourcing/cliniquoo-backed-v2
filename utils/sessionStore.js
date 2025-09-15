@@ -75,7 +75,7 @@ async function appendMessage(userId, sessionId, msg) {
 
     await redisClient.lTrim(listKey, INITIAL_BUFFER, -1);
 
-    await redisClient.expire(listKey, currentTTL);
+    await redisClient.expire(listKey, TTL);
   }
 }
 
