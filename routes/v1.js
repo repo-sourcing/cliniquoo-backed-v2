@@ -80,5 +80,10 @@ router.use(
   auth.authMiddleware,
   require("../modules/treatmentPlan")
 );
+router.use(
+  "/aiAnalytics",
+  auth.authMiddleware,
+  require("../modules/aiAnalytics")
+);
 
 module.exports = router;
