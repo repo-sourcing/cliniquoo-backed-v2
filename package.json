@@ -11,6 +11,7 @@
     "migration:create": "npx sequelize-cli migration:generate --name"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "aws-sdk": "^2.1214.0",
     "axios": "^1.2.2",
     "bcrypt": "^5.0.1",
