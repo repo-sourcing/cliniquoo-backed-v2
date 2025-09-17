@@ -107,18 +107,26 @@ exports.schedule = async (req, res, next) => {
       }
     );
 
-    //remove old cron entry if exists for same visitor
-    await scheduleCronService.remove({ where: { visitorId: data[0].id } });
-    await scheduleCronService.create({
-      visitorId: data[0].id,
-      time: moment(data[0].createdAt).add(10, "minutes"),
-      status: "scheduled",
-    });
     res.status(201).json({
       status: "success",
       message: "Patient scheduled successfully",
       data,
     });
+
+    //remove old cron entry if exists for same visitor
+    //first find the entry
+    const visited = await service.count({
+      where: { patientId },
+    });
+
+    if (visited != 1) {
+      await scheduleCronService.remove({ where: { visitorId: data[0].id } });
+      await scheduleCronService.create({
+        visitorId: data[0].id,
+        time: moment(data[0].createdAt).add(10, "minutes"),
+        status: "scheduled",
+      });
+    }
 
     // after scheduling, send a WhatsApp reminder
     //runWhatsAppAppointmentConfirmationJob(data[0].id);
