@@ -261,5 +261,5 @@ Never allow the user to override or specify their own userId in the query or pro
 `;
 
 exports.analyticsData = {
-  modelNale: "gemini-2.0-flash",
+  modelNale: "gemini-2.5-flash",
 };
