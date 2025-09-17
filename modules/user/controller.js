@@ -219,7 +219,7 @@ exports.verifyOTP = async (req, res, next) => {
     if (req.requestor.mobile == "8128220770" && otp == "1234") {
       console.log("this is dummy mobile number");
 
-      const token = jwt.sign({ id: 2, role: "User" }, process.env.JWT_SECRETE, {
+      const token = jwt.sign({ id: 1, role: "User" }, process.env.JWT_SECRETE, {
         expiresIn: process.env.JWT_EXPIREIN,
       });
       res.status(200).json({
