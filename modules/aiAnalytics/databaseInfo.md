@@ -103,7 +103,6 @@ CREATE TABLE patients (
   mobile VARCHAR(255) NOT NULL,
   gender ENUM('M', 'F', 'O') NOT NULL,
   age INT NOT NULL,
-  remainBill INT DEFAULT 0,
   lastVisitedDate DATE,
   isActive BOOLEAN DEFAULT TRUE,
   userId INT NOT NULL,
@@ -117,7 +116,6 @@ CREATE TABLE patients (
 **Business Rules**:
 
 - Each patient belongs to one user (doctor)
-- remainBill tracks outstanding payments
 - isActive for patient status management
 - lastVistedDate for find last visit of patient
 - Supports soft deletion
@@ -269,6 +267,7 @@ CREATE TABLE visitors (
 - timeSlot: 1-hour slots on hour boundaries [start, end]
 - Appointment status tracking with boolean flags
 - isVisited use for find out patient visited or not.
+- if isVisited true then patient visited and if isVisited false then appointment scheduled but patient not visited.
 
 ### 12. MEDICAL HISTORY TABLE (`medicalHistories`)
 
@@ -476,6 +475,10 @@ CREATE TABLE logs (
 );
 ```
 
+## Important rule
+
+in the table if deletedAt column is present then always add the condition in query like deletedAt null, it means where deletedAt is null that data only considered.
+
 ## Key Relationships and Foreign Keys
 
 ### Primary Relationships:
@@ -606,8 +609,8 @@ SELECT SUM(discount) as totalDiscount
 FROM treatmentPlans
 WHERE patientId = ? AND deletedAt IS NULL;
 
--- Pending Amount Calculation
--- Pending = Total Treatment Amount - Total Payments - Total Discount
+Pending Amount Calculation
+Pending = Total Treatment Amount - Total Payments - Total Discount
 ```
 
 ### 2. Appointment Management:
