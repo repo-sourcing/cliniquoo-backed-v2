@@ -268,84 +268,116 @@ exports.runAIControlledWorkflow = async ({
 
         if (!finalText || finalText.trim().length === 0) {
           this.agentLog("❌ Empty final response - something went wrong!");
-          const debugResponse = `
-                    <div style="font-family: Arial, sans-serif; padding: 20px;">
-                        <h3 style="color: red;">Debug: Empty Response Detected</h3>
-                        <div style="background: #3f3f46; padding: 15px; border-radius: 5px; border: 1px solid #555; color: #fff;">
-                            <p><strong>Issue:</strong> The AI completed processing but returned an empty response.</p>
-                            <p><strong>Iterations completed:</strong> ${iteration}</p>
-                            <p><strong>Check server logs for function call details.</strong></p>
-                            <p><strong>Your query:</strong> ${userQuery}</p>
-                            <p><strong>Database:</strong> ${dbType} (${otherDetails})</p>
-                        </div>
-                    </div>`;
-
-          return debugResponse;
-        }
-
-        // Check if response looks like HTML
-        if (finalText.includes("```json")) {
-          let parsedData = await this.extractJsonFromResponse(finalText);
-
-          if (parsedData.type == "table") {
-            let htmlData = await this.jsonToHtmlTable(parsedData);
-            return {
-              status: "success",
-
-              message: {
-                type: "table",
-                message: htmlData,
-                text: finalText,
-              },
-            };
-          } else {
-            return {
-              status: "success",
-              message: {
-                type: parsedData.type,
-                message: parsedData,
-                text: finalText,
-              },
-            };
-          }
-        } else if (finalText.includes("<") && finalText.includes(">")) {
           return {
-            status: "success",
-            message: { type: "html", message: finalText, text: finalText },
-          };
-        } else {
-          // Wrap in basic HTML structure
-          //const htmlResponse = finalText.replace(/\n/g, "<br>");
-          let htmlResponse = finalText;
-
-          return {
-            status: "success",
             message: {
-              type: "plainText",
-              message: htmlResponse,
-              text: finalText,
+              status: "error",
+              message: {
+                type: "unified",
+                content: [
+                  {
+                    type: "text",
+                    data: "No response generated! Please try again",
+                  },
+                ],
+                summary: "Empty response error",
+              },
             },
           };
         }
+        const parsedResponse = await this.parseUnifiedResponse(finalText);
+
+        // Parse the unified response
+
+        return {
+          message: {
+            status: "success",
+            message: parsedResponse,
+            text: finalText, // Keep original for debugging
+          },
+        };
+
+        // Check if response looks like HTML
+        // if (finalText.includes("```json")) {
+        //   let parsedData = await this.extractJsonFromResponse(finalText);
+
+        //   if (parsedData.type == "table") {
+        //     let htmlData = await this.jsonToHtmlTable(parsedData);
+        //     return {
+        //       status: "success",
+
+        //       message: {
+        //         type: "table",
+        //         message: htmlData,
+        //         text: finalText,
+        //       },
+        //     };
+        //   } else {
+        //     return {
+        //       status: "success",
+        //       message: {
+        //         type: parsedData.type,
+        //         message: parsedData,
+        //         text: finalText,
+        //       },
+        //     };
+        //   }
+        // } else if (finalText.includes("<") && finalText.includes(">")) {
+        //   return {
+        //     status: "success",
+        //     message: { type: "html", message: finalText, text: finalText },
+        //   };
+        // } else {
+        //   // Wrap in basic HTML structure
+        //   //const htmlResponse = finalText.replace(/\n/g, "<br>");
+        //   let htmlResponse = finalText;
+
+        //   return {
+        //     status: "success",
+        //     message: {
+        //       type: "plainText",
+        //       message: htmlResponse,
+        //       text: finalText,
+        //     },
+        //   };
+        // }
       }
     }
 
     // If we reach max iterations, return what we have
-
     return {
-      status: "partial_success",
-
       message: {
-        message: "Sorry!, No data found",
-        text: "Sorry!, No data found",
+        status: "error",
+        message: {
+          type: "unified",
+          content: [
+            {
+              type: "text",
+              data:
+                error?.message ||
+                "Reached maximum iterations without final response",
+            },
+          ],
+          summary: "Processing error",
+        },
       },
     };
   } catch (error) {
     this.agentLog("Error in AI workflow:", error);
 
     return {
-      status: "error",
-      message: error?.message || "An error occurred while processing request",
+      message: {
+        status: "error",
+        message: {
+          type: "unified",
+          content: [
+            {
+              type: "text",
+              data: error?.message || "No Data found! Please try again",
+            },
+          ],
+          summary: "Processing error",
+        },
+      },
     };
   }
 };
@@ -494,5 +526,123 @@ exports.jsonToHtmlTable = async jsonStr => {
   } catch (error) {
     console.error("Error parsing JSON:", error.message);
     return "<p>Invalid table data</p>";
+  }
+};
+
+exports.parseUnifiedResponse = async aiResponse => {
+  if (!aiResponse || typeof aiResponse !== "string") {
+    return {
+      type: "unified",
+      content: [{ type: "text", data: "No response received" }],
+      summary: "Empty response",
+    };
+  }
+
+  const contentBlocks = [];
+  let workingText = aiResponse;
+
+  // 1. Extract and parse JSON blocks (tables/charts)
+  const jsonMatches = workingText.matchAll(/```json([\s\S]*?)```/g);
+  for (const match of jsonMatches) {
+    try {
+      const jsonData = JSON.parse(match[1].trim());
+
+      if (jsonData.type === "table") {
+        let htmlData = await this.jsonToHtmlTable(jsonData);
+
+        contentBlocks.push({
+          type: "table",
+          data: htmlData,
+        });
+      } else if (jsonData.type === "chart") {
+        contentBlocks.push({
+          type: "chart",
+          data: jsonData,
+        });
+      } else {
+        contentBlocks.push({
+          type: "data",
+          data: jsonData,
+        });
+      }
+
+      // Remove processed JSON from working text
+      workingText = workingText.replace(match[0], "");
+    } catch (err) {
+      console.error("Failed to parse JSON block:", err);
+      // Keep as text if JSON parsing fails
+      contentBlocks.push({
+        type: "text",
+        data: `\`\`\`json\n${match[1].trim()}\n\`\`\``,
+      });
+      workingText = workingText.replace(match[0], "");
+    }
+  }
+
+  // 2. Extract HTML blocks
+  const htmlMatches = workingText.matchAll(/```html([\s\S]*?)```/g);
+  for (const match of htmlMatches) {
+    contentBlocks.push({
+      type: "html",
+      data: match[1].trim(),
+    });
+    workingText = workingText.replace(match[0], "");
+  }
+
+  // 3. Extract remaining text content
+  const cleanText = workingText
+    .replace(/```[\s\S]*?```/g, "") // Remove any remaining code blocks
+    .trim();
+
+  if (cleanText && cleanText.length > 0) {
+    // Split by double newlines to create paragraphs
+    const paragraphs = cleanText
+      .split(/\n\s*\n/)
+      .filter(p => p.trim().length > 0)
+      .map(p => p.trim());
+
+    if (paragraphs.length > 0) {
+      contentBlocks.unshift({
+        type: "text",
+        data: paragraphs.join("\n\n"),
+      });
+    }
+  }
+
+  // 4. Generate summary
+  const summary = generateResponseSummary(contentBlocks);
+
+  return {
+    type: "unified",
+    content:
+      contentBlocks.length > 0
+        ? contentBlocks
+        : [{ type: "text", data: "No content could be parsed" }],
+    summary,
+  };
+};
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+const generateResponseSummary = contentBlocks => {
+  const types = contentBlocks.map(block => block.type);
+  const uniqueTypes = [...new Set(types)];
+
+  if (uniqueTypes.length === 1 && uniqueTypes[0] === "text") {
+    return "Text response";
+  } else if (uniqueTypes.includes("table") && uniqueTypes.includes("text")) {
+    return "Analysis with data table";
+  } else if (uniqueTypes.includes("chart") && uniqueTypes.includes("text")) {
+    return "Analysis with chart visualization";
+  } else if (uniqueTypes.includes("table") && uniqueTypes.includes("chart")) {
+    return "Data analysis with table and chart";
+  } else if (uniqueTypes.includes("table")) {
+    return "Data table";
+  } else if (uniqueTypes.includes("chart")) {
+    return "Chart visualization";
+  } else {
+    return `Mixed content: ${uniqueTypes.join(", ")}`;
   }
 };

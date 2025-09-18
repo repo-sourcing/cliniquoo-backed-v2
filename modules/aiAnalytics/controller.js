@@ -62,8 +62,8 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
       status: "success",
       data: {
         aiResponse: {
-          data: aiResponse.message.message,
-          type: aiResponse.message.type,
+          data: aiResponse.message.message.content,
+          type: aiResponse.message.message.type,
         },
         sessionId,
       },
