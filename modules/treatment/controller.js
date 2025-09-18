@@ -67,6 +67,7 @@ exports.create = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       message: "Treatment added successfully",
+      data,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
