@@ -567,7 +567,7 @@ exports.parseUnifiedResponse = async aiResponse => {
         "line"
       ) {
         contentBlocks.push({
-          type: "chart",
+          type: "data",
           data: jsonData,
         });
       } else {
