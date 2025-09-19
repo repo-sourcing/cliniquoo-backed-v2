@@ -241,7 +241,7 @@ exports.runAIControlledWorkflow = async ({
         }
       } else {
         // No more function calls, we have the final response
-        const finalText = response.text();
+        let finalText = response.text();
         if (!hasExecutedQuery) {
           this.agentLog(
             "⚠️  No SQL query executed for data question, forcing retry..."
@@ -284,6 +284,9 @@ exports.runAIControlledWorkflow = async ({
             },
           };
         }
+
+        console.log("final text--->", finalText);
+
         const parsedResponse = await this.parseUnifiedResponse(finalText);
 
         // Parse the unified response
@@ -554,7 +557,15 @@ exports.parseUnifiedResponse = async aiResponse => {
           type: "table",
           data: htmlData,
         });
-      } else if (jsonData.type === "chart") {
+      } else if (
+        jsonData.type === "chart" ||
+        "pie" ||
+        "bar" ||
+        "radar" ||
+        "donut" ||
+        "doughnut" ||
+        "line"
+      ) {
         contentBlocks.push({
           type: "chart",
           data: jsonData,
@@ -589,7 +600,33 @@ exports.parseUnifiedResponse = async aiResponse => {
     workingText = workingText.replace(match[0], "");
   }
 
-  // 3. Extract remaining text content
+  // 3. NEW: Detect JSON objects without ```json wrapper
+  const { jsonObjects, remainingText } = detectJsonInText(workingText);
+
+  for (const jsonObj of jsonObjects) {
+    if (jsonObj.data.type === "table") {
+      let htmlData = await this.jsonToHtmlTable(jsonObj.data);
+      contentBlocks.push({
+        type: "table",
+        data: htmlData,
+      });
+    } else if (jsonObj.data.type === "chart") {
+      contentBlocks.push({
+        type: "chart",
+        data: jsonObj.data,
+      });
+    } else {
+      contentBlocks.push({
+        type: "data",
+        data: jsonObj.data,
+      });
+    }
+  }
+
+  // Update working text to remaining text after JSON extraction
+  workingText = remainingText;
+
+  // 4. Extract remaining text content
   const cleanText = workingText
     .replace(/```[\s\S]*?```/g, "") // Remove any remaining code blocks
     .trim();
@@ -645,4 +682,225 @@ const generateResponseSummary = contentBlocks => {
   } else {
     return `Mixed content: ${uniqueTypes.join(", ")}`;
   }
+};
+
+// Helper function to detect and extract JSON objects from text
+// const detectJsonInText = text => {
+//   const jsonObjects = [];
+//   let remainingText = text;
+
+//   // Look for JSON-like patterns with type: "table" or type: "chart"
+//   const jsonPatterns = [
+//     // Match objects that start with { and contain type field
+//     /\{[^{}]*"type"\s*:\s*["'](?:table|chart|data)["'][^{}]*(?:\{[^}]*\}[^{}]*)*\}/g,
+//     // More comprehensive pattern for nested objects
+//     /\{(?:[^{}]|\{[^}]*\})*"type"\s*:\s*["'](?:table|chart|data)["'](?:[^{}]|\{[^}]*\})*\}/g,
+//   ];
+
+//   for (const pattern of jsonPatterns) {
+//     const matches = text.matchAll(pattern);
+//     for (const match of matches) {
+//       try {
+//         // Try to parse the matched text as JSON
+//         const jsonData = JSON.parse(match[0]);
+//         if (
+//           jsonData.type &&
+//           ["table", "chart", "data"].includes(jsonData.type)
+//         ) {
+//           jsonObjects.push({
+//             data: jsonData,
+//             originalText: match[0],
+//             index: match.index,
+//           });
+//           // Remove this JSON from remaining text
+//           remainingText = remainingText.replace(match[0], "");
+//         }
+//       } catch (err) {
+//         // If parsing fails, try with more context around the match
+//         try {
+//           // Look for complete JSON object by finding matching braces
+//           const startIndex = match.index;
+//           const completeJson = extractCompleteJsonFromPosition(
+//             text,
+//             startIndex
+//           );
+//           if (completeJson) {
+//             const jsonData = JSON.parse(completeJson);
+//             if (
+//               jsonData.type &&
+//               ["table", "chart", "data"].includes(jsonData.type)
+//             ) {
+//               jsonObjects.push({
+//                 data: jsonData,
+//                 originalText: completeJson,
+//                 index: startIndex,
+//               });
+//               remainingText = remainingText.replace(completeJson, "");
+//             }
+//           }
+//         } catch (innerErr) {
+//           console.log(
+//             "Could not parse JSON-like text:",
+//             match[0].substring(0, 100) + "..."
+//           );
+//         }
+//       }
+//     }
+//   }
+
+//   return { jsonObjects, remainingText };
+// };
+
+// // Helper function to extract complete JSON object from a starting position
+// const extractCompleteJsonFromPosition = (text, startIndex) => {
+//   let braceCount = 0;
+//   let inString = false;
+//   let escapeNext = false;
+//   let endIndex = startIndex;
+
+//   for (let i = startIndex; i < text.length; i++) {
+//     const char = text[i];
+
+//     if (escapeNext) {
+//       escapeNext = false;
+//       continue;
+//     }
+
+//     if (char === "\\") {
+//       escapeNext = true;
+//       continue;
+//     }
+
+//     if (char === '"' && !escapeNext) {
+//       inString = !inString;
+//       continue;
+//     }
+
+//     if (!inString) {
+//       if (char === "{") {
+//         braceCount++;
+//       } else if (char === "}") {
+//         braceCount--;
+//         if (braceCount === 0) {
+//           endIndex = i + 1;
+//           break;
+//         }
+//       }
+//     }
+//   }
+
+//   if (braceCount === 0) {
+//     return text.substring(startIndex, endIndex);
+//   }
+//   return null;
+// };
+
+// Helper function to detect and extract JSON objects from text
+const detectJsonInText = text => {
+  const jsonObjects = [];
+  const processedIndices = new Set();
+
+  // Find all potential JSON object start positions
+  const bracePositions = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "{") {
+      bracePositions.push(i);
+    }
+  }
+
+  // Check each brace position for valid JSON with type field
+  for (const startIndex of bracePositions) {
+    if (processedIndices.has(startIndex)) {
+      continue; // Skip if already processed
+    }
+
+    try {
+      const completeJson = extractCompleteJsonFromPosition(text, startIndex);
+      if (completeJson && completeJson.length > 10) {
+        // Basic length check
+        const jsonData = JSON.parse(completeJson);
+
+        // Check if it has the required type field
+        if (
+          jsonData.type &&
+          ["table", "pie", "bar", "radar", "chart", "data"].includes(
+            jsonData.type
+          )
+        ) {
+          // Mark all indices in this range as processed to avoid duplicates
+          const endIndex = startIndex + completeJson.length;
+          for (let i = startIndex; i < endIndex; i++) {
+            processedIndices.add(i);
+          }
+
+          jsonObjects.push({
+            data: jsonData,
+            originalText: completeJson,
+            index: startIndex,
+          });
+        }
+      }
+    } catch (err) {
+      // Not valid JSON, continue to next position
+      continue;
+    }
+  }
+
+  // Sort by index to maintain order
+  jsonObjects.sort((a, b) => a.index - b.index);
+
+  // Remove all found JSON objects from text
+  let remainingText = text;
+  for (const jsonObj of jsonObjects.reverse()) {
+    // Reverse to maintain indices
+    remainingText =
+      remainingText.substring(0, jsonObj.index) +
+      remainingText.substring(jsonObj.index + jsonObj.originalText.length);
+  }
+
+  return { jsonObjects: jsonObjects.reverse(), remainingText }; // Reverse back to original order
+};
+
+// Helper function to extract complete JSON object from a starting position
+const extractCompleteJsonFromPosition = (text, startIndex) => {
+  let braceCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  let endIndex = startIndex;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escapeNext = true;
+      continue;
+    }
+
+    if (char === '"' && !escapeNext) {
+      inString = !inString;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === "{") {
+        braceCount++;
+      } else if (char === "}") {
+        braceCount--;
+        if (braceCount === 0) {
+          endIndex = i + 1;
+          break;
+        }
+      }
+    }
+  }
+
+  if (braceCount === 0) {
+    return text.substring(startIndex, endIndex);
+  }
+  return null;
 };
