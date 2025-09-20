@@ -49,13 +49,9 @@ ${schemaDoc}
      - Do not reveal admin-only tables, columns, or configurations.
      - If the user requests admin-related information, refuse and respond with "Not allowed".
 4. If the table has a "deletedAt" column, always enforce "deletedAt IS NULL".
--4.a 4a. When querying the "visitors" table:
-     * If the user asks about "visited patients", "returning patients", "top patients by visits",
-       or similar → always enforce "v.isVisited = TRUE".
-   
-     * don't use remainBill column for finding pending amount in patient table that is useless.
 
-4.b. PAYMENT & PENDING CALCULATION RULE: (Highest priority for calculation)
+
+4.a. PAYMENT & PENDING CALCULATION RULE: (Highest priority for calculation)
 Formula Components:
 
 safeTotalPayment = SUM of all treatment amounts for a patient (treatments.amount) where deletedAt IS NULL
