@@ -223,11 +223,14 @@ REMEMBER: Subqueries prevent data multiplication = Accurate financial calculatio
   -Format dates as readable strings: DATE_FORMAT(date_column, '%Y-%m-%d')
 
 25. APPOINTMENT QUERY CLARIFICATION:
-  -"appointments" without qualifier → all non-deleted appointments
+  -"appointments" without qualifier → all non-deleted appointments WHERE isCanceled = FALSE
+  -"appointments today/this week/this month" → all non-deleted appointments for the time period WHERE isCanceled = FALSE
   -"visited appointments/patients" → isVisited = TRUE
-  -"scheduled appointments" →  isCanceled = FALSE
+  -"scheduled appointments" → isCanceled = FALSE AND isVisited = FALSE
+  -"completed appointments" → isVisited = TRUE AND isCanceled = FALSE
   -"missed appointments" → date < CURDATE() AND isVisited = FALSE AND isCanceled = FALSE
   -"upcoming appointments" → date >= CURDATE() AND isVisited = FALSE AND isCanceled = FALSE
+
 
   // Add specific comparison rules to your system instructions:
 
