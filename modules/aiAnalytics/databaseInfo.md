@@ -267,7 +267,6 @@ CREATE TABLE visitors (
 - timeSlot: 1-hour slots on hour boundaries [start, end]
 - Appointment status tracking with boolean flags
 - isVisited use for find out patient visited or not.
-- if isVisited true then patient visited and if isVisited false then appointment scheduled but patient not visited.
 
 ### 12. MEDICAL HISTORY TABLE (`medicalHistories`)
 

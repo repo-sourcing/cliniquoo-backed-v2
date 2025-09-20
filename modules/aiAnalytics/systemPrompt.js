@@ -52,9 +52,9 @@ ${schemaDoc}
 -4.a 4a. When querying the "visitors" table:
      * If the user asks about "visited patients", "returning patients", "top patients by visits",
        or similar → always enforce "v.isVisited = TRUE".
-     * If the user asks about "scheduled appointments" → enforce "v.isVisited = FALSE AND v.isCanceled = FALSE".
+    
      * If the user asks about "missed appointments" → enforce "v.isVisited = FALSE AND v.isCanceled = FALSE".
-     * If the user asks only about "appointments" → enforce "v.isVisited = FALSE AND v.isVisited = FALSE".
+   
      * don't use remainBill column for finding pending amount in patient table that is useless.
 
 4.b. PAYMENT & PENDING CALCULATION RULE: (Highest priority for calculation)
