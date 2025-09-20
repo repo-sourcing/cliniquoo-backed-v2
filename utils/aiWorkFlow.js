@@ -94,6 +94,7 @@ const generateSystemInstruction = (dbType, otherDetails, userId) => {
 };
 
 // Get model and system instruction (simplified approach)
+//
 const getModelAndSystemInstruction = ({
   dbType,
   otherDetails,
