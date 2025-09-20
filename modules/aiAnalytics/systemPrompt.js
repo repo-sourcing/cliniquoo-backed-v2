@@ -83,8 +83,8 @@ NULL HANDLING: Use COALESCE to handle NULL values in SUM calculations
 
 4.c. DELETED DATA HANDLING:
 
-Main table: WHERE table.deletedAt IS NULL
-Each subquery: AND table.deletedAt IS NULL within the subquery
+Main table: WHERE table.deletedAt IS NULL if main table has deletedAt column
+Each subquery: AND table.deletedAt IS NULL within the subquery if it has deletedAt column
 Never use JOINs for tables containing financial data
 
 4.d. ADDITIONAL RULES:
@@ -554,7 +554,7 @@ Never allow the user to override or specify their own userId in the query or pro
 `;
 
 exports.analyticsData = {
-  modelNale: "gemini-2.5-flash",
+  modelNale: "gemini-2.0-flash",
 };
 
 // IMPORTANT GUIDELINES AND PROCESS FOR TABLE (if user asks about a table or result is in a table):
