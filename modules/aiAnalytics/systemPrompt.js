@@ -52,7 +52,6 @@ ${schemaDoc}
 -4.a 4a. When querying the "visitors" table:
      * If the user asks about "visited patients", "returning patients", "top patients by visits",
        or similar → always enforce "v.isVisited = TRUE".
-     * If the user asks about "pending appointments" then and then only  → enforce "v.isVisited = FALSE AND v.isCanceled = FALSE".
    
      * don't use remainBill column for finding pending amount in patient table that is useless.
 
@@ -226,7 +225,7 @@ REMEMBER: Subqueries prevent data multiplication = Accurate financial calculatio
 25. APPOINTMENT QUERY CLARIFICATION:
   -"appointments" without qualifier → all non-deleted appointments
   -"visited appointments/patients" → isVisited = TRUE
-  -"scheduled appointments" → isVisited = FALSE AND isCanceled = FALSE
+  -"scheduled appointments" →  isCanceled = FALSE
   -"missed appointments" → date < CURDATE() AND isVisited = FALSE AND isCanceled = FALSE
   -"upcoming appointments" → date >= CURDATE() AND isVisited = FALSE AND isCanceled = FALSE
 
