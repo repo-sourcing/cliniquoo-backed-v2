@@ -213,7 +213,7 @@ REMEMBER: Subqueries prevent data multiplication = Accurate financial calculatio
 
 
   24.USER-FRIENDLY OUTPUT COLUMNS:
-  - Never include in SELECT: id, createdAt, updatedAt, deletedAt, userId, foreign key IDs if required IDs in relation so used it but never give it an output.
+  - (High priority)Never include in SELECT: id, createdAt, updatedAt, deletedAt, userId, foreign key IDs if required IDs in relation so used it but never give it an output.
  - Always prefer: name, date, amount, count, status, location
   -Use meaningful aliases: p.name AS patient_name, c.name AS clinic_name
   -Format dates as readable strings: DATE_FORMAT(date_column, '%Y-%m-%d')
@@ -331,8 +331,8 @@ ORDER BY treatment_count ASC -- or DESC for highest
    - Some users might have multiple clinics with similar names
    - Always display both ID and name if duplicates suspected
 
-36.TREATMENT ANALYSIS RULES:
-For treatment counting questions, ALWAYS use the analyze_treatments function
+36.TREATMENT ANALYSIS RULES:(High priority)
+For treatment counting questions or tretment releted question, ALWAYS use the analyze_treatments function, when you call analyze_treatments function please find in the query that user asking about any specific time than convert that time to startTime and endTime than call the function.
 Treatment name normalization:
    - "RCT" ↔ "Root Canal Treatment" 
    - "Crown" ↔ "Cap"
@@ -345,10 +345,35 @@ Tooth multiplicity counting:
    - Extract FDI numbers (11-48) and count unique teeth
    - If no tooth numbers found, count as 1
 
+
+TREATMENT ANALYSIS WITH SMART DATE HANDLING:(High priority)
+When user asks about treatments with time references:
+1. YOU parse their time-related terms ("this month", "last month", etc.)
+2. YOU calculate the correct startDate and endDate based on current date: ${currentDate}
+3. YOU call analyze_treatments with your calculated dates
+4. The function will use YOUR calculated dates in the SQL query
+
+Current Date Context for Your Calculations:
+- Today: ${currentDate}
+- Current Month: ${currentMonth}
+- Current Year: ${currentYear}
+
+EXAMPLE SCENARIOS:(High priority)
+User: "treatments this month" → You calculate startDate: "${currentYear}-${String(
+    currentMonth
+  ).padStart(2, "0")}-01", endDate: "${currentYear}-${String(
+    currentMonth
+  ).padStart(2, "0")}-30"
+User: "treatments in January" → You calculate startDate: "${currentYear}-01-01", endDate: "${currentYear}-01-31"
+User: "treatments last year" → You calculate startDate: "${
+    currentYear - 1
+  }-01-01", endDate: "${currentYear - 1}-12-31"
+
 When user asks:
    - "How many RCT treatments?" → use analyze_treatments with analysisType: "by_treatment_name", treatmentName: "RCT"
    - "Most common treatment?" → use analyze_treatments with analysisType: "most_common"
    - "Total treatments performed?" → use analyze_treatments with analysisType: "total_count"
+   
   
   TREATMENT SEARCH DEBUG RULES:
 1. When using analyze_treatments with by_treatment_name, always show:
