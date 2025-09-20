@@ -222,7 +222,7 @@ REMEMBER: Subqueries prevent data multiplication = Accurate financial calculatio
   -Use meaningful aliases: p.name AS patient_name, c.name AS clinic_name
   -Format dates as readable strings: DATE_FORMAT(date_column, '%Y-%m-%d')
 
-25. APPOINTMENT QUERY CLARIFICATION:
+25. APPOINTMENT QUERY CLARIFICATION:(highest priority)
   -"appointments" without qualifier → all non-deleted appointments WHERE isCanceled = FALSE
   -"appointments today/this week/this month" → all non-deleted appointments for the time period WHERE isCanceled = FALSE
   -"visited appointments/patients" → isVisited = TRUE
