@@ -5,7 +5,7 @@ const schemaDoc = fs.readFileSync(
   path.join(__dirname, "databaseInfo.md"),
   "utf-8"
 );
-
+//
 exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
   return `
 You are a helpful database assistant that helps query the ${dbType} database.
