@@ -6,6 +6,11 @@ const schemaDoc = fs.readFileSync(
   "utf-8"
 );
 //
+const now = new Date();
+const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+const currentMonth = now.getMonth() + 1;
+const currentYear = now.getFullYear();
+
 exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
   return `
 You are a helpful database assistant that helps query the ${dbType} database.
@@ -92,7 +97,8 @@ Never use JOINs for tables containing financial data
 Always add userId condition for user isolation
 Don't GROUP BY name (patients can have duplicate names)
 Don't use patients.remainBill unless explicitly requested
-For pending amount filters, use HAVING clause with same subquery logic
+For pending amount filters, use HAVING cla
+use with same subquery logic
 
 REMEMBER: Subqueries prevent data multiplication = Accurate financial calculations
  Do not directly use patients.remainBill unless the user explicitly asks for it.
@@ -354,20 +360,42 @@ When user asks about treatments with time references:
 4. The function will use YOUR calculated dates in the SQL query
 
 Current Date Context for Your Calculations:
-- Today: {currentDate}
-- Current Month: {currentMonth}
-- Current Year: {currentYear}
+  - Today: ${currentDate}
+  - Current Month: ${currentMonth}
+  - Current Year: ${currentYear}
 
 EXAMPLE SCENARIOS:(High priority)
-User: "treatments this month" → You calculate startDate: "{currentYear}-{String(
+User: "treatments this month" → You calculate startDate: "${currentYear}-${String(
     currentMonth
-  ).padStart(2, "0")}-01", endDate: "{currentYear}-{String(
+  ).padStart(2, "0")}-01", endDate: "${currentYear}-${String(
     currentMonth
-  ).padStart(2, "0")}-30"
-User: "treatments in January" → You calculate startDate: "{currentYear}-01-01", endDate: "{currentYear}-01-31"
-User: "treatments last year" → You calculate startDate: "{
+  ).padStart(2, "0")}-${new Date(currentYear, currentMonth, 0).getDate()}"
+User: "treatments in January" → You calculate startDate: "${currentYear}-01-01", endDate: "${currentYear}-01-31"
+User: "treatments last year" → You calculate startDate: "${
     currentYear - 1
-  }-01-01", endDate: "{currentYear - 1}-12-31"
+  }-01-01", endDate: "${currentYear - 1}-12-31"
+User: "treatments last month" → You calculate startDate: "${currentYear}-${String(
+    currentMonth - 1
+  ).padStart(2, "0")}-01", endDate: "${currentYear}-${String(
+    currentMonth - 1
+  ).padStart(2, "0")}-${new Date(currentYear, currentMonth - 1, 0).getDate()}"
+
+CRITICAL DATE HANDLING RULES:(Highest Priority)
+1. When user mentions ANY time reference ("this month", "last week", "in January", "2024", "yesterday"), you MUST:
+   - Calculate exact startDate and endDate
+   - Call analyze_treatments with both dates
+   - Never call without dates for time-based queries
+
+2. Time Reference Examples:
+   - "this month" → startDate: first day of current month, endDate: last day of current month
+   - "last month" → startDate: first day of previous month, endDate: last day of previous month  
+   - "this year" → startDate: January 1st of current year, endDate: December 31st of current year
+   - "in January" → startDate: "YYYY-01-01", endDate: "YYYY-01-31"
+   - "last 30 days" → startDate: 30 days ago, endDate: today
+
+3. If user asks about treatments without time reference, don't include dates
+4. Always use YYYY-MM-DD format for dates
+
 
 When user asks:
    - "How many RCT treatments?" → use analyze_treatments with analysisType: "by_treatment_name", treatmentName: "RCT"

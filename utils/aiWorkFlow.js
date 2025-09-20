@@ -41,7 +41,7 @@ const sqlQueryFunctionDeclaration = {
 const treatmentAnalysisFunctionDeclaration = {
   name: "analyze_treatments",
   description:
-    "Analyze treatment data with proper normalization, tooth counting, and synonym handling for accurate dental treatment statistics.",
+    "Analyze treatment data with proper normalization, tooth counting, and synonym handling. IMPORTANT: For time-based queries, you MUST calculate and provide startDate and endDate based on user's time references.",
   parameters: {
     type: "object",
     properties: {
@@ -73,11 +73,13 @@ const treatmentAnalysisFunctionDeclaration = {
       },
       startDate: {
         type: "string",
-        description: "Start date for date range analysis (YYYY-MM-DD format)",
+        description:
+          "Start date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
       },
       endDate: {
         type: "string",
-        description: "End date for date range analysis (YYYY-MM-DD format)",
+        description:
+          "End date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
       },
       limit: {
         type: "number",
@@ -182,7 +184,7 @@ const processFunctionCall = async (
 };
 
 // Helper function to clean text from context messages
-const cleanContextText = text => {
+const cleanContextText = (text) => {
   if (!text) return "";
 
   // Remove excessive quotes and escape characters
@@ -452,7 +454,7 @@ exports.runAIControlledWorkflow = async ({
   }
 };
 
-exports.executeSQLQuery = async query => {
+exports.executeSQLQuery = async (query) => {
   try {
     // Security check: Only allow read operations (using regex for whole word matching)
     const dangerousKeywords = [
@@ -508,12 +510,12 @@ exports.executeSQLQuery = async query => {
   }
 };
 
-exports.summarizeConversation = async messages => {
+exports.summarizeConversation = async (messages) => {
   // You can use Gemini itself to create summaries
 
   const formatted = messages
-    .filter(m => m && (m.role === "user" || m.role === "model"))
-    .map(m => `${m.role.toUpperCase()}: ${m.text}`)
+    .filter((m) => m && (m.role === "user" || m.role === "model"))
+    .map((m) => `${m.role.toUpperCase()}: ${m.text}`)
     .join("\n");
   const prompt = `
 Summarize the following conversation between user and assistant.
@@ -545,7 +547,7 @@ ${formatted}
   return resp.response.candidates[0].content.parts[0].text;
 };
 
-exports.extractJsonFromResponse = async aiResponse => {
+exports.extractJsonFromResponse = async (aiResponse) => {
   if (!aiResponse || typeof aiResponse !== "string") {
     return null;
   }
@@ -564,7 +566,7 @@ exports.extractJsonFromResponse = async aiResponse => {
   }
 };
 
-exports.jsonToHtmlTable = async jsonStr => {
+exports.jsonToHtmlTable = async (jsonStr) => {
   try {
     // Parse JSON string into an object
     // const data = JSON.parse(jsonStr);
@@ -577,15 +579,15 @@ exports.jsonToHtmlTable = async jsonStr => {
     let html = "<table border='1' cellspacing='0' cellpadding='5'>";
     // Add table header
     html += "<thead><tr>";
-    columns.forEach(col => {
+    columns.forEach((col) => {
       html += `<th>${col}</th>`;
     });
     html += "</tr></thead>";
     // Add table rows
     html += "<tbody>";
-    rows.forEach(row => {
+    rows.forEach((row) => {
       html += "<tr>";
-      row.forEach(cell => {
+      row.forEach((cell) => {
         html += `<td>${cell}</td>`;
       });
       html += "</tr>";
@@ -599,7 +601,7 @@ exports.jsonToHtmlTable = async jsonStr => {
   }
 };
 
-exports.parseUnifiedResponse = async aiResponse => {
+exports.parseUnifiedResponse = async (aiResponse) => {
   if (!aiResponse || typeof aiResponse !== "string") {
     return {
       type: "unified",
@@ -721,8 +723,8 @@ exports.parseUnifiedResponse = async aiResponse => {
     // Split by double newlines to create paragraphs
     const paragraphs = cleanText
       .split(/\n\s*\n/)
-      .filter(p => p.trim().length > 0)
-      .map(p => p.trim());
+      .filter((p) => p.trim().length > 0)
+      .map((p) => p.trim());
 
     if (paragraphs.length > 0) {
       contentBlocks.unshift({
@@ -749,8 +751,8 @@ exports.parseUnifiedResponse = async aiResponse => {
 // HELPER FUNCTIONS
 // ==========================================
 
-const generateResponseSummary = contentBlocks => {
-  const types = contentBlocks.map(block => block.type);
+const generateResponseSummary = (contentBlocks) => {
+  const types = contentBlocks.map((block) => block.type);
   const uniqueTypes = [...new Set(types)];
 
   if (uniqueTypes.length === 1 && uniqueTypes[0] === "text") {
@@ -882,7 +884,7 @@ const generateResponseSummary = contentBlocks => {
 // };
 
 // Helper function to detect and extract JSON objects from text
-const detectJsonInText = text => {
+const detectJsonInText = (text) => {
   const jsonObjects = [];
   const processedIndices = new Set();
 
