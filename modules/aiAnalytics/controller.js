@@ -72,6 +72,8 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+// Add this to your systemPrompt.js file
+
 exports.getSessionData = async (req, res, next) => {
   try {
     let userId = req.requestor.id;

@@ -5,6 +5,9 @@ const {
   generateSystemInstructionPrompt,
   analyticsData,
 } = require("../modules/aiAnalytics/systemPrompt");
+const {
+  analyzeTreatmentsResolver,
+} = require("../modules/aiAnalytics/anlayzeTreatmentResolver");
 
 // Logging function that only prints when this.agentLog=1
 exports.agentLog = (message, ...args) => {
@@ -35,6 +38,55 @@ const sqlQueryFunctionDeclaration = {
     required: ["query", "reason"],
   },
 };
+const treatmentAnalysisFunctionDeclaration = {
+  name: "analyze_treatments",
+  description:
+    "Analyze treatment data with proper normalization, tooth counting, and synonym handling for accurate dental treatment statistics.",
+  parameters: {
+    type: "object",
+    properties: {
+      analysisType: {
+        type: "string",
+        enum: [
+          "total_count",
+          "most_common",
+          "least_common",
+          "by_treatment_name",
+          "by_patient",
+          "by_clinic",
+          "by_date_range",
+        ],
+        description: "Type of analysis to perform",
+      },
+      treatmentName: {
+        type: "string",
+        description:
+          "Specific treatment name to analyze (optional, for by_treatment_name type)",
+      },
+      patientId: {
+        type: "number",
+        description: "Specific patient ID (optional, for by_patient type)",
+      },
+      clinicId: {
+        type: "number",
+        description: "Specific clinic ID (optional, for by_clinic type)",
+      },
+      startDate: {
+        type: "string",
+        description: "Start date for date range analysis (YYYY-MM-DD format)",
+      },
+      endDate: {
+        type: "string",
+        description: "End date for date range analysis (YYYY-MM-DD format)",
+      },
+      limit: {
+        type: "number",
+        description: "Number of results to return (default: 10)",
+      },
+    },
+    required: ["analysisType"],
+  },
+};
 
 // Generate system instruction based on database type
 const generateSystemInstruction = (dbType, otherDetails, userId) => {
@@ -55,7 +107,10 @@ const getModelAndSystemInstruction = ({
     model: modelName, // Using the updated model
     tools: [
       {
-        functionDeclarations: [sqlQueryFunctionDeclaration],
+        functionDeclarations: [
+          sqlQueryFunctionDeclaration,
+          treatmentAnalysisFunctionDeclaration,
+        ],
       },
     ],
     generationConfig: {
@@ -79,9 +134,11 @@ const getModelAndSystemInstruction = ({
 const processFunctionCall = async (
   functionCall,
   executeSQLQuery,
-  toolCallId
+  toolCallId,
+  userId
 ) => {
   const { name, args } = functionCall;
+  console.log("name------->", name);
 
   if (name === "execute_sql_query") {
     this.agentLog(`🔍 Executing SQL query: ${args.query}`);
@@ -104,6 +161,19 @@ const processFunctionCall = async (
       response: {
         result: result,
       },
+    };
+  }
+  if (name === "analyze_treatments") {
+    // here you don't replace executeSQLQuery, you *use* it under the hood
+    const analysis = await analyzeTreatmentsResolver({
+      ...args,
+      userId,
+      executeSQLQuery, // important: reuse your secure executor
+    });
+    return {
+      tool_call_id: toolCallId,
+      name,
+      response: { result: analysis },
     };
   }
 
@@ -285,8 +355,6 @@ exports.runAIControlledWorkflow = async ({
           };
         }
 
-        console.log("final text--->", finalText);
-
         const parsedResponse = await this.parseUnifiedResponse(finalText);
 
         // Parse the unified response
@@ -355,9 +423,7 @@ exports.runAIControlledWorkflow = async ({
           content: [
             {
               type: "text",
-              data:
-                error?.message ||
-                "Reached maximum iterations without final response",
+              data: "No Data Found! Please try again!",
             },
           ],
           summary: "Processing error",
@@ -546,9 +612,25 @@ exports.parseUnifiedResponse = async aiResponse => {
 
   // 1. Extract and parse JSON blocks (tables/charts)
   const jsonMatches = workingText.matchAll(/```json([\s\S]*?)```/g);
+
   for (const match of jsonMatches) {
     try {
-      const jsonData = JSON.parse(match[1].trim());
+      // Clean and fix JSON formatting issues
+      let cleanedJson = match[1].trim();
+
+      // Fix common JSON formatting issues from AI responses
+      cleanedJson = cleanedJson
+        .replace(/\\n\s*/g, "") // Remove \\n and following whitespace
+        .replace(/\n\s*/g, " ") // Replace \n with space
+        .replace(/,\s*}/g, "}") // Remove trailing commas before }
+        .replace(/,\s*]/g, "]") // Remove trailing commas before ]
+        .replace(/\s+/g, " ") // Normalize multiple spaces to single space
+        .replace(/"\s*:\s*/g, '": ') // Normalize key-value spacing
+        .replace(/,\s*/g, ", ") // Normalize comma spacing
+        .trim();
+
+      //const jsonData = JSON.parse(match[1].trim());
+      const jsonData = JSON.parse(cleanedJson);
 
       if (jsonData.type === "table") {
         let htmlData = await this.jsonToHtmlTable(jsonData);
