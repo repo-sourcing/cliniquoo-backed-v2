@@ -448,8 +448,7 @@ When your response contains mixed content, structure it EXACTLY as:
 [Optional additional text]
 
 {
-  "type": "chart",
-  "chartType": "bar",
+  "type": "{chart type}",
   "labels": [...],
   "datasets": [...]
 }
