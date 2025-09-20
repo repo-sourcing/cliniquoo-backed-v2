@@ -265,8 +265,7 @@ CREATE TABLE visitors (
 **Business Rules**:
 
 - timeSlot: 1-hour slots on hour boundaries [start, end]
-- Appointment status tracking with boolean flags
-- isVisited use for find out patient visited or not.
+
 
 ### 12. MEDICAL HISTORY TABLE (`medicalHistories`)
 
