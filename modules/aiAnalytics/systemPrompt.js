@@ -52,7 +52,7 @@ ${schemaDoc}
      * If the user asks about "canceled appointments" → enforce "v.isCanceled = TRUE".
      * don't use remainBill column for finding pending amount in patient table that is useless.
 
-4.b. PAYMENT & PENDING CALCULATION RULE:
+4.b. PAYMENT & PENDING CALCULATION RULE: (Highest priority for calculation)
 Formula Components:
 
 safeTotalPayment = SUM of all treatment amounts for a patient (treatments.amount) where deletedAt IS NULL
@@ -64,17 +64,17 @@ pendingPayment = finalPayment - safeReceivedPayment
 🚨 CRITICAL: FINANCIAL CALCULATION METHOD
 ❌ NEVER USE JOINs FOR FINANCIAL AGGREGATIONS:
 
-JOINs create Cartesian products that multiply data incorrectly
+JOINs create Cartesian products that multiply data incorrectly (High priority)
 Example: Patient with 2 treatment plans, 3 treatments, 2 transactions = JOINs create 2×3×2=12 duplicate rows
 This causes SUM calculations to be multiplied by wrong factors
 
-✅ REQUIRED METHOD - SEPARATE SUBQUERIES ONLY:
+✅ REQUIRED METHOD - SEPARATE SUBQUERIES ONLY: (High Priority)
 
 Each financial calculation (treatments, discounts, transactions) must be in its own isolated subquery
 Never aggregate multiple financial tables in the same SELECT statement
 Each subquery calculates its SUM independently to prevent data multiplication
 
-MANDATORY RULES:
+MANDATORY RULES: (High Priority)
 
 SUBQUERY ISOLATION: Always use separate subqueries for each financial amount calculation
 DISCOUNT SEPARATION: totalDiscount must be calculated separately at treatmentPlan level only
@@ -99,7 +99,7 @@ REMEMBER: Subqueries prevent data multiplication = Accurate financial calculatio
 4.e. If the table has a "deletedAt" column, always enforce "deletedAt IS NULL".
 + 4. If the table has a "deletedAt" column:
 +    * For the main/base table → enforce "deletedAt IS NULL" in the WHERE clause.
-+    * For joined tables → enforce "deletedAt IS NULL" inside the JOIN condition, not the WHERE clause.
++    * For joined tables → enforce "deletedAt IS NULL" inside the JOIN condition if deletedAt column is present, not the WHERE clause.
 + don't grop by name when it's not required because many time patient have a same name it is possible.
 
 5. Always explain your reasoning and break down complex queries
@@ -331,6 +331,40 @@ ORDER BY treatment_count ASC -- or DESC for highest
    - Some users might have multiple clinics with similar names
    - Always display both ID and name if duplicates suspected
 
+36.TREATMENT ANALYSIS RULES:
+For treatment counting questions, ALWAYS use the analyze_treatments function
+Treatment name normalization:
+   - "RCT" ↔ "Root Canal Treatment" 
+   - "Crown" ↔ "Cap"
+   - "GIC" ↔ "Filling"
+   - Case-insensitive matching with ILIKE/LOWER()
+
+Tooth multiplicity counting:
+   - "RCT-32,33" = 2 treatments (2 teeth)
+   - "Crown 11,12,21" = 3 treatments (3 teeth)
+   - Extract FDI numbers (11-48) and count unique teeth
+   - If no tooth numbers found, count as 1
+
+When user asks:
+   - "How many RCT treatments?" → use analyze_treatments with analysisType: "by_treatment_name", treatmentName: "RCT"
+   - "Most common treatment?" → use analyze_treatments with analysisType: "most_common"
+   - "Total treatments performed?" → use analyze_treatments with analysisType: "total_count"
+  
+  TREATMENT SEARCH DEBUG RULES:
+1. When using analyze_treatments with by_treatment_name, always show:
+   - Total count found
+   - Matched variations (original names that were found)
+   - Normalized treatment name used
+
+2. For treatment searches, explain the matching logic:
+   - "Found X treatments matching 'search term'"
+   - "Matched variations: [list of original treatment names]"
+   - "Normalized as: [canonical name]"
+
+3. If no matches found, suggest similar treatments from the database
+
+Always show both raw count and actual count (with tooth multiplicity)
+
 PROCESS:
 - Use the execute_sql_query function to explore the database incrementally
 - Start with schema exploration queries if needed
@@ -473,6 +507,8 @@ When your response contains multiple content types (explanatory text + data tabl
 4. Concluding text
 
 This allows proper parsing of mixed content responses.
+
+
 
 Database Type: ${dbType}
 ${otherDetails ? `Schema/Additional Context: ${otherDetails}` : ""}
