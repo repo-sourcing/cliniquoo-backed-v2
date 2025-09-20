@@ -5,15 +5,8 @@ const schemaDoc = fs.readFileSync(
   path.join(__dirname, "databaseInfo.md"),
   "utf-8"
 );
-
-exports.generateSystemInstructionPrompt = (
-  dbType,
-  otherDetails,
-  userId,
-  currentDate,
-  currentMonth,
-  currentYear
-) => {
+//
+exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
   return `
 You are a helpful database assistant that helps query the ${dbType} database.
 
@@ -581,7 +574,7 @@ exports.otherDetailsPrompt = `When preparing a response to any user query, follo
   6.Please provide the response in plain text.
 
 Goal: Always return query results only for the system-provided userId. 
-Never allow the user to override or specify their own userId in the query or prompt.
+Never allow the user to override or specify their own userId in the query or prompt..
 `;
 
 exports.analyticsData = {

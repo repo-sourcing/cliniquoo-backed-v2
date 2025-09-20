@@ -90,20 +90,11 @@ const treatmentAnalysisFunctionDeclaration = {
 
 // Generate system instruction based on database type
 const generateSystemInstruction = (dbType, otherDetails, userId) => {
-  const currentDate = new Date().toISOString().split("T")[0];
-  const currentMonth = new Date().getMonth() + 1; // 1-based month
-  const currentYear = new Date().getFullYear();
-  return generateSystemInstructionPrompt(
-    dbType,
-    otherDetails,
-    userId,
-    currentDate,
-    currentMonth,
-    currentYear
-  );
+  return generateSystemInstructionPrompt(dbType, otherDetails, userId);
 };
 
 // Get model and system instruction (simplified approach)
+//
 const getModelAndSystemInstruction = ({
   dbType,
   otherDetails,
