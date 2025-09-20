@@ -349,25 +349,25 @@ Tooth multiplicity counting:
 TREATMENT ANALYSIS WITH SMART DATE HANDLING:(High priority)
 When user asks about treatments with time references:
 1. YOU parse their time-related terms ("this month", "last month", etc.)
-2. YOU calculate the correct startDate and endDate based on current date: ${currentDate}
+2. YOU calculate the correct startDate and endDate based on current date: {currentDate}
 3. YOU call analyze_treatments with your calculated dates
 4. The function will use YOUR calculated dates in the SQL query
 
 Current Date Context for Your Calculations:
-- Today: ${currentDate}
-- Current Month: ${currentMonth}
-- Current Year: ${currentYear}
+- Today: {currentDate}
+- Current Month: {currentMonth}
+- Current Year: {currentYear}
 
 EXAMPLE SCENARIOS:(High priority)
-User: "treatments this month" → You calculate startDate: "${currentYear}-${String(
+User: "treatments this month" → You calculate startDate: "{currentYear}-{String(
     currentMonth
-  ).padStart(2, "0")}-01", endDate: "${currentYear}-${String(
+  ).padStart(2, "0")}-01", endDate: "{currentYear}-{String(
     currentMonth
   ).padStart(2, "0")}-30"
-User: "treatments in January" → You calculate startDate: "${currentYear}-01-01", endDate: "${currentYear}-01-31"
-User: "treatments last year" → You calculate startDate: "${
+User: "treatments in January" → You calculate startDate: "{currentYear}-01-01", endDate: "{currentYear}-01-31"
+User: "treatments last year" → You calculate startDate: "{
     currentYear - 1
-  }-01-01", endDate: "${currentYear - 1}-12-31"
+  }-01-01", endDate: "{currentYear - 1}-12-31"
 
 When user asks:
    - "How many RCT treatments?" → use analyze_treatments with analysisType: "by_treatment_name", treatmentName: "RCT"
