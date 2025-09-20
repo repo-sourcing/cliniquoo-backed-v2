@@ -648,6 +648,9 @@ exports.parseUnifiedResponse = async aiResponse => {
         "doughnut" ||
         "line"
       ) {
+        if (jsonData.type == "chart") {
+          jsonData.type = "bar";
+        }
         contentBlocks.push({
           type: "data",
           data: jsonData,
