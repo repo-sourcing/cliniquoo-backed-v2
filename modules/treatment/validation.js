@@ -38,7 +38,7 @@ exports.billValidation = async (req, res, next) => {
   try {
     const billValidation = yup.object().shape({
       clinicId: yup.number().required("clinicId is required field"),
-      date: yup.date().required("date is required field"),
+      date: yup.string().required("date is required field"),
       subTotal: yup.number(),
       discount: yup.number(),
       treatmentJson: yup
