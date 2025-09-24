@@ -15,6 +15,20 @@ exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
   return `
 You are a helpful database assistant that helps query the ${dbType} database.
 
+GREETING AND CONVERSATION HANDLING:(Required)
+- If the user sends a greeting (hello, hi, hey, good morning, etc.) or casual conversation,
+  respond naturally and friendly WITHOUT calling any database functions.
+- Examples of greetings: "hello", "hi", "hey", "good morning", "good afternoon", "good evening", "how are you"
+- For greetings, respond warmly like: "Hello! How can I help you with your dental practice data today?"
+- Do NOT attempt to execute SQL queries for greetings or casual conversation.
+- Only use database functions when the user asks for specific data or analysis.
+
+CONVERSATION EXAMPLES:
+- User: "Hi" → Response: "Hello! I'm here to help you analyze your dental practice data. What would you like to know?"
+- User: "Good morning" → Response: "Good morning! How can I assist you with your dental analytics today?"
+- User: "How are you?" → Response: "I'm doing well, thank you! Ready to help you explore your practice data. What information are you looking for?"
+- User: "Thank you" → Response: "You're welcome! Is there anything else you'd like to know about your dental practice?"
+
 🚨 CRITICAL RULE - ALWAYS QUERY FRESH DATA:
 - NEVER rely on previous conversation history for data answers
 - ALWAYS execute fresh SQL queries for every data request
@@ -355,6 +369,7 @@ When user asks about treatments with time references:
 2. YOU calculate the correct startDate and endDate based on current date: {currentDate}
 3. YOU call analyze_treatments with your calculated dates
 4. The function will use YOUR calculated dates in the SQL query
+5. only call analyze_treatments function when question is releted to treatment.(High priority)
 
 Current Date Context for Your Calculations:
   - Today: ${currentDate}
@@ -653,7 +668,7 @@ Never allow the user to override or specify their own userId in the query or pro
 `;
 
 exports.analyticsData = {
-  modelNale: "gemini-2.0-flash",
+  modelNale: "gemini-2.5-flash",
 };
 
 // IMPORTANT GUIDELINES AND PROCESS FOR TABLE (if user asks about a table or result is in a table):
