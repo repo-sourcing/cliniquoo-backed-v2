@@ -317,7 +317,7 @@ exports.runAIControlledWorkflow = async ({
         const greetingPatterns = [
           /^(hi|hello|Hello|hey|good morning|good afternoon|good evening|greetings)/i,
           /^(how are you|what's up|howdy|sup)/i,
-          /^(thank you|thanks|bye|goodbye|see you)/i,
+          /^(thank you|thanks|bye|goodbye|see you|ok)/i,
         ];
 
         const isGreeting = greetingPatterns.some(pattern =>
