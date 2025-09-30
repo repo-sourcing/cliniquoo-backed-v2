@@ -238,11 +238,12 @@ exports.getSearch = async (req, res, next) => {
         JSON.stringify(patientData)
       );
     }
+    const search = req.params.name.toLowerCase(); // normalize search term
 
     const searchData = patientData.filter(data => {
       return (
-        data.name.includes(req.params.name) ||
-        data.mobile.toString().includes(req.params.name)
+        (data.name && data.name.toLowerCase().includes(search)) ||
+        (data.mobile && data.mobile.toString().toLowerCase().includes(search))
       );
     });
 
