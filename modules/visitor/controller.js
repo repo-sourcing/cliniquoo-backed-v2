@@ -11,6 +11,8 @@ const { sqquery, usersqquery } = require("../../utils/query");
 const sequelize = require("../../config/db");
 const { runWhatsAppAppointmentConfirmationJob } = require("./utils");
 const TreatmentPlan = require("../treatmentPlan/model");
+const ClinicService = require("../clinic/service");
+const createError = require("http-errors");
 
 exports.create = async (req, res, next) => {
   try {
@@ -41,6 +43,7 @@ exports.create = async (req, res, next) => {
       return next(
         createError(200, "this patient already schedule on this date")
       );
+
     const data = await service.create({
       date,
       clinicId,
@@ -76,7 +79,23 @@ exports.schedule = async (req, res, next) => {
       },
     });
 
+    //find clinic data that clinic have a timeslot addded or not
+    const [dataClinic] = await ClinicService.get({
+      where: {
+        id: clinicId,
+      },
+    });
+
+    if (dataClinic.timeRanges && dataClinic.timeRanges.length > 0) {
+      //if clinic have a timeslot added then check the time slot is provided or not
+      if (!timeSlot)
+        return next(
+          createError(404, "Please provide time slot for this clinic")
+        );
+    }
+
     // create if not exists; if exists and timeSlot provided, update it
+
     const data = await service.findOrCreate({
       where: {
         date,
@@ -531,7 +550,7 @@ exports.reschedule = async (req, res, next) => {
         patientId,
       },
     });
-    console.log("findData", findData);
+
     if (!findData) return next(createError(404, "Data not found"));
 
     const now = new Date();
@@ -539,8 +558,6 @@ exports.reschedule = async (req, res, next) => {
     const createdAt = new Date(findData.createdAt);
 
     const diffMinutes = Math.floor((now - createdAt) / (1000 * 60));
-
-    console.log("difference in minutes:", diffMinutes);
 
     //findScheduleCronData
     const [findScheduleCronData] = await scheduleCronService.get({
