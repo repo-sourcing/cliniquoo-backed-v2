@@ -510,11 +510,33 @@ When user asks about treatments with time references:
 4. The function will use YOUR calculated dates in the SQL query
 5. Only call `analyze_treatments` when the question is related to treatments (High priority)
 
-### Current Date Context for Your Calculations
+<!-- ### Current Date Context for Your Calculations
 
 - Today: {{currentDate}}
 - Current Month: {{currentMonth}}
-- Current Year: {{currentYear}}
+- Current Year: {{currentYear}} -->
+<!-- Added by hiren -->
+## ⏰ CRITICAL: CURRENT DATE INFORMATION (HIGHEST PRIORITY)
+
+**SYSTEM DATE CONTEXT** (Use these exact values in your SQL queries):
+- **TODAY'S DATE**: {{currentDate}}
+- **CURRENT MONTH NUMBER**: {{currentMonth}}
+- **CURRENT YEAR**: {{currentYear}}
+- **LAST DAY OF CURRENT MONTH**: {{lastDayOfMonth}}
+
+### DATE KEYWORD MAPPING RULES (HIGHEST PRIORITY)
+
+When user says "today", you MUST use: `'{{currentDate}}'`
+When user says "this month", you MUST use: `YEAR(date_column) = {{currentYear}} AND MONTH(date_column) = {{currentMonth}}`
+When user says "this year", you MUST use: `YEAR(date_column) = {{currentYear}}`
+
+### CRITICAL EXAMPLES:
+
+❌ WRONG:
+```sql
+WHERE v.date = CURDATE()  -- Don't use CURDATE()
+WHERE v.date = '2025-10-01'  -- Don't hardcode wrong dates
+<!-- Added by hiren -->
 
 ### EXAMPLE SCENARIOS (High priority)
 
