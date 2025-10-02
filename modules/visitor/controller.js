@@ -106,7 +106,6 @@ exports.schedule = async (req, res, next) => {
         timeSlot: timeSlot ?? null,
       },
     });
-    console.log("data in schedule", data[0].timeSlot, data[1], typeof timeSlot);
 
     if (!data[1] && typeof timeSlot !== "undefined") {
       await service.update(
@@ -551,7 +550,7 @@ exports.reschedule = async (req, res, next) => {
         patientId,
       },
     });
-    console.log("findData", findData);
+
     if (!findData) return next(createError(404, "Data not found"));
 
     const now = new Date();
@@ -559,8 +558,6 @@ exports.reschedule = async (req, res, next) => {
     const createdAt = new Date(findData.createdAt);
 
     const diffMinutes = Math.floor((now - createdAt) / (1000 * 60));
-
-    console.log("difference in minutes:", diffMinutes);
 
     //findScheduleCronData
     const [findScheduleCronData] = await scheduleCronService.get({
