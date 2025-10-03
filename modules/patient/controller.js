@@ -16,6 +16,7 @@ const createError = require("http-errors");
 const Prescription = require("../prescription/model");
 const TreatmentPlan = require("../treatmentPlan/model");
 const treatmentPlanService = require("../treatmentPlan/service");
+const ClinicService = require("../clinic/service");
 
 exports.create = async (req, res, next) => {
   try {
@@ -38,11 +39,23 @@ exports.create = async (req, res, next) => {
 
     req.body.userId = req.requestor.id;
     const data = await service.create(req.body);
-    await visitorService.create({
-      date: moment().utcOffset("+05:30"),
-      clinicId: req.body.clinicId,
-      patientId: data.id,
+
+    //find clinic data that clinic have a timeslot addded or not
+    const [dataClinic] = await ClinicService.get({
+      where: {
+        id: req.body.clinicId,
+      },
     });
+
+    if (!dataClinic.timeRanges || dataClinic.timeRanges.length === 0) {
+      //if clinic have a timeslot added then check the time slot is provided or not
+      await visitorService.create({
+        date: moment().utcOffset("+05:30"),
+        clinicId: req.body.clinicId,
+        patientId: data.id,
+      });
+    }
+
     await treatmentPlanService.create({
       name: "Treatment List",
       patientId: data.id,
