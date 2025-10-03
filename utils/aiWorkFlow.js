@@ -141,7 +141,6 @@ const processFunctionCall = async (
   userId
 ) => {
   const { name, args } = functionCall;
-  console.log("name------->", name);
 
   if (name === "execute_sql_query") {
     this.agentLog(`🔍 Executing SQL query: ${args.query}`);
@@ -674,6 +673,7 @@ exports.parseUnifiedResponse = async aiResponse => {
         if (jsonData.type == "chart") {
           jsonData.type = "bar";
         }
+
         contentBlocks.push({
           type: "data",
           data: jsonData,
@@ -719,8 +719,11 @@ exports.parseUnifiedResponse = async aiResponse => {
         data: htmlData,
       });
     } else if (jsonObj.data.type === "chart") {
+      if (jsonObj.data.type == "chart") {
+        jsonObj.data.type = "bar";
+      }
       contentBlocks.push({
-        type: "chart",
+        type: "data",
         data: jsonObj.data,
       });
     } else {
@@ -931,7 +934,7 @@ const detectJsonInText = text => {
         // Check if it has the required type field
         if (
           jsonData.type &&
-          ["table", "pie", "bar", "radar", "chart", "data"].includes(
+          ["table", "pie", "bar", "radar", "chart", "data", "line"].includes(
             jsonData.type
           )
         ) {
