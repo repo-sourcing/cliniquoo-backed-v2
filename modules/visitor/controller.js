@@ -553,6 +553,21 @@ exports.reschedule = async (req, res, next) => {
 
     if (!findData) return next(createError(404, "Data not found"));
 
+    //find clinic data that clinic have a timeslot addded or not
+    const [dataClinic] = await ClinicService.get({
+      where: {
+        id: clinicId,
+      },
+    });
+
+    if (dataClinic.timeRanges && dataClinic.timeRanges.length > 0) {
+      //if clinic have a timeslot added then check the time slot is provided or not
+      if (!timeSlot)
+        return next(
+          createError(404, "Please provide time slot for this clinic")
+        );
+    }
+
     const now = new Date();
     // check the findData created it with current time comparition that is less than 10 minute or greater than 10 minute
     const createdAt = new Date(findData.createdAt);
