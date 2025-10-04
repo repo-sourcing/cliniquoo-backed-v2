@@ -17,6 +17,7 @@ const Prescription = require("../prescription/model");
 const TreatmentPlan = require("../treatmentPlan/model");
 const treatmentPlanService = require("../treatmentPlan/service");
 const ClinicService = require("../clinic/service");
+const PatientBill = require("../patientBill/model");
 
 exports.create = async (req, res, next) => {
   try {
@@ -357,27 +358,27 @@ exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;
 
-    const data = await service.remove({
+    const data = await service.count({
       where: {
         id,
         userId: req.requestor.id,
       },
     });
-    await visitorService.remove({
-      where: {
-        patientId: id,
-      },
-    });
-    await treatmentPlanService.remove({
-      where: {
-        patientId: id,
-      },
-    });
-    redisClient.DEL(`patient?userId=${req.requestor.id}`);
+    if (!data) {
+      return res.status(404).send({
+        status: "error",
+        message: "Patient not found or you don't have permission to delete",
+      });
+    }
+    let deletedData = await this.deletePatientAndPatientRelation(
+      req.requestor.id,
+      id
+    );
+
     res.status(200).send({
       status: "success",
       message: "delete patient successfully",
-      data,
+      data: deletedData.data,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -486,5 +487,43 @@ exports.getPatientsWithPendingAmount = async (req, res, next) => {
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.deletePatientAndPatientRelation = async (userId, patientId) => {
+  try {
+    const treatments = await Treatment.findAll({
+      include: [
+        {
+          model: TreatmentPlan,
+          where: { patientId },
+          attributes: [], // we only need the treatment IDs
+        },
+      ],
+      attributes: ["id"],
+    });
+
+    // Step 2: Extract treatment IDs
+    const treatmentIds = treatments.map(t => t.id);
+    // Run independent deletes in parallel
+    await Promise.all([
+      treatmentService.remove({ where: { id: treatmentIds } }),
+      transactionService.remove({ where: { patientId } }),
+
+      MedicalHistory.destroy({ where: { patientId } }),
+      visitorService.remove({ where: { patientId } }),
+      Prescription.destroy({ where: { patientId } }),
+
+      treatmentPlanService.remove({ where: { patientId } }),
+      PatientBill.destroy({ where: { patientId } }),
+    ]);
+
+    let data = await service.remove({ where: { id: patientId } });
+    // Clear cache (independent, can also run in parallel if you want)
+    await redisClient.DEL(`patient?userId=${userId}`);
+
+    return { success: true, data };
+  } catch (error) {
+    throw error;
   }
 };

@@ -9,7 +9,7 @@ function normalizeTimeSlot(val) {
   const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/;
   let pair = [];
   if (Array.isArray(val)) {
-    pair = val.map((v) => String(v).trim());
+    pair = val.map(v => String(v).trim());
   } else if (typeof val === "string") {
     // supports "10:00-11:00" or "10:00,11:00"
     const cleaned = val.replace(" to ", "-").replace(/\s+/g, "");
@@ -27,42 +27,48 @@ function normalizeTimeSlot(val) {
   return [start, end];
 }
 
-const Visitor = sequelize.define("visitor", {
-  id: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  date: { type: Sequelize.DATEONLY, allowNull: false },
-  // time range as [start,end] in HH:mm
-  timeSlot: {
-    type: Sequelize.JSON,
-    allowNull: true,
-    get() {
-      const v = this.getDataValue("timeSlot");
-      return Array.isArray(v) ? v : [];
+const Visitor = sequelize.define(
+  "visitor",
+  {
+    id: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
     },
-    set(val) {
-      const normalized = normalizeTimeSlot(val);
-      this.setDataValue("timeSlot", normalized.length ? normalized : null);
+    date: { type: Sequelize.DATEONLY, allowNull: false },
+    // time range as [start,end] in HH:mm
+    timeSlot: {
+      type: Sequelize.JSON,
+      allowNull: true,
+      get() {
+        const v = this.getDataValue("timeSlot");
+        return Array.isArray(v) ? v : [];
+      },
+      set(val) {
+        const normalized = normalizeTimeSlot(val);
+        this.setDataValue("timeSlot", normalized.length ? normalized : null);
+      },
+    },
+    isCanceled: {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
+    isVisited: {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
+    isSchedule: {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
     },
   },
-  isCanceled: {
-    type: Sequelize.BOOLEAN,
-    defaultValue: false,
-    allowNull: false,
-  },
-  isVisited: {
-    type: Sequelize.BOOLEAN,
-    defaultValue: false,
-    allowNull: false,
-  },
-  isSchedule: {
-    type: Sequelize.BOOLEAN,
-    defaultValue: false,
-  },
-});
+  {
+    paranoid: true,
+  }
+);
 
 Clinic.hasMany(Visitor);
 Visitor.belongsTo(Clinic);
