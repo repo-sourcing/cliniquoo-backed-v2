@@ -247,15 +247,15 @@ exports.edit = async (req, res, next) => {
       }
     );
 
-    // Create visitor entry for the new createdAt date
-    await visitorService.findOrCreate({
-      where: {
-        date: moment(createdAt).utcOffset("+05:30"),
-        clinicId,
-        patientId,
-      },
-      defaults: { isVisited: true },
-    });
+    // // Create visitor entry for the new createdAt date
+    // await visitorService.findOrCreate({
+    //   where: {
+    //     date: moment(createdAt).utcOffset("+05:30"),
+    //     clinicId,
+    //     patientId,
+    //   },
+    //   defaults: { isVisited: true },
+    // });
 
     // Check if createdAt has changed
     if (
