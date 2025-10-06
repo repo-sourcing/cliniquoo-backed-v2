@@ -12,6 +12,7 @@ const { sendWhatsAppBill } = require("../../utils/msg91");
 const { generateBillPDF } = require("./utils");
 const { generateInvoice } = require("../patientBill/utils");
 const PatientBill = require("../patientBill/model");
+const { createVisitorWithSlot } = require("../../utils/commonFunction");
 exports.create = async (req, res, next) => {
   try {
     const { treatmentPlanId } = req.body;
@@ -27,14 +28,12 @@ exports.create = async (req, res, next) => {
     const clinicId = treatmentPlan.clinicId;
     const patientId = treatmentPlan.patientId;
 
-    await visitorService.findOrCreate({
-      where: {
-        date: moment().utcOffset("+05:30"),
-        clinicId,
-        patientId,
-      },
-      defaults: { isVisited: true },
+    //create visitor slot
+    await createVisitorWithSlot({
+      clinicId,
+      patientId,
     });
+
     await Patient.increment("remainBill", {
       by: req.body.amount,
       where: { id: patientId },
