@@ -9,6 +9,10 @@ const jwt = require("jsonwebtoken");
 const { sqquery } = require("../../utils/query");
 const redisClient = require("../../utils/redis");
 const msg91Services = require("../../utils/msg91");
+const { deleteClinicAndClinicRelation } = require("../clinic/controller");
+const { deletePatientAndPatientRelation } = require("../patient/controller");
+const Template = require("../template/model");
+const Patient = require("../patient/model");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
@@ -162,7 +166,34 @@ exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;
 
-    const data = await service.remove(id);
+    if (req.requestor.id != id)
+      return res.status(403).send({
+        status: "error",
+        message: "You don't have permission to delete account",
+      });
+
+    //first delete releted data
+
+    let clinics = await Clinic.findAll({
+      where: { userId: id },
+      attributes: ["id"],
+    });
+    let clinicIds = clinics.map(clinic => clinic.id);
+
+    // Get patient IDs
+    let patients = await Patient.findAll({
+      where: { userId: id },
+      attributes: ["id"],
+    });
+    let patientIds = patients.map(patient => patient.id);
+    await Promise.all([
+      deleteClinicAndClinicRelation(id, clinicIds),
+      deletePatientAndPatientRelation(id, patientIds),
+      Template.destroy({ where: { userId: id } }),
+    ]);
+
+    await service.remove(id);
+
     // await redisClient.DEL(`patient?userId=${req.requestor.id}`);
 
     res.status(200).send({

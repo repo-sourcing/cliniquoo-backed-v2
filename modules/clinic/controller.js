@@ -2,6 +2,11 @@ const service = require("./service");
 const userModel = require("../user/model");
 // let crypto = require("crypto");
 const { sqquery, usersqquery } = require("../../utils/query");
+const Treatment = require("../treatment/model");
+const TreatmentPlan = require("../treatmentPlan/model");
+const Transaction = require("../transaction/model");
+const Visitor = require("../visitor/model");
+const PatientBill = require("../patientBill/model");
 
 function normalizeTimeRangesInput(input) {
   if (!input) return undefined; // don't set if absent
@@ -116,18 +121,65 @@ exports.remove = async (req, res, next) => {
     if (noOfClinic <= 1)
       return next(createError(200, "Minimum 1 clinic is required"));
 
-    const data = await service.remove({
+    const data = await service.count({
       where: {
         id,
+        userId: req.requestor.id,
       },
     });
+    if (!data) {
+      return res.status(404).send({
+        status: "error",
+        message: "Clinic not found or you don't have permission to delete",
+      });
+    }
+    let deletedData = await this.deleteClinicAndClinicRelation(
+      req.requestor.id,
+      id
+    );
 
     res.status(200).send({
       status: "success",
       message: "delete Clinic successfully",
-      data,
+      data: deletedData.data,
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.deleteClinicAndClinicRelation = async (userId, clinicId) => {
+  try {
+    const treatments = await Treatment.findAll({
+      include: [
+        {
+          model: TreatmentPlan,
+          where: { clinicId },
+          attributes: [], // we only need the treatment IDs
+        },
+      ],
+      attributes: ["id"],
+    });
+
+    // Step 2: Extract treatment IDs
+    const treatmentIds = treatments.map(t => t.id);
+    // Run independent deletes in parallel
+    // Run independent deletes in parallel
+    await Promise.all([
+      Treatment.destroy({ where: { id: treatmentIds } }),
+
+      Transaction.destroy({ where: { clinicId } }),
+
+      Visitor.destroy({ where: { clinicId } }),
+
+      TreatmentPlan.destroy({ where: { clinicId } }),
+      PatientBill.destroy({ where: { clinicId } }),
+    ]);
+
+    let data = await service.remove({ where: { id: clinicId } });
+
+    return { success: true, data };
+  } catch (error) {
+    throw error;
   }
 };
