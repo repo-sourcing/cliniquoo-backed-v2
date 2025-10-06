@@ -9,6 +9,7 @@ const moment = require("moment");
 const Visitor = require("../visitor/model");
 const visitorService = require("../visitor/service");
 const createError = require("http-errors");
+const { createVisitorWithSlot } = require("../../utils/commonFunction");
 
 exports.create = async (req, res, next) => {
   try {
@@ -60,27 +61,11 @@ exports.create = async (req, res, next) => {
     req.body.messageStatus = 0;
     const data = await service.create(req.body);
 
-    await visitorService.findOrCreate({
-      where: {
-        date: moment().utcOffset("+05:30"),
-        clinicId,
-        patientId,
-      },
-      defaults: { isVisited: true },
+    //create visitor slot
+    await createVisitorWithSlot({
+      clinicId,
+      patientId,
     });
-    await visitorService.update(
-      {
-        isVisited: true,
-      },
-      {
-        where: {
-          patientId,
-          clinicId,
-          date: moment().utcOffset("+05:30"),
-          isVisited: false,
-        },
-      }
-    );
 
     // // Use the calculated amount from the saved transaction
     // await Patient.decrement("remainBill", {
@@ -218,6 +203,8 @@ exports.getByDate = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
+
+//doubt here
 exports.edit = async (req, res, next) => {
   try {
     const id = req.params.id;
