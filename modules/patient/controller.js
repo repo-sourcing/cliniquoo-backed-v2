@@ -254,11 +254,22 @@ exports.getSearch = async (req, res, next) => {
     }
     const search = req.params.name.toLowerCase(); // normalize search term
 
-    const searchData = patientData.filter(data => {
+    let searchData = patientData.filter(data => {
       return (
         (data.name && data.name.toLowerCase().includes(search)) ||
         (data.mobile && data.mobile.toString().toLowerCase().includes(search))
       );
+    });
+    searchData.sort((a, b) => {
+      const nameA = a.name?.toLowerCase() || "";
+      const nameB = b.name?.toLowerCase() || "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+
+      // fallback sort by mobile
+      const mobileA = a.mobile?.toString() || "";
+      const mobileB = b.mobile?.toString() || "";
+      return mobileA.localeCompare(mobileB);
     });
 
     res.status(200).send({
