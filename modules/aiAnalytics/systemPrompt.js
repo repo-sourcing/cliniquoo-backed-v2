@@ -694,8 +694,8 @@ Never allow the user to override or specify their own userId in the query or pro
 `;
 
 exports.analyticsData = {
-//   modelNale: "gemini-2.5-pro",
-    modelNale: "gemini-2.5-flash",
+  //   modelNale: "gemini-2.5-pro",
+  modelNale: "gemini-2.0-flash",
 };
 
 // IMPORTANT GUIDELINES AND PROCESS FOR TABLE (if user asks about a table or result is in a table):
