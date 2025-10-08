@@ -40,7 +40,7 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
       dbType: "MySQL",
       otherDetails: otherDetailsPrompt,
       executeSQLQuery: executeSQLQuery,
-      modelName: analyticsData.modelNale,
+      modelName: analyticsData.modelName,
       authKey: process.env.GOOGLE_API_KEY,
       contextMessages: prior, // ✅ send context
       userId: req.requestor.id,
