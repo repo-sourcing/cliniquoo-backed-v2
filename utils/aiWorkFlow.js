@@ -547,7 +547,7 @@ ${formatted}
 
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
   const model = genAI.getGenerativeModel({
-    model: analyticsData.modelNale, // Using the updated model
+    model: analyticsData.modelName, // Using the updated model
 
     generationConfig: {
       temperature: 0.1,
