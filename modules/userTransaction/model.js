@@ -13,7 +13,8 @@ const UserTransaction = sequelize.define(
       primaryKey: true,
     },
     amount: { type: Sequelize.INTEGER, allowNull: false },
-    status: { type: Sequelize.STRING, allowNull: false }, //userId,paymentId,status,subscriptionId, transactionId
+    status: { type: Sequelize.STRING, allowNull: false },
+    paymentId: { type: Sequelize.STRING, allowNull: true },
   },
   {
     paranoid: true,

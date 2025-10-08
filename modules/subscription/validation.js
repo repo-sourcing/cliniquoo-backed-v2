@@ -5,6 +5,13 @@ exports.subscriptionValidation = async (req, res, next) => {
       day: yup.number().required("day is required field"),
       name: yup.string().required("name is required"),
       price: yup.number().required("price is required"),
+      planType: yup.string().required("planType is required"),
+      offerPercentage: yup
+        .number()
+        .min(0)
+        .max(100)
+        .required("offerPercentage is required"),
+      tag: yup.string(),
     });
     await subscriptionSchema.validate(req.body);
     next();
@@ -21,6 +28,9 @@ exports.updateSubscriptionValidation = async (req, res, next) => {
       day: yup.number(),
       name: yup.string(),
       price: yup.number(),
+      planType: yup.string(),
+      offerPercentage: yup.number().min(0).max(100),
+      tag: yup.string(),
     });
     await subscriptionSchema.validate(req.body);
     next();

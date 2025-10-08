@@ -12,7 +12,23 @@ const Subscription = sequelize.define(
     },
     name: { type: Sequelize.STRING, allowNull: false },
     day: { type: Sequelize.INTEGER, allowNull: false },
-    price: { type: Sequelize.INTEGER, allowNull: false },
+    price: { type: Sequelize.FLOAT, allowNull: false },
+    tag: {
+      type: Sequelize.TEXT,
+      get: function () {
+        return this.getDataValue("tag")
+          ? JSON.parse(this.getDataValue("tag"))
+          : [];
+      },
+      set: function (val) {
+        return this.setDataValue(
+          "tag",
+          JSON.stringify(String(val || "").split(","))
+        );
+      },
+    },
+    planType: { type: Sequelize.STRING, allowNull: false }, //basic , pro
+    offerPercentage: { type: Sequelize.FLOAT, defaultValue: 0 },
   },
   {
     paranoid: true,

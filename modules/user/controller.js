@@ -13,6 +13,11 @@ const { deleteClinicAndClinicRelation } = require("../clinic/controller");
 const { deletePatientAndPatientRelation } = require("../patient/controller");
 const Template = require("../template/model");
 const Patient = require("../patient/model");
+const userSubscriptionService = require("../userSubscription/service");
+const Subscription = require("../subscription/model");
+const subscriptionService = require("../subscription/service");
+const UserTransaction = require("../userTransaction/model");
+const { commonData } = require("./constant");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
@@ -262,11 +267,11 @@ exports.verifyOTP = async (req, res, next) => {
     } else {
       let otpResponse;
       otpResponse = await msg91Services.verifyOTP(otp, mobile, countryCode);
-      console.log(otpResponse);
+
       if (otpResponse.type != "success") {
         return next(createError(200, msg91Services.getMessage(otpResponse)));
       }
-      console.log(req.requestor.mobile);
+
       const [user] = await service.get({
         where: {
           mobile: req.requestor.mobile,
@@ -299,7 +304,6 @@ exports.verifyOTP = async (req, res, next) => {
       }
     }
   } catch (error) {
-    console.log(error);
     next(error || createError(404, "Data not found"));
   }
 };
@@ -354,7 +358,6 @@ exports.signup = async (req, res, next) => {
       token,
     });
   } catch (err) {
-    console.log("error", err);
     next(err);
   }
 };
@@ -366,11 +369,20 @@ exports.getMe = async (req, res, next) => {
       },
       include: [Clinic],
     });
+    if (!data) {
+      return next(createError(404, "User not found"));
+    }
+    //find subscription
+    const subscription = await this.findUserSubscription(req.requestor.id);
 
     res.status(200).send({
       status: "success",
       message: "getMe successfully",
       data,
+      planData: {
+        feature: commonData.subscriptionPlans,
+        subscriptionData: subscription,
+      },
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
@@ -419,5 +431,113 @@ exports.mobileCheck = async (req, res, next) => {
     });
   } catch (error) {
     next(error || createError(404, "Data not found"));
+  }
+};
+
+exports.findUserSubscription = async userId => {
+  try {
+    //find user active subscription
+    const [subscription] = await userSubscriptionService.get({
+      where: {
+        userId,
+        status: "active",
+      },
+      include: [
+        {
+          model: Subscription,
+          attributes: ["id", "name", "planType", "price"],
+        },
+      ],
+    });
+
+    let subscriptionData = {};
+    if (!subscription) {
+      // No active subscription, check for expired Pro plan
+      const [expiredPro] = await userSubscriptionService.get({
+        where: {
+          userId,
+          status: "expired",
+        },
+        include: [
+          {
+            model: Subscription,
+            where: { planType: "Pro Plan" },
+            attributes: ["id", "name", "planType", "price", "day"],
+          },
+        ],
+        order: [["expiryDate", "DESC"]],
+      });
+      if (expiredPro) {
+        await userSubscriptionService.update(
+          { status: "active" },
+          { userId, status: "inactive" }
+        );
+        subscriptionData.name = "Basic Plan";
+        subscriptionData.expiryDate = null;
+        subscriptionData.planType = "Basic Plan";
+        return subscriptionData;
+      } else {
+        //get a free plan from subscription table
+        const [freePlan] = await subscriptionService.get({
+          where: {
+            planType: "Free Plan",
+          },
+        });
+        if (freePlan) {
+          const transactionData = await UserTransaction.create({
+            userId,
+            subscriptionId: freePlan.id,
+            amount: freePlan.price,
+            status: "success",
+          });
+          await userSubscriptionService.create({
+            userId,
+            subscriptionId: freePlan.id,
+            //expiry date is current date + freePlan.days
+            expiryDate: null,
+            // expiryDate: moment()
+            //   .add(Number(freePlan.days), "days")
+            //   .format("YYYY-MM-DD"),
+            status: "active",
+            patientLimit: commonData.patientLimit,
+            userTransactionId: transactionData.id,
+          });
+          (subscriptionData.name = "free Plan"),
+            (subscriptionData.planType = "free Plan"),
+            (subscriptionData.expiryDate = null);
+          subscriptionData.plan = "free Plan";
+
+          //total patientCount
+          const patientCount = await Patient.count({
+            where: {
+              userId,
+            },
+          });
+          subscriptionData.patientCount = patientCount;
+          subscriptionData.patientLimit = commonData.patientLimit;
+          return subscriptionData;
+        }
+      }
+    } else {
+      subscriptionData.name = subscription.subscription.name;
+      subscriptionData.expiryDate = subscription.expiryDate;
+      subscriptionData.planType = subscription.subscription.planType;
+      if (subscription.subscription.planType === "Free Plan") {
+        subscriptionData.patientLimit = subscription.patientLimit;
+        //add patient count
+        const patientCount = await Patient.count({
+          where: {
+            userId,
+          },
+        });
+        subscriptionData.patientCount = patientCount;
+      } else {
+        subscriptionData.patientLimit = "unlimited";
+        subscriptionData.patientCount = "unlimited";
+      }
+      return subscriptionData;
+    }
+  } catch (error) {
+    console.log(error);
   }
 };
