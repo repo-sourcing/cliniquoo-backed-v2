@@ -12,7 +12,13 @@ const UserSubscription = sequelize.define(
       autoIncrement: true,
       primaryKey: true,
     },
-    date: { type: Sequelize.DATEONLY, allowNull: false },
+    expiryDate: { type: Sequelize.DATEONLY, allowNull: true },
+    status: { type: Sequelize.STRING, allowNull: false }, //active, expire
+    patientLimit: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: 20,
+    },
   },
   {
     paranoid: true,

@@ -20,7 +20,10 @@ exports.create = async (req, res, next) => {
 exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
-      ...sqquery(req.query),
+      where: {
+        planType: { [Op.ne]: ["Free Plan"] },
+      },
+      //  ...sqquery(req.query),
     });
 
     res.status(200).send({
