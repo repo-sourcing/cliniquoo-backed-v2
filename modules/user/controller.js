@@ -18,6 +18,7 @@ const Subscription = require("../subscription/model");
 const subscriptionService = require("../subscription/service");
 const UserTransaction = require("../userTransaction/model");
 const { commonData } = require("./constant");
+const moment = require("moment");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
@@ -440,7 +441,7 @@ exports.findUserSubscription = async userId => {
     const [subscription] = await userSubscriptionService.get({
       where: {
         userId,
-        status: "active",
+        status: commonData.SubscriptionStatus.ACTIVE,
       },
       include: [
         {
@@ -456,7 +457,7 @@ exports.findUserSubscription = async userId => {
       const [expiredPro] = await userSubscriptionService.get({
         where: {
           userId,
-          status: "expired",
+          status: commonData.SubscriptionStatus.EXPIRE,
         },
         include: [
           {
@@ -469,8 +470,8 @@ exports.findUserSubscription = async userId => {
       });
       if (expiredPro) {
         await userSubscriptionService.update(
-          { status: "active" },
-          { userId, status: "inactive" }
+          { status: commonData.SubscriptionStatus.ACTIVE },
+          { userId, status: commonData.SubscriptionStatus.INACTIVE }
         );
         subscriptionData.name = "Basic Plan";
         subscriptionData.expiryDate = null;
@@ -495,10 +496,11 @@ exports.findUserSubscription = async userId => {
             subscriptionId: freePlan.id,
             //expiry date is current date + freePlan.days
             expiryDate: null,
+            startDate: moment().format("YYYY-MM-DD"),
             // expiryDate: moment()
             //   .add(Number(freePlan.days), "days")
             //   .format("YYYY-MM-DD"),
-            status: "active",
+            status: commonData.SubscriptionStatus.ACTIVE,
             patientLimit: commonData.patientLimit,
             userTransactionId: transactionData.id,
           });

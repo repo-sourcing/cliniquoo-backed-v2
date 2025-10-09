@@ -63,4 +63,10 @@ exports.commonData = {
       pro: true,
     },
   ],
+
+  SubscriptionStatus: {
+    ACTIVE: "active",
+    EXPIRE: "expire",
+    INACTIVE: "inactive",
+  },
 };

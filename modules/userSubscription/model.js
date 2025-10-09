@@ -3,6 +3,7 @@ const Sequelize = require("sequelize");
 const sequelize = require("../../config/db");
 const User = require("../user/model");
 const Subscription = require("../subscription/model");
+const UserTransaction = require("../userTransaction/model");
 const UserSubscription = sequelize.define(
   "userSubscription",
   {
@@ -13,6 +14,8 @@ const UserSubscription = sequelize.define(
       primaryKey: true,
     },
     expiryDate: { type: Sequelize.DATEONLY, allowNull: true },
+    startDate: { type: Sequelize.DATEONLY, allowNull: true },
+    endDate: { type: Sequelize.DATEONLY, allowNull: true },
     status: { type: Sequelize.STRING, allowNull: false }, //active, expire
     patientLimit: {
       type: Sequelize.INTEGER,
@@ -38,5 +41,13 @@ Subscription.hasMany(UserSubscription, {
   },
 });
 UserSubscription.belongsTo(Subscription);
+
+UserTransaction.hasMany(UserSubscription, {
+  foreignKey: {
+    allowNull: true,
+  },
+});
+UserSubscription.belongsTo(UserTransaction);
+//UserSubscription.sync({ alter: true });
 
 module.exports = UserSubscription;
