@@ -13,6 +13,7 @@ const {
   mobileCheck,
   verifyOTP,
   resendOTP,
+  planHistory,
 } = require("./controller");
 const {
   userValidation,
@@ -62,4 +63,5 @@ router
   .delete(auth.authMiddleware, remove)
   .patch(auth.authMiddleware, update);
 router.get("/search/:name", search);
+router.get("/planHistory", auth.authMiddleware, planHistory);
 module.exports = router;

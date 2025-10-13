@@ -452,6 +452,7 @@ exports.findUserSubscription = async userId => {
     });
 
     let subscriptionData = {};
+    //if no active plan then checked if user has any pro plan expired so this is not first time user is old
     if (!subscription) {
       // No active subscription, check for expired Pro plan
       const [expiredPro] = await userSubscriptionService.get({
@@ -469,9 +470,11 @@ exports.findUserSubscription = async userId => {
         order: [["expiryDate", "DESC"]],
       });
       if (expiredPro) {
+        //if there is expired pro plan then with pro plan basic plan also exist so active basic plan
+
         await userSubscriptionService.update(
           { status: commonData.SubscriptionStatus.ACTIVE },
-          { userId, status: commonData.SubscriptionStatus.INACTIVE }
+          { where: { userId, status: commonData.SubscriptionStatus.INACTIVE } }
         );
         subscriptionData.name = "Basic Plan";
         subscriptionData.expiryDate = null;
@@ -479,6 +482,7 @@ exports.findUserSubscription = async userId => {
         return subscriptionData;
       } else {
         //get a free plan from subscription table
+        // if not any expired pro plan then get free plan
         const [freePlan] = await subscriptionService.get({
           where: {
             planType: "Free Plan",
@@ -504,6 +508,7 @@ exports.findUserSubscription = async userId => {
             patientLimit: commonData.patientLimit,
             userTransactionId: transactionData.id,
           });
+          subscriptionData.id = freePlan.id;
           (subscriptionData.name = "free Plan"),
             (subscriptionData.planType = "free Plan"),
             (subscriptionData.expiryDate = null);
@@ -521,6 +526,7 @@ exports.findUserSubscription = async userId => {
         }
       }
     } else {
+      subscriptionData.id = subscription.subscription.id;
       subscriptionData.name = subscription.subscription.name;
       subscriptionData.expiryDate = subscription.expiryDate;
       subscriptionData.planType = subscription.subscription.planType;
@@ -531,6 +537,7 @@ exports.findUserSubscription = async userId => {
           where: {
             userId,
           },
+          paranoid: false, // 👈 include soft-deleted rows too
         });
         subscriptionData.patientCount = patientCount;
       } else {
@@ -541,5 +548,27 @@ exports.findUserSubscription = async userId => {
     }
   } catch (error) {
     console.log(error);
+  }
+};
+
+exports.planHistory = async (req, res, next) => {
+  try {
+    const data = await userSubscriptionService.get({
+      where: { userId: req.requestor.id, startDate: { [Op.not]: null } },
+      include: [
+        {
+          model: Subscription,
+          attributes: ["id", "name", "planType", "price", "day"],
+        },
+      ],
+      order: [["createdAt", "ASC"]],
+    });
+    res.status(200).json({
+      status: "success",
+      message: "User subscription history",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
   }
 };
