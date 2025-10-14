@@ -13,8 +13,12 @@ const {
   getPatientsWithPendingAmount,
 } = require("./controller");
 const { patientValidation, updatePatientValidation } = require("./validation");
+const { subscriptionData } = require("../../middleware/authSubscription");
 
-router.route("/").get(getAllByUser).post(patientValidation, create);
+router
+  .route("/")
+  .get(getAllByUser)
+  .post(patientValidation, subscriptionData, create);
 router.route("/pending-amounts").get(getPatientsWithPendingAmount);
 router
   .route("/:id")

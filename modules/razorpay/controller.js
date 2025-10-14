@@ -8,6 +8,8 @@ const redis = require("../../utils/redis");
 const { start } = require("repl");
 const moment = require("moment/moment");
 const { commonData } = require("../user/constant");
+const Subscription = require("../subscription/model");
+const { Op } = require("sequelize");
 
 exports.generatePayment = async (req, res, next) => {
   try {
@@ -68,66 +70,151 @@ exports.verification = async (req, res) => {
       amount: webhookRes.amount / 100,
       status: webhookRes.status,
       userId: +webhookRes.notes.userId,
-      subscriptionId: webhookRes.notes.userId,
+      subscriptionId: webhookRes.notes.subscriptionId,
     });
     if (transaction.status === "captured") {
       //if order is captured then we can add entry of user subscription
       //if the user already present we can update user subscription otherwise we add user subscription
-      // let [data] = await userSubscriptionService.update(
+
+      //first find the active plan
+      const [activePlan] = await userSubscriptionService.get({
+        where: {
+          userId: +webhookRes.notes.userId,
+          status: commonData.SubscriptionStatus.ACTIVE,
+        },
+        include: [
+          {
+            model: Subscription,
+          },
+        ],
+        order: [["expiryDate", "DESC"]],
+      });
+
+      // 3️⃣ Calculate start and expiry dates for new plan
+      let startDate, status;
+
+      if (activePlan) {
+        if (activePlan.expiryDate == null) {
+          const [lastPlan] = await userSubscriptionService.get({
+            where: {
+              userId: webhookRes.notes.userId,
+              status: {
+                [Op.in]: [commonData.SubscriptionStatus.PENDING],
+              },
+            },
+            order: [["expiryDate", "DESC"]],
+          });
+          if (lastPlan) {
+            if (lastPlan.expiryDate == null) {
+              // so it is a basic plan so of it subscribed with another plan then we don't need this entry
+              await userSubscriptionService.update(
+                {
+                  status: commonData.SubscriptionStatus.EXPIRE,
+                },
+                {
+                  where: {
+                    userId: +webhookRes.notes.userId,
+                    status: commonData.SubscriptionStatus.PENDING,
+                    id: lastPlan.id,
+                  },
+                }
+              );
+              startDate = moment().add(1, "day").format("YYYY-MM-DD");
+              status = commonData.SubscriptionStatus.PENDING;
+            } else {
+              startDate = moment(lastPlan.expiryDate)
+                .add(1, "day")
+                .format("YYYY-MM-DD");
+              status = commonData.SubscriptionStatus.PENDING;
+            }
+          } else {
+            startDate = moment().add(1, "day").format("YYYY-MM-DD");
+            status = commonData.SubscriptionStatus.PENDING;
+          }
+        } else if (activePlan.expiryDate) {
+          const [lastPlan] = await userSubscriptionService.get({
+            where: {
+              userId: webhookRes.notes.userId,
+              status: {
+                [Op.in]: [
+                  commonData.SubscriptionStatus.ACTIVE,
+                  commonData.SubscriptionStatus.PENDING,
+                ],
+              },
+            },
+            order: [["expiryDate", "DESC"]],
+          });
+
+          startDate = moment(lastPlan.expiryDate)
+            .add(1, "day")
+            .format("YYYY-MM-DD");
+          status = commonData.SubscriptionStatus.PENDING;
+        } else {
+          // Safety fallback
+          startDate = moment().format("YYYY-MM-DD");
+          status = commonData.SubscriptionStatus.ACTIVE;
+        }
+      } else {
+        // // No active plan → start today
+        startDate = moment().format("YYYY-MM-DD");
+        status = commonData.SubscriptionStatus.ACTIVE;
+      }
+
+      //  Expire any already-expired plans
+      // await userSubscriptionService.update(
       //   {
-      //     date: new Date(),
-      //     userId: webhookRes.notes.UserId,
-      //     subscriptionId: webhookRes.notes.UserId,
-      //     startDate: moment().format("YYYY-MM-DD"),
-      //     expiryDate: moment().add(Number(webhookRes.notes.day), "days"),
+      //     status: commonData.SubscriptionStatus.EXPIRE,
+      //     endDate: moment().format("YYYY-MM-DD"),
       //   },
       //   {
       //     where: {
-      //       userId: webhookRes.notes.UserId,
+      //       userId: +webhookRes.notes.userId,
+      //       status: commonData.SubscriptionStatus.ACTIVE,
+      //       expiryDate: { [Op.lt]: moment().format("YYYY-MM-DD") },
       //     },
       //   }
       // );
-      // if (data) {
-      //   redisClient.DEL(`checkSubscription?userId=${webhookRes.notes.UserId}`);
-      //   return res.status(201).json({
-      //     status: "success",
-      //     message: "Add  user subscription successfully",
-      //     data,
-      //   });
-      // }
+      //if new plan id pro plan then we need to update old basic entry inactive to expired so only one entry at a time in active and active
 
-      await userSubscriptionService.update(
-        {
-          status: commonData.SubscriptionStatus.EXPIRE,
-          endDate: moment().format("YYYY-MM-DD"),
-        },
-        {
-          where: {
-            userId: +webhookRes.notes.userId,
-            status: commonData.SubscriptionStatus.ACTIVE,
-          },
-        }
-      );
       let addData = await userSubscriptionService.create({
         userId: webhookRes.notes.userId,
-        subscriptionId: webhookRes.notes.userId,
-        startDate: moment().format("YYYY-MM-DD"),
-        expiryDate: moment().add(Number(webhookRes.notes.day), "days"),
+        subscriptionId: webhookRes.notes.subscriptionId,
+        startDate,
+        //if days is 0 then not add expiry date
+        expiryDate:
+          webhookRes.notes.day == 0
+            ? null
+            : moment(startDate).add(Number(webhookRes.notes.day), "days"),
         userTransactionId: transaction.id,
-        status: commonData.SubscriptionStatus.ACTIVE,
+        status,
       });
-      if (webhookRes.notes.planType === "Pro Plan") {
+      if (webhookRes.notes.planType == "Pro Plan") {
+        console.log("pro plan added-------------->");
+        //if pro plan then we need to add basic plan entry with inactive status with same transaction id
         //add the inactive entry with same transactionId of basic plan
         let [basicPlan] = await subscriptionService.get({
           where: {
             planType: "Basic Plan",
           },
         });
-        if (basicPlan && basicPlan.length > 0) {
+        console.log("basic plan---------->", basicPlan);
+        if (basicPlan) {
+          console.log("basic plan also added-------------->");
+          await userSubscriptionService.update(
+            { status: commonData.SubscriptionStatus.EXPIRE },
+
+            {
+              where: {
+                userId: +webhookRes.notes.userId,
+                status: commonData.SubscriptionStatus.INACTIVE,
+                subscriptionId: basicPlan.id,
+              },
+            }
+          );
+          // Add new basic plan entry as inactive
           await userSubscriptionService.create({
             userId: webhookRes.notes.userId,
-            subscriptionId: basicPlan[0].id,
-
+            subscriptionId: basicPlan.id,
             expiryDate: null,
             userTransactionId: transaction.id,
             status: commonData.SubscriptionStatus.INACTIVE,

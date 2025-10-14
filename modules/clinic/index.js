@@ -5,8 +5,12 @@ const {
   clinicDataValidation,
   updateClinicDataValidation,
 } = require("./validation");
+const { subscriptionData } = require("../../middleware/authSubscription");
 
-router.route("/").get(getAllByUser).post(clinicDataValidation, create);
+router
+  .route("/")
+  .get(getAllByUser)
+  .post(clinicDataValidation, subscriptionData, create);
 router.route("/:id").patch(updateClinicDataValidation, edit).delete(remove);
 
 module.exports = router;
