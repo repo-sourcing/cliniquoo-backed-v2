@@ -7,6 +7,7 @@ const TreatmentPlan = require("../treatmentPlan/model");
 const Transaction = require("../transaction/model");
 const Visitor = require("../visitor/model");
 const PatientBill = require("../patientBill/model");
+const { commonData } = require("../user/constant");
 
 function normalizeTimeRangesInput(input) {
   if (!input) return undefined; // don't set if absent
@@ -18,11 +19,24 @@ exports.create = async (req, res, next) => {
   try {
     req.body.userId = req.requestor.id;
 
+    console.log("data------------->", req.requestor.subscription);
+    //
+    let subscriptionData = req.requestor.subscription;
+
     const noOfClinic = await service.count({
       where: {
         userId: req.requestor.id,
       },
     });
+
+    if (noOfClinic && subscriptionData) {
+      if (
+        subscriptionData.planType === commonData.supscriptionPlanData.BASIC &&
+        noOfClinic >= 1
+      ) {
+        return next(createError(200, "You Can Add max 1 clinic"));
+      }
+    }
 
     if (noOfClinic >= 3)
       return next(createError(200, "You Can Add max 3 clinic"));

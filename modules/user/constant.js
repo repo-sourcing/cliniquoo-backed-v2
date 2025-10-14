@@ -68,6 +68,7 @@ exports.commonData = {
     ACTIVE: "active",
     EXPIRE: "expire",
     INACTIVE: "inactive",
+    PENDING: "pending",
   },
   supscriptionPlanData: {
     FREE: "Free Plan",

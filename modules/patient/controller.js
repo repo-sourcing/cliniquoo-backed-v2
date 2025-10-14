@@ -18,6 +18,7 @@ const TreatmentPlan = require("../treatmentPlan/model");
 const treatmentPlanService = require("../treatmentPlan/service");
 const ClinicService = require("../clinic/service");
 const PatientBill = require("../patientBill/model");
+const { commonData } = require("../user/constant");
 
 exports.create = async (req, res, next) => {
   try {
@@ -39,6 +40,29 @@ exports.create = async (req, res, next) => {
     // }
 
     req.body.userId = req.requestor.id;
+
+    //
+    let subscriptionData = req.requestor.subscription;
+    //check patient limit with patient count
+
+    if (!subscriptionData) {
+      return next(
+        createError(200, "Something went wrong please try again later")
+      );
+    }
+    if (
+      subscriptionData &&
+      subscriptionData.planType === commonData.supscriptionPlanData.FREE
+    ) {
+      if (subscriptionData.patientCount > subscriptionData.patientLimit) {
+        return next(
+          createError(
+            200,
+            `You Can Add max ${subscriptionData.patientLimit} patient in free plan please upgrade your plan to add more patient`
+          )
+        );
+      }
+    }
     const data = await service.create(req.body);
 
     //find clinic data that clinic have a timeslot addded or not
