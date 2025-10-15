@@ -6,7 +6,7 @@ const userSubscriptionService = require("../userSubscription/service");
 const crypto = require("crypto");
 const redis = require("../../utils/redis");
 const { start } = require("repl");
-const moment = require("moment/moment");
+const moment = require("moment-timezone");
 const { commonData } = require("../user/constant");
 const Subscription = require("../subscription/model");
 const { Op } = require("sequelize");
@@ -58,6 +58,12 @@ exports.verification = async (req, res) => {
   // do a validation
   // res.json({ status: "ok" });
   // Get the data from RazorPay Webhook
+  const tomorrow = moment.tz("Asia/Kolkata").add(1, "day").format("YYYY-MM-DD");
+  const todayIST = moment
+    .tz("Asia/Kolkata")
+    .startOf("day")
+    .format("YYYY-MM-DD");
+
   const webhookRes = req.body.payload.payment.entity;
   const shasum = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET);
   shasum.update(JSON.stringify(req.body));
@@ -119,7 +125,7 @@ exports.verification = async (req, res) => {
                   },
                 }
               );
-              startDate = moment().add(1, "day").format("YYYY-MM-DD");
+              startDate = tomorrow;
               status = commonData.SubscriptionStatus.PENDING;
             } else {
               startDate = moment(lastPlan.expiryDate)
@@ -128,7 +134,7 @@ exports.verification = async (req, res) => {
               status = commonData.SubscriptionStatus.PENDING;
             }
           } else {
-            startDate = moment().add(1, "day").format("YYYY-MM-DD");
+            startDate = tomorrow;
             status = commonData.SubscriptionStatus.PENDING;
           }
         } else if (activePlan.expiryDate) {
@@ -151,12 +157,12 @@ exports.verification = async (req, res) => {
           status = commonData.SubscriptionStatus.PENDING;
         } else {
           // Safety fallback
-          startDate = moment().format("YYYY-MM-DD");
+          startDate = todayIST;
           status = commonData.SubscriptionStatus.ACTIVE;
         }
       } else {
         // // No active plan → start today
-        startDate = moment().format("YYYY-MM-DD");
+        startDate = todayIST;
         status = commonData.SubscriptionStatus.ACTIVE;
       }
 
