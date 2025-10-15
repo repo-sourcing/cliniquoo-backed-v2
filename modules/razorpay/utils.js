@@ -1,6 +1,6 @@
 const userSubscriptionService = require("../userSubscription/service");
 const subscriptionService = require("../subscription/service");
-const moment = require("moment");
+const moment = require("moment-timezone");
 const { commonData } = require("../user/constant");
 const { Op } = require("sequelize");
 const Subscription = require("../subscription/model");
@@ -8,8 +8,17 @@ const visitorService = require("../visitor/service");
 const clinicService = require("../clinic/service");
 exports.subscriptionActivationCron = async () => {
   try {
-    const today = moment().startOf("day").format("YYYY-MM-DD");
-    let previousDay = moment()
+    // const today = moment().startOf("day").format("YYYY-MM-DD");
+    // let previousDay = moment()
+    //   .subtract(1, "day")
+    //   .startOf("day")
+    //   .format("YYYY-MM-DD");
+    const today = moment()
+      .tz("Asia/Kolkata")
+      .startOf("day")
+      .format("YYYY-MM-DD");
+    const previousDay = moment()
+      .tz("Asia/Kolkata")
       .subtract(1, "day")
       .startOf("day")
       .format("YYYY-MM-DD");
@@ -155,8 +164,6 @@ exports.assignTimeSlotsAfterUpgrade = async usersArray => {
           acc[dateKey].push(visit);
           return acc;
         }, {});
-
-        console.log("visitsByDate----------->", visitsByDate);
 
         // 4️⃣ Generate all available 1-hour slots from timeRanges
         const generateSlots = () => {
