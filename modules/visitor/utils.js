@@ -96,7 +96,7 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
     return 0;
   }
 };
-exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
+exports.runWhatsAppAppointmentConfirmationJob = async visitorId => {
   try {
     const [visitors] = await visitor.get({
       where: {
@@ -155,24 +155,31 @@ exports.runWhatsAppAppointmentConfirmationJob = async (visitorId) => {
         clinicName,
       ],
     });
-    sendWhatsAppAppointmentConfirmation({
-      to: [toNumber],
-      bodyValues: [
-        patientName,
-        prettyDate,
-        prettyTime,
-        doctorName,
-        clinicMobile,
-        clinicName,
-      ],
-    });
+    try {
+      sendWhatsAppAppointmentConfirmation({
+        to: [toNumber],
+        bodyValues: [
+          patientName,
+          prettyDate,
+          prettyTime,
+          doctorName,
+          clinicMobile,
+          clinicName,
+        ],
+      });
+    } catch (error) {
+      console.error(
+        "[CRON] Appointment reminder job failed:",
+        err?.stack || err
+      );
+    }
   } catch (err) {
     console.error("[CRON] Appointment reminder job failed:", err?.stack || err);
     return 0;
   }
 };
 
-exports.runWhatsAppAppointmentReschedule = async (visitorId) => {
+exports.runWhatsAppAppointmentReschedule = async visitorId => {
   try {
     const [visitors] = await visitor.get({
       where: {
