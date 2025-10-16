@@ -13,12 +13,21 @@ const {
   updateTreatmentValidation,
   billValidation,
 } = require("./validation");
+const { subscriptionData } = require("../../middleware/authSubscription");
+const { generateInvoice } = require("../patientBill/utils");
 
-router.route("/").get(getAll).post(treatmentValidation, create);
+router
+  .route("/")
+  .get(getAll)
+  .post(treatmentValidation, subscriptionData, create);
 router.route("/:id").patch(updateTreatmentValidation, edit).delete(remove);
 
-router.route("/billing/:patientId/:clinicId").get(getInvoiceNumber);
+router
+  .route("/billing/:patientId/:clinicId")
+  .get(subscriptionData, getInvoiceNumber);
 
-router.route("/billing/:patientId").post(billValidation, sendBilling);
+router
+  .route("/billing/:patientId")
+  .post(billValidation, subscriptionData, sendBilling);
 
 module.exports = router;

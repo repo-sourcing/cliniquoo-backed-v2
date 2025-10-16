@@ -13,6 +13,7 @@ const { runWhatsAppAppointmentConfirmationJob } = require("./utils");
 const TreatmentPlan = require("../treatmentPlan/model");
 const ClinicService = require("../clinic/service");
 const createError = require("http-errors");
+const { commonData } = require("../user/constant");
 
 exports.create = async (req, res, next) => {
   try {
@@ -138,7 +139,17 @@ exports.schedule = async (req, res, next) => {
       where: { patientId },
     });
 
-    if (visited != 1) {
+    let subscriptionData = req.requestor.subscription;
+    if (!subscriptionData) {
+      return next(
+        createError(404, "Something went wrong please try again later")
+      );
+    }
+
+    if (
+      visited != 1 &&
+      subscriptionData.planType !== commonData.supscriptionPlanData.BASIC
+    ) {
       await scheduleCronService.remove({ where: { visitorId: data[0].id } });
       await scheduleCronService.create({
         visitorId: data[0].id,
@@ -574,39 +585,46 @@ exports.reschedule = async (req, res, next) => {
 
     const diffMinutes = Math.floor((now - createdAt) / (1000 * 60));
 
-    //findScheduleCronData
-    const [findScheduleCronData] = await scheduleCronService.get({
-      where: {
-        visitorId: findData.id,
-      },
-    });
+    let subscriptionData = req.requestor.subscription;
 
-    //if notification already sent and data is schedule cron is deleted
-    if (!findScheduleCronData && diffMinutes > 10) {
-      // If no scheduleCron exists, create a new one
-      await scheduleCronService.create({
-        visitorId: findData.id,
-        time: moment().add(10, "minutes"),
-        status: "rescheduled",
+    if (
+      subscriptionData &&
+      subscriptionData.planType !== commonData.supscriptionPlanData.BASIC
+    ) {
+      //findScheduleCronData
+      const [findScheduleCronData] = await scheduleCronService.get({
+        where: {
+          visitorId: findData.id,
+        },
       });
-    } else {
-      if (diffMinutes <= 10) {
-        // Within 10 minutes → update schedule only
-        let status =
-          findScheduleCronData.status == "scheduled"
-            ? "scheduled"
-            : "rescheduled";
 
-        await scheduleCronService.update(
-          { status: status, time: moment().add(10, "minutes") },
-          { where: { visitorId: findData.id } }
-        );
+      //if notification already sent and data is schedule cron is deleted
+      if (!findScheduleCronData && diffMinutes > 10) {
+        // If no scheduleCron exists, create a new one
+        await scheduleCronService.create({
+          visitorId: findData.id,
+          time: moment().add(10, "minutes"),
+          status: "rescheduled",
+        });
       } else {
-        // More than 10 minutes → update schedule and status to 'reschedule'
-        await scheduleCronService.update(
-          { status: "rescheduled", time: moment().add(10, "minutes") },
-          { where: { visitorId: findData.id } }
-        );
+        if (diffMinutes <= 10) {
+          // Within 10 minutes → update schedule only
+          let status =
+            findScheduleCronData.status == "scheduled"
+              ? "scheduled"
+              : "rescheduled";
+
+          await scheduleCronService.update(
+            { status: status, time: moment().add(10, "minutes") },
+            { where: { visitorId: findData.id } }
+          );
+        } else {
+          // More than 10 minutes → update schedule and status to 'reschedule'
+          await scheduleCronService.update(
+            { status: "rescheduled", time: moment().add(10, "minutes") },
+            { where: { visitorId: findData.id } }
+          );
+        }
       }
     }
 

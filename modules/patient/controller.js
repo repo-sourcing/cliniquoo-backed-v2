@@ -72,7 +72,12 @@ exports.create = async (req, res, next) => {
       },
     });
 
-    if (!dataClinic.timeRanges || dataClinic.timeRanges.length === 0) {
+    if (
+      !dataClinic.timeRanges ||
+      dataClinic.timeRanges.length === 0
+      //||
+      // subscriptionData.planType == commonData.supscriptionPlanData.BASIC
+    ) {
       //if clinic have a timeslot added then check the time slot is provided or not
       await visitorService.create({
         date: moment().utcOffset("+05:30"),

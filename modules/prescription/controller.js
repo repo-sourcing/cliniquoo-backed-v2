@@ -17,8 +17,23 @@ const {
 } = require("./utils");
 const { sendWhatsAppPrescription } = require("../../utils/msg91");
 const Visitor = require("../visitor/model");
+const { commonData } = require("../user/constant");
 
 exports.create = async (req, res, next) => {
+  let subscriptionData = req.requestor.subscription;
+  //check patient limit with patient count
+
+  if (!subscriptionData) {
+    return next(
+      createError(404, "Something went wrong please try again later")
+    );
+  }
+  if (
+    subscriptionData &&
+    subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+  ) {
+    return next(createError(404, `Please upgrade a plan to use this feature`));
+  }
   const t = await sequelize.transaction();
   try {
     const { prescription } = req.body;
@@ -198,6 +213,22 @@ exports.getOne = async (req, res, next) => {
 };
 exports.sendPrescription = async (req, res, next) => {
   try {
+    let subscriptionData = req.requestor.subscription;
+    //check patient limit with patient count
+
+    if (!subscriptionData) {
+      return next(
+        createError(404, "Something went wrong please try again later")
+      );
+    }
+    if (
+      subscriptionData &&
+      subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+    ) {
+      return next(
+        createError(404, `Please upgrade a plan to use this feature`)
+      );
+    }
     const [data] = await service.get({
       where: {
         id: req.params.id,
