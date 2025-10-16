@@ -29,6 +29,6 @@ cron.schedule("* * * * *", () => {
 });
 
 // 12:30 AM IST = 7:00 PM UTC (previous day)
-cron.schedule("15 7 * * *", () => {
+cron.schedule("0 5 * * *", () => {
   subscriptionActivationCron();
 });

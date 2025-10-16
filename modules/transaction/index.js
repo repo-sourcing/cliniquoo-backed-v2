@@ -5,8 +5,12 @@ const {
   transactionValidation,
   updateTransactionValidation,
 } = require("./validation");
+const { subscriptionData } = require("../../middleware/authSubscription");
 
-router.route("/").get(getAllByUser).post(transactionValidation, create);
+router
+  .route("/")
+  .get(getAllByUser)
+  .post(transactionValidation, subscriptionData, create);
 router.route("/bill").get(getBill);
 router.route("/:id").patch(updateTransactionValidation, edit).delete(remove);
 

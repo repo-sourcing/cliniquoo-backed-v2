@@ -1,8 +1,13 @@
 const moment = require("moment");
 const visitorService = require("../modules/visitor/service");
 const ClinicService = require("../modules/clinic/service");
+const { commonData } = require("../modules/user/constant");
 
-exports.createVisitorWithSlot = async function ({ clinicId, patientId }) {
+exports.createVisitorWithSlot = async function ({
+  clinicId,
+  patientId,
+  planType,
+}) {
   // Step 1: Get clinic info
   const [dataClinic] = await ClinicService.get({
     where: { id: clinicId },
@@ -12,7 +17,11 @@ exports.createVisitorWithSlot = async function ({ clinicId, patientId }) {
   const now = moment().utcOffset("+05:30");
 
   // Step 3: If no timeRanges → simple visitor create
-  if (!dataClinic.timeRanges || dataClinic.timeRanges.length === 0) {
+  if (
+    !dataClinic.timeRanges ||
+    dataClinic.timeRanges.length === 0 ||
+    planType == commonData.supscriptionPlanData.BASIC
+  ) {
     return visitorService.findOrCreate({
       where: {
         date: now.startOf("day"), // date only

@@ -19,8 +19,6 @@ exports.create = async (req, res, next) => {
   try {
     req.body.userId = req.requestor.id;
 
-    console.log("data------------->", req.requestor.subscription);
-    //
     let subscriptionData = req.requestor.subscription;
 
     const noOfClinic = await service.count({
@@ -34,7 +32,12 @@ exports.create = async (req, res, next) => {
         subscriptionData.planType === commonData.supscriptionPlanData.BASIC &&
         noOfClinic >= 1
       ) {
-        return next(createError(200, "You Can Add max 1 clinic"));
+        return next(
+          createError(
+            200,
+            "You Can Add max 1 clinic,Please upgrade your plan for add more clinic!"
+          )
+        );
       }
     }
 

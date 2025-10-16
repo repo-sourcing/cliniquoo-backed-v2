@@ -13,6 +13,7 @@ const { generateBillPDF } = require("./utils");
 const { generateInvoice } = require("../patientBill/utils");
 const PatientBill = require("../patientBill/model");
 const { createVisitorWithSlot } = require("../../utils/commonFunction");
+const { commonData } = require("../user/constant");
 exports.create = async (req, res, next) => {
   try {
     const { treatmentPlanId } = req.body;
@@ -28,10 +29,13 @@ exports.create = async (req, res, next) => {
     const clinicId = treatmentPlan.clinicId;
     const patientId = treatmentPlan.patientId;
 
+    let subscriptionData = req.requestor.subscription;
+
     //create visitor slot
     await createVisitorWithSlot({
       clinicId,
       patientId,
+      planType: subscriptionData.planType,
     });
 
     await Patient.increment("remainBill", {
@@ -128,6 +132,20 @@ exports.remove = async (req, res, next) => {
 
 exports.sendBilling = async (req, res, next) => {
   try {
+    let subscriptionData = req.requestor.subscription;
+    if (!subscriptionData) {
+      return next(
+        createError(404, "Something went wrong please try again later")
+      );
+    }
+    if (
+      subscriptionData &&
+      subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+    ) {
+      return next(
+        createError(404, `Please upgrade a plan to use this feature`)
+      );
+    }
     const [patientData] = await patientService.get({
       where: {
         id: req.params.patientId,
@@ -243,6 +261,20 @@ exports.sendBilling = async (req, res, next) => {
 
 exports.getInvoiceNumber = async (req, res, next) => {
   try {
+    let subscriptionData = req.requestor.subscription;
+    if (!subscriptionData) {
+      return next(
+        createError(404, "Something went wrong please try again later")
+      );
+    }
+    if (
+      subscriptionData &&
+      subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+    ) {
+      return next(
+        createError(404, `Please upgrade a plan to use this feature`)
+      );
+    }
     const invoiceNumber = await generateInvoice(
       req.params.clinicId,
       req.params.patientId

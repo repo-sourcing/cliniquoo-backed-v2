@@ -61,10 +61,13 @@ exports.create = async (req, res, next) => {
     req.body.messageStatus = 0;
     const data = await service.create(req.body);
 
+    let subscriptionData = req.requestor.subscription;
+
     //create visitor slot
     await createVisitorWithSlot({
       clinicId,
       patientId,
+      planType: subscriptionData.planType,
     });
 
     // // Use the calculated amount from the saved transaction

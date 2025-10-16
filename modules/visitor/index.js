@@ -17,10 +17,13 @@ const {
   rescheduleValidation,
   scheduleValidation,
 } = require("./validation");
+const { subscriptionData } = require("../../middleware/authSubscription");
 
 router.route("/").get(getAll).post(visitorValidation, create);
-router.route("/reschedule").patch(rescheduleValidation, reschedule);
-router.route("/schedule").post(scheduleValidation, schedule);
+router
+  .route("/reschedule")
+  .patch(rescheduleValidation, subscriptionData, reschedule);
+router.route("/schedule").post(scheduleValidation, subscriptionData, schedule);
 router.route("/:id").patch(updateVisitorValidation, edit).delete(remove);
 router.route("/info/visiterInfoByDate").get(getAllVisitorByDate);
 router.route("/info/findNotVisited").get(findNotVisited);

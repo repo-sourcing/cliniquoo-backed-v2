@@ -8,11 +8,29 @@ const {
   getMessages,
   appendMessage,
 } = require("../../utils/sessionStore");
+const { commonData } = require("../user/constant");
 const { otherDetailsPrompt, analyticsData } = require("./systemPrompt");
 
 exports.getqueryAnalyticsByAI = async (req, res, next) => {
   try {
     let userId = req.requestor.id;
+
+    let subscriptionData = req.requestor.subscription;
+    //check patient limit with patient count
+
+    if (!subscriptionData) {
+      return next(
+        createError(404, "Something went wrong please try again later")
+      );
+    }
+    if (
+      subscriptionData &&
+      subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+    ) {
+      return next(
+        createError(404, `Please upgrade a plan to use this feature`)
+      );
+    }
     const { userQuery, sessionId: incomingSessionId } = req.body;
     if (!userQuery) {
       return res.status(400).send({
