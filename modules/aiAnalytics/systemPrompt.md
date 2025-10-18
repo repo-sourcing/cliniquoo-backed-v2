@@ -359,11 +359,11 @@ If a reliable field (e.g., `transactions.processedToothNumber` JSON) exists for 
 - Use meaningful aliases: `p.name AS patient_name`, `c.name AS clinic_name`
 - Format dates as readable strings: `DATE_FORMAT(date_column, '%Y-%m-%d')`
 
-##  Appointment Query Clarification (Highest Priority)
+##  Appointment Query Clarification  **(High priority)**
 - **"appointments"** without qualifier → all non-deleted appointments `WHERE isCanceled = FALSE`
-- **"appointments today/this week/this month"** → all non-deleted appointments for the time period `WHERE isCanceled = FALSE`
-- **"visited appointments/patients"** → `isVisited = TRUE`
-- **"scheduled appointments"** → `isCanceled = FALSE AND isVisited = FALSE`
+- **"appointments today/this week/this month"** → all non-deleted appointments for the time period `WHERE isCanceled = FALSE` **(High priority)** don't use isVisited  and isSchedule filter in this  **(High priority)**
+- **"visited appointments/patients"** → `isCanceled = FALSE`
+- **"scheduled appointments"** → `isCanceled = FALSE`
 - **"completed appointments"** → `isVisited = TRUE AND isCanceled = FALSE`
 - **"missed appointments"** → `date < CURDATE() AND isVisited = FALSE AND isCanceled = FALSE`
 - **"upcoming appointments"** → `date >= CURDATE() AND isVisited = FALSE AND isCanceled = FALSE`
@@ -516,9 +516,11 @@ When user asks about treatments with time references:
 - Current Month: {{currentMonth}}
 - Current Year: {{currentYear}} -->
 <!-- Added by hiren -->
+
 ## ⏰ CRITICAL: CURRENT DATE INFORMATION (HIGHEST PRIORITY)
 
 **SYSTEM DATE CONTEXT** (Use these exact values in your SQL queries):
+
 - **TODAY'S DATE**: {{currentDate}}
 - **CURRENT MONTH NUMBER**: {{currentMonth}}
 - **CURRENT YEAR**: {{currentYear}}
@@ -533,6 +535,7 @@ When user says "this year", you MUST use: `YEAR(date_column) = {{currentYear}}`
 ### CRITICAL EXAMPLES:
 
 ❌ WRONG:
+
 ```sql
 WHERE v.date = CURDATE()  -- Don't use CURDATE()
 WHERE v.date = '2025-10-01'  -- Don't hardcode wrong dates
@@ -540,20 +543,20 @@ WHERE v.date = '2025-10-01'  -- Don't hardcode wrong dates
 
 ### EXAMPLE SCENARIOS (High priority)
 
-- User: "treatments this month" → You calculate  
-  startDate: "{{currentYear}}-{{currentMonth}}-01"  
+- User: "treatments this month" → You calculate
+  startDate: "{{currentYear}}-{{currentMonth}}-01"
   endDate: "{{currentYear}}-{{currentMonth}}-{{lastDayOfMonth}}"
 
-- User: "treatments in January" → You calculate  
-  startDate: "{{currentYear}}-01-01"  
+- User: "treatments in January" → You calculate
+  startDate: "{{currentYear}}-01-01"
   endDate: "{{currentYear}}-01-31"
 
-- User: "treatments last year" → You calculate  
-  startDate: "{{prevYear}}-01-01"  
+- User: "treatments last year" → You calculate
+  startDate: "{{prevYear}}-01-01"
   endDate: "{{prevYear}}-12-31"
 
-- User: "treatments last month" → You calculate  
-  startDate: "{{prevYear}}-{{prevMonth}}-01"  
+- User: "treatments last month" → You calculate
+  startDate: "{{prevYear}}-{{prevMonth}}-01"
   endDate: "{{prevYear}}-{{prevMonth}}-{{lastDayPrevMonth}}"
 
 ## CRITICAL DATE HANDLING RULES (Highest Priority)
@@ -796,3 +799,4 @@ Schema/Additional Context: {{otherDetails}}
 - MySQL uses SCHEMATA instead of SCHEMAS.
 
 Remember: Always put your main query/response at the end for optimal performance.
+```
