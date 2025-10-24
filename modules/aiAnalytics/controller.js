@@ -9,14 +9,17 @@ const {
   appendMessage,
 } = require("../../utils/sessionStore");
 const { commonData } = require("../user/constant");
-const { otherDetailsPrompt, analyticsData } = require("./systemPrompt");
+const {
+  otherDetailsPrompt,
+  analyticsData,
+  calculateDateContext, // ✅ NEW: Import the date calculator
+} = require("./systemPrompt");
 
 exports.getqueryAnalyticsByAI = async (req, res, next) => {
   try {
     let userId = req.requestor.id;
 
     let subscriptionData = req.requestor.subscription;
-    //check patient limit with patient count
 
     if (!subscriptionData) {
       return next(
@@ -31,6 +34,7 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
         createError(404, `Please upgrade a plan to use this feature`)
       );
     }
+
     const { userQuery, sessionId: incomingSessionId } = req.body;
     if (!userQuery) {
       return res.status(400).send({
@@ -38,21 +42,30 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
         message: "User query is required",
       });
     }
+
+    // ✅ NEW: Calculate fresh dates for this request
+    const dateContext = calculateDateContext();
+
+    console.log(
+      `[AI Query] Current date being used: ${dateContext.currentDate}`
+    ); // ✅ Debug log
+
     // 1) establish session
     let sessionId = incomingSessionId;
     if (!sessionId || !(await sessionExists(userId, sessionId))) {
       sessionId = await createSession(userId);
     }
 
-    // 3) append current user message to Redis BEFORE calling model (so it’s part of context)
+    // 3) append current user message to Redis BEFORE calling model
     await appendMessage(userId, sessionId, {
       role: "user",
       text: userQuery,
     });
+
     // 2) load prior context (last N messages)
     const prior = await getMessages(userId, sessionId);
 
-    // // Call the AI workflow function with the user query
+    // ✅ MODIFIED: Pass dateContext to the AI workflow
     const aiResponse = await runAIControlledWorkflow({
       userQuery,
       dbType: "MySQL",
@@ -60,20 +73,20 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
       executeSQLQuery: executeSQLQuery,
       modelName: analyticsData.modelName,
       authKey: process.env.GOOGLE_API_KEY,
-      contextMessages: prior, // ✅ send context
+      contextMessages: prior,
       userId: req.requestor.id,
+      dateContext: dateContext, // ✅ NEW: Pass fresh dates
     });
 
-    // 5) persist assistant final message to Redis (shortened if needed)
-
+    // 5) persist assistant final message to Redis
     const finalText =
       typeof aiResponse?.message === "string"
         ? aiResponse.message.text
         : JSON.stringify(aiResponse.message.text);
 
-    const appendMsg = await appendMessage(userId, sessionId, {
+    await appendMessage(userId, sessionId, {
       role: "model",
-      text: finalText, // keep it sane; HTML can be long
+      text: finalText,
     });
 
     res.status(200).send({
@@ -90,8 +103,8 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
     next(error || createError(404, "Data not found"));
   }
 };
-// Add this to your systemPrompt.js file
 
+// Keep getSessionData unchanged
 exports.getSessionData = async (req, res, next) => {
   try {
     let userId = req.requestor.id;
