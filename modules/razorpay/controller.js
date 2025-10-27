@@ -10,6 +10,7 @@ const moment = require("moment-timezone");
 const { commonData } = require("../user/constant");
 const Subscription = require("../subscription/model");
 const { Op } = require("sequelize");
+const { assignTimeSlotsAfterUpgrade } = require("./utils");
 
 exports.generatePayment = async (req, res, next) => {
   try {
@@ -125,8 +126,8 @@ exports.verification = async (req, res) => {
                   },
                 }
               );
-              startDate = tomorrow;
-              status = commonData.SubscriptionStatus.PENDING;
+              startDate = todayIST;
+              status = commonData.SubscriptionStatus.ACTIVE;
             } else {
               startDate = moment(lastPlan.expiryDate)
                 .add(1, "day")
@@ -134,8 +135,8 @@ exports.verification = async (req, res) => {
               status = commonData.SubscriptionStatus.PENDING;
             }
           } else {
-            startDate = tomorrow;
-            status = commonData.SubscriptionStatus.PENDING;
+            startDate = todayIST;
+            status = commonData.SubscriptionStatus.ACTIVE;
           }
         } else if (activePlan.expiryDate) {
           const [lastPlan] = await userSubscriptionService.get({
@@ -182,6 +183,19 @@ exports.verification = async (req, res) => {
       // );
       //if new plan id pro plan then we need to update old basic entry inactive to expired so only one entry at a time in active and active
 
+      if (status == commonData.SubscriptionStatus.ACTIVE) {
+        await userSubscriptionService.update(
+          { status: commonData.SubscriptionStatus.EXPIRE, endDate: todayIST },
+
+          {
+            where: {
+              userId: +webhookRes.notes.userId,
+              status: commonData.SubscriptionStatus.ACTIVE,
+            },
+          }
+        );
+      }
+
       let addData = await userSubscriptionService.create({
         userId: webhookRes.notes.userId,
         subscriptionId: webhookRes.notes.subscriptionId,
@@ -194,6 +208,7 @@ exports.verification = async (req, res) => {
         userTransactionId: transaction.id,
         status,
       });
+
       if (webhookRes.notes.planType == "Pro Plan") {
         console.log("pro plan added-------------->");
         //if pro plan then we need to add basic plan entry with inactive status with same transaction id
@@ -219,12 +234,15 @@ exports.verification = async (req, res) => {
           );
           // Add new basic plan entry as inactive
           await userSubscriptionService.create({
-            userId: webhookRes.notes.userId,
+            userId: +webhookRes.notes.userId,
             subscriptionId: basicPlan.id,
             expiryDate: null,
             userTransactionId: transaction.id,
             status: commonData.SubscriptionStatus.INACTIVE,
           });
+        }
+        if (status == commonData.SubscriptionStatus.ACTIVE) {
+          await assignTimeSlotsAfterUpgrade([+webhookRes.notes.userId]);
         }
       }
 
