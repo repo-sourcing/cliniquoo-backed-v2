@@ -264,23 +264,23 @@ exports.getAll = async (req, res, next) => {
 };
 exports.getSearch = async (req, res, next) => {
   try {
-    let patientData = await redisClient.GET(
-      `patient?userId=${req.requestor.id}`
-    );
+    // let patientData = await redisClient.GET(
+    //   `patient?userId=${req.requestor.id}`
+    // );
 
-    if (patientData) {
-      patientData = JSON.parse(patientData);
-    } else {
-      patientData = await service.get({
-        where: {
-          userId: req.requestor.id,
-        },
-      });
-      await redisClient.SET(
-        `patient?userId=${req.requestor.id}`,
-        JSON.stringify(patientData)
-      );
-    }
+    // if (patientData) {
+    //   patientData = JSON.parse(patientData);
+    //  } else {
+    patientData = await service.get({
+      where: {
+        userId: req.requestor.id,
+      },
+    });
+    // await redisClient.SET(
+    //   `patient?userId=${req.requestor.id}`,
+    //   JSON.stringify(patientData)
+    // );
+    //}
     const search = req.params.name.toLowerCase(); // normalize search term
 
     let searchData = patientData.filter(data => {
