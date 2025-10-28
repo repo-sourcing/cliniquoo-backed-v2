@@ -120,7 +120,6 @@ exports.subscriptionActivationCron = async () => {
         processedProUserIds.add(p.userId);
       }
     }
-    console.log("userIds---------->", [...processedProUserIds]);
 
     await this.assignTimeSlotsAfterUpgrade([...processedProUserIds]);
     console.log("✅ Subscription status cron completed successfully.");
@@ -202,11 +201,7 @@ exports.assignTimeSlotsAfterUpgrade = async usersArray => {
             );
           }
         }
-
-        console.log(`✅ Time slot assignment done for clinic ${clinic.id}`);
       }
-
-      console.log(`🎉 Completed time slot assignment for user ${userId}`);
     }
   } catch (error) {
     console.error("❌ Error in assignTimeSlotsAfterUpgrade:", error);

@@ -1,5 +1,3 @@
-// modules/aiAnalytics/analyzeTreatmentResolver.js
-
 const treatmentSynonyms = {
   "root canal treatment": [
     "rct",
@@ -67,7 +65,7 @@ const treatmentSynonyms = {
 };
 
 // Enhanced normalization function with better matching
-const normalizeTreatmentName = (treatmentName) => {
+const normalizeTreatmentName = treatmentName => {
   if (!treatmentName) return "Unknown Treatment";
 
   const name = treatmentName.toLowerCase().trim();
@@ -78,7 +76,7 @@ const normalizeTreatmentName = (treatmentName) => {
     if (name.includes(canonical.toLowerCase().replace(" ", ""))) {
       return canonical
         .split(" ")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
     }
 
@@ -87,7 +85,7 @@ const normalizeTreatmentName = (treatmentName) => {
       if (name.includes(synonym.toLowerCase())) {
         return canonical
           .split(" ")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(" ");
       }
     }
@@ -111,12 +109,12 @@ const normalizeTreatmentName = (treatmentName) => {
   // If no match found, return title case
   return treatmentName
     .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 };
 
 // Function to extract tooth numbers and count multiplicity
-const extractToothCount = (treatmentName) => {
+const extractToothCount = treatmentName => {
   if (!treatmentName) return 1;
 
   // FDI tooth numbering pattern (11-48)
@@ -132,7 +130,7 @@ const extractToothCount = (treatmentName) => {
   const commaPattern = /[-\s](\d+(?:[,\s]+\d+)+)/;
   const commaMatch = treatmentName.match(commaPattern);
   if (commaMatch) {
-    const numbers = commaMatch[1].split(/[,\s]+/).filter((n) => n.trim());
+    const numbers = commaMatch[1].split(/[,\s]+/).filter(n => n.trim());
     return numbers.length;
   }
 
@@ -150,7 +148,7 @@ const extractToothCount = (treatmentName) => {
 const findMatchingTreatments = (treatments, searchTerm) => {
   const searchLower = searchTerm.toLowerCase();
 
-  return treatments.filter((treatment) => {
+  return treatments.filter(treatment => {
     const originalName = treatment.treatment_name.toLowerCase();
     const normalizedName = treatment.normalized_treatment_name.toLowerCase();
 
@@ -169,7 +167,7 @@ const findMatchingTreatments = (treatments, searchTerm) => {
       // If search term matches canonical or synonyms
       if (
         searchLower.includes(canonicalLower) ||
-        synonyms.some((syn) => searchLower.includes(syn.toLowerCase()))
+        synonyms.some(syn => searchLower.includes(syn.toLowerCase()))
       ) {
         // And this treatment normalizes to the same canonical
         if (normalizedName.includes(canonicalLower)) {
@@ -180,11 +178,11 @@ const findMatchingTreatments = (treatments, searchTerm) => {
       // Reverse check: if treatment matches canonical/synonyms and search term is related
       if (
         originalName.includes(canonicalLower) ||
-        synonyms.some((syn) => originalName.includes(syn.toLowerCase()))
+        synonyms.some(syn => originalName.includes(syn.toLowerCase()))
       ) {
         if (
           searchLower.includes(canonicalLower) ||
-          synonyms.some((syn) => searchLower.includes(syn.toLowerCase()))
+          synonyms.some(syn => searchLower.includes(syn.toLowerCase()))
         ) {
           return true;
         }
@@ -309,7 +307,7 @@ exports.analyzeTreatmentsResolver = async ({
     const allTreatments = queryResult.data[0] || [];
 
     // Process each treatment with normalization and tooth counting
-    const processedTreatments = allTreatments.map((treatment) => {
+    const processedTreatments = allTreatments.map(treatment => {
       const normalizedName = normalizeTreatmentName(treatment.treatment_name);
       const toothCount = extractToothCount(treatment.treatment_name);
 
@@ -333,7 +331,7 @@ exports.analyzeTreatmentsResolver = async ({
 
     // Group by normalized names and calculate counts
     const groupedResults = {};
-    filteredTreatments.forEach((treatment) => {
+    filteredTreatments.forEach(treatment => {
       const key = treatment.normalized_treatment_name;
       if (!groupedResults[key]) {
         groupedResults[key] = {
@@ -352,7 +350,7 @@ exports.analyzeTreatmentsResolver = async ({
       // Track variations for debugging (not shown to user)
       if (
         !groupedResults[key].variations.some(
-          (v) => v.name === treatment.original_name
+          v => v.name === treatment.original_name
         )
       ) {
         groupedResults[key].variations.push({
@@ -411,7 +409,7 @@ exports.analyzeTreatmentsResolver = async ({
         );
 
         // Return clean table data for listing - USER FRIENDLY COLUMNS
-        const cleanResults = finalResults.slice(0, limit).map((result) => ({
+        const cleanResults = finalResults.slice(0, limit).map(result => ({
           treatment_name: result.normalized_treatment_name,
           total_treatments: result.total_actual_count,
           procedures_done: result.total_raw_count,
@@ -454,7 +452,7 @@ exports.analyzeTreatmentsResolver = async ({
 };
 
 // Helper function to suggest alternatives when no results found
-const getSuggestionForNoResults = (searchTerm) => {
+const getSuggestionForNoResults = searchTerm => {
   const searchLower = searchTerm.toLowerCase();
 
   if (searchLower.includes("wisdom") || searchLower.includes("impaction")) {

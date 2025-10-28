@@ -70,7 +70,6 @@ exports.verification = async (req, res) => {
   shasum.update(JSON.stringify(req.body));
   const digest = shasum.digest("hex");
   if (digest === req.headers["x-razorpay-signature"]) {
-    console.log("request is legit-------------------->");
     //Create transaction
     const transaction = await transactionService.create({
       paymentId: webhookRes.id,
@@ -210,7 +209,6 @@ exports.verification = async (req, res) => {
       });
 
       if (webhookRes.notes.planType == "Pro Plan") {
-        console.log("pro plan added-------------->");
         //if pro plan then we need to add basic plan entry with inactive status with same transaction id
         //add the inactive entry with same transactionId of basic plan
         let [basicPlan] = await subscriptionService.get({
@@ -218,9 +216,8 @@ exports.verification = async (req, res) => {
             planType: "Basic Plan",
           },
         });
-        console.log("basic plan---------->", basicPlan);
+
         if (basicPlan) {
-          console.log("basic plan also added-------------->");
           await userSubscriptionService.update(
             { status: commonData.SubscriptionStatus.EXPIRE },
 

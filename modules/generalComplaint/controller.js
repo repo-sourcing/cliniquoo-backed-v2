@@ -12,7 +12,6 @@ exports.create = async (req, res, next) => {
       data,
     });
   } catch (error) {
-    console.log("error", error);
     next(error || createError(404, "Data not found"));
   }
 };

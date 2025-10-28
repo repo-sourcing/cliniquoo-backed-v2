@@ -34,9 +34,9 @@ exports.createVisitorWithSlot = async function ({
 
   // Step 4: If timeRanges exist → calculate slot
   let hour = now.hour();
-  console.log("Current hour:", hour);
+
   const minute = now.minute();
-  console.log("Current minute:", minute);
+
   //return;
 
   // Always align to HH:00 - HH+1:00

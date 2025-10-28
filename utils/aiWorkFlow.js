@@ -16,7 +16,7 @@ exports.agentLog = (message, ...args) => {
   //  }
 };
 
-// Function declaration for the Gemini API
+// Function declaration
 const sqlQueryFunctionDeclaration = {
   type: "function",
   function: {
@@ -97,7 +97,7 @@ const treatmentAnalysisFunctionDeclaration = {
 };
 
 // Generate system instruction based on database type
-// Generate system instruction based on database type
+
 const generateSystemInstruction = (
   dbType,
   otherDetails,
@@ -132,23 +132,7 @@ const getModelAndSystemInstruction = ({
     model: modelName, // e.g., "gpt-4o-mini-2024-07-18"
     tools: [sqlQueryFunctionDeclaration, treatmentAnalysisFunctionDeclaration], // Use the new tool definitions
     temperature: 0.1,
-    // NEW: It's good practice to instruct the model to use the tools
-    //system_instruction: generateSystemInstruction(dbType, otherDetails, userId),
   };
-  // const model = genAI.getGenerativeModel({
-  //   model: modelName, // Using the updated model
-  //   tools: [
-  //     {
-  //       functionDeclarations: [
-  //         sqlQueryFunctionDeclaration,
-  //         treatmentAnalysisFunctionDeclaration,
-  //       ],
-  //     },
-  //   ],
-  //   generationConfig: {
-  //     temperature: 0.1,
-  //   },
-  // });
 
   const systemInstruction = generateSystemInstruction(
     dbType,
@@ -171,7 +155,6 @@ const processFunctionCall = async (
   toolCallId,
   userId
 ) => {
-  // const { name, args } = functionCall;
   const { id, function: func } = functionCall; // OpenAI uses id and function
 
   if (func.name === "execute_sql_query") {
@@ -194,10 +177,6 @@ const processFunctionCall = async (
       tool_call_id: id,
       role: "tool",
       content: JSON.stringify(result),
-      //name: name,
-      // response: {
-      //   result: result,
-      // },
     };
   }
   if (func.name === "analyze_treatments") {
@@ -210,8 +189,7 @@ const processFunctionCall = async (
     });
     return {
       tool_call_id: id,
-      // name,
-      // response: { result: analysis },
+
       role: "tool",
       content: JSON.stringify(analysis),
     };
@@ -246,10 +224,6 @@ exports.runAIControlledWorkflow = async ({
   dateContext, // ✅ NEW: Accept dateContext parameter
 }) => {
   if (!userQuery) {
-    // queryAgentNamespace.to(socketId).emit("response", {
-    //   status: "failed",
-    //   message: "User query is required",
-    // });
     return {
       status: "failed",
       message: "User query is required",
@@ -270,10 +244,8 @@ exports.runAIControlledWorkflow = async ({
     // Start conversation with system instruction
     let messages = [
       {
-        //role: "user",
         role: "system",
         content: instruction,
-        // parts: [{ text: instruction }],
       },
     ];
 
@@ -315,10 +287,7 @@ exports.runAIControlledWorkflow = async ({
       iteration++;
       this.agentLog(`Iteration ${iteration}`);
       this.agentLog(messages);
-      //Generate response
-      // const result = await model.generateContent({
-      //   contents: contents,
-      // });
+
       const result = await model.chat.completions.create({
         messages: messages, // Pass the entire conversation history
         ...config, // Spread the model config (model, tools, temperature)
@@ -327,8 +296,6 @@ exports.runAIControlledWorkflow = async ({
       const response = result.choices[0].message;
       const functionCalls = response.tool_calls;
       messages.push(response);
-
-      //const functionCalls = response.functionCalls?.();
 
       // Log function calls for debugging (optional)
       if (functionCalls && functionCalls.length > 0) {
@@ -352,12 +319,6 @@ exports.runAIControlledWorkflow = async ({
             tool_call_id: functionCall.id,
             content: functionResponse.content,
           });
-
-          // // Add the function response to conversation
-          // contents.push({
-          //   role: "user",
-          //   parts: [{ functionResponse: functionResponse }],
-          // });
         }
       } else {
         // Check if this is a greeting or casual conversation
@@ -434,51 +395,6 @@ exports.runAIControlledWorkflow = async ({
             text: finalText, // Keep original for debugging
           },
         };
-
-        // Check if response looks like HTML
-        // if (finalText.includes("```json")) {
-        //   let parsedData = await this.extractJsonFromResponse(finalText);
-
-        //   if (parsedData.type == "table") {
-        //     let htmlData = await this.jsonToHtmlTable(parsedData);
-        //     return {
-        //       status: "success",
-
-        //       message: {
-        //         type: "table",
-        //         message: htmlData,
-        //         text: finalText,
-        //       },
-        //     };
-        //   } else {
-        //     return {
-        //       status: "success",
-        //       message: {
-        //         type: parsedData.type,
-        //         message: parsedData,
-        //         text: finalText,
-        //       },
-        //     };
-        //   }
-        // } else if (finalText.includes("<") && finalText.includes(">")) {
-        //   return {
-        //     status: "success",
-        //     message: { type: "html", message: finalText, text: finalText },
-        //   };
-        // } else {
-        //   // Wrap in basic HTML structure
-        //   //const htmlResponse = finalText.replace(/\n/g, "<br>");
-        //   let htmlResponse = finalText;
-
-        //   return {
-        //     status: "success",
-        //     message: {
-        //       type: "plainText",
-        //       message: htmlResponse,
-        //       text: finalText,
-        //     },
-        //   };
-        // }
       }
     }
 
@@ -556,7 +472,6 @@ exports.executeSQLQuery = async query => {
       finalResults = results;
     } else {
       finalResults = results;
-      //finalResults = simplifySQLResult(results);
     }
 
     return {
@@ -591,14 +506,6 @@ Conversation:
 ${formatted}
   `;
 
-  //const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-  // const model = genAI.getGenerativeModel({
-  //   model: analyticsData.modelName, // Using the updated model
-
-  //   generationConfig: {
-  //     temperature: 0.1,
-  //   },
-  // });
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -613,16 +520,6 @@ ${formatted}
     temperature: 0.1,
   });
 
-  // const resp = await model.generateContent({
-  //   contents: [
-  //     {
-  //       role: "user",
-  //       parts: [{ text: prompt }],
-  //     },
-  //   ],
-  // });
-
-  //return resp.response.candidates[0].content.parts[0].text;
   return completion.choices[0].message.content;
 };
 
@@ -648,7 +545,7 @@ exports.extractJsonFromResponse = async aiResponse => {
 exports.jsonToHtmlTable = async jsonStr => {
   try {
     // Parse JSON string into an object
-    // const data = JSON.parse(jsonStr);
+
     let data = jsonStr;
     if (!data.type || data.type !== "table") {
       throw new Error("Invalid JSON: type must be 'table'");
@@ -854,117 +751,6 @@ const generateResponseSummary = contentBlocks => {
     return `Mixed content: ${uniqueTypes.join(", ")}`;
   }
 };
-
-// Helper function to detect and extract JSON objects from text
-// const detectJsonInText = text => {
-//   const jsonObjects = [];
-//   let remainingText = text;
-
-//   // Look for JSON-like patterns with type: "table" or type: "chart"
-//   const jsonPatterns = [
-//     // Match objects that start with { and contain type field
-//     /\{[^{}]*"type"\s*:\s*["'](?:table|chart|data)["'][^{}]*(?:\{[^}]*\}[^{}]*)*\}/g,
-//     // More comprehensive pattern for nested objects
-//     /\{(?:[^{}]|\{[^}]*\})*"type"\s*:\s*["'](?:table|chart|data)["'](?:[^{}]|\{[^}]*\})*\}/g,
-//   ];
-
-//   for (const pattern of jsonPatterns) {
-//     const matches = text.matchAll(pattern);
-//     for (const match of matches) {
-//       try {
-//         // Try to parse the matched text as JSON
-//         const jsonData = JSON.parse(match[0]);
-//         if (
-//           jsonData.type &&
-//           ["table", "chart", "data"].includes(jsonData.type)
-//         ) {
-//           jsonObjects.push({
-//             data: jsonData,
-//             originalText: match[0],
-//             index: match.index,
-//           });
-//           // Remove this JSON from remaining text
-//           remainingText = remainingText.replace(match[0], "");
-//         }
-//       } catch (err) {
-//         // If parsing fails, try with more context around the match
-//         try {
-//           // Look for complete JSON object by finding matching braces
-//           const startIndex = match.index;
-//           const completeJson = extractCompleteJsonFromPosition(
-//             text,
-//             startIndex
-//           );
-//           if (completeJson) {
-//             const jsonData = JSON.parse(completeJson);
-//             if (
-//               jsonData.type &&
-//               ["table", "chart", "data"].includes(jsonData.type)
-//             ) {
-//               jsonObjects.push({
-//                 data: jsonData,
-//                 originalText: completeJson,
-//                 index: startIndex,
-//               });
-//               remainingText = remainingText.replace(completeJson, "");
-//             }
-//           }
-//         } catch (innerErr) {
-//           console.log(
-//             "Could not parse JSON-like text:",
-//             match[0].substring(0, 100) + "..."
-//           );
-//         }
-//       }
-//     }
-//   }
-
-//   return { jsonObjects, remainingText };
-// };
-
-// // Helper function to extract complete JSON object from a starting position
-// const extractCompleteJsonFromPosition = (text, startIndex) => {
-//   let braceCount = 0;
-//   let inString = false;
-//   let escapeNext = false;
-//   let endIndex = startIndex;
-
-//   for (let i = startIndex; i < text.length; i++) {
-//     const char = text[i];
-
-//     if (escapeNext) {
-//       escapeNext = false;
-//       continue;
-//     }
-
-//     if (char === "\\") {
-//       escapeNext = true;
-//       continue;
-//     }
-
-//     if (char === '"' && !escapeNext) {
-//       inString = !inString;
-//       continue;
-//     }
-
-//     if (!inString) {
-//       if (char === "{") {
-//         braceCount++;
-//       } else if (char === "}") {
-//         braceCount--;
-//         if (braceCount === 0) {
-//           endIndex = i + 1;
-//           break;
-//         }
-//       }
-//     }
-//   }
-
-//   if (braceCount === 0) {
-//     return text.substring(startIndex, endIndex);
-//   }
-//   return null;
-// };
 
 // Helper function to detect and extract JSON objects from text
 const detectJsonInText = text => {
