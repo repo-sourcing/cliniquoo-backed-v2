@@ -10,6 +10,7 @@ const {
   sendWhatsAppAppointmentConfirmation,
   sendWhatsAppAppointmentRescheduleConfirmation,
 } = require("../../utils/msg91");
+const UserSubscription = require("../userSubscription/model");
 
 exports.runWhatsAppAppointmentReminderJob = async () => {
   try {
@@ -23,7 +24,22 @@ exports.runWhatsAppAppointmentReminderJob = async () => {
         isCanceled: false,
       },
       include: [
-        { model: Clinic, include: [User], required: true },
+        {
+          model: Clinic,
+          include: [
+            {
+              model: User,
+              required: true,
+              include: [
+                {
+                  model: UserSubscription,
+                  where: { status: "active", subscriptionId: { [Op.ne]: 6 } }, //for exclude basic plan user
+                },
+              ],
+            },
+          ],
+          required: true,
+        },
         { model: Patient, required: true },
       ],
     });

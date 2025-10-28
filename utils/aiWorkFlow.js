@@ -1,4 +1,4 @@
-//const { OpenAI } = require("openai");
+const { OpenAI } = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const sequelize = require("../config/db");
 const {
@@ -18,75 +18,81 @@ exports.agentLog = (message, ...args) => {
 
 // Function declaration for the Gemini API
 const sqlQueryFunctionDeclaration = {
-  name: "execute_sql_query",
-  description:
-    "Execute a SELECT SQL query to retrieve data from the database. Only SELECT queries are allowed for security reasons.",
-  parameters: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description:
-          "The SQL SELECT query to execute. Must be properly formatted for the database type being used.",
+  type: "function",
+  function: {
+    name: "execute_sql_query",
+    description:
+      "Execute a SELECT SQL query to retrieve data from the database. Only SELECT queries are allowed for security reasons.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "The SQL SELECT query to execute. Must be properly formatted for the database type being used.",
+        },
+        reason: {
+          type: "string",
+          description:
+            "Brief explanation of why this query is needed to answer the user's question.",
+        },
       },
-      reason: {
-        type: "string",
-        description:
-          "Brief explanation of why this query is needed to answer the user's question.",
-      },
+      required: ["query", "reason"],
     },
-    required: ["query", "reason"],
   },
 };
 const treatmentAnalysisFunctionDeclaration = {
-  name: "analyze_treatments",
-  description:
-    "Analyze treatment data with proper normalization, tooth counting, and synonym handling. IMPORTANT: For time-based queries, you MUST calculate and provide startDate and endDate based on user's time references.",
-  parameters: {
-    type: "object",
-    properties: {
-      analysisType: {
-        type: "string",
-        enum: [
-          "total_count",
-          "most_common",
-          "least_common",
-          "by_treatment_name",
-          "by_patient",
-          "by_clinic",
-          "by_date_range",
-        ],
-        description: "Type of analysis to perform",
+  type: "function",
+  function: {
+    name: "analyze_treatments",
+    description:
+      "Analyze treatment data with proper normalization, tooth counting, and synonym handling. IMPORTANT: For time-based queries, you MUST calculate and provide startDate and endDate based on user's time references.",
+    parameters: {
+      type: "object",
+      properties: {
+        analysisType: {
+          type: "string",
+          enum: [
+            "total_count",
+            "most_common",
+            "least_common",
+            "by_treatment_name",
+            "by_patient",
+            "by_clinic",
+            "by_date_range",
+          ],
+          description: "Type of analysis to perform",
+        },
+        treatmentName: {
+          type: "string",
+          description:
+            "Specific treatment name to analyze (optional, for by_treatment_name type)",
+        },
+        patientId: {
+          type: "number",
+          description: "Specific patient ID (optional, for by_patient type)",
+        },
+        clinicId: {
+          type: "number",
+          description: "Specific clinic ID (optional, for by_clinic type)",
+        },
+        startDate: {
+          type: "string",
+          description:
+            "Start date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
+        },
+        endDate: {
+          type: "string",
+          description:
+            "End date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
+        },
+        limit: {
+          type: "number",
+          description: "Number of results to return (default: 10)",
+        },
       },
-      treatmentName: {
-        type: "string",
-        description:
-          "Specific treatment name to analyze (optional, for by_treatment_name type)",
-      },
-      patientId: {
-        type: "number",
-        description: "Specific patient ID (optional, for by_patient type)",
-      },
-      clinicId: {
-        type: "number",
-        description: "Specific clinic ID (optional, for by_clinic type)",
-      },
-      startDate: {
-        type: "string",
-        description:
-          "Start date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
-      },
-      endDate: {
-        type: "string",
-        description:
-          "End date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last year', 'in January', etc.",
-      },
-      limit: {
-        type: "number",
-        description: "Number of results to return (default: 10)",
-      },
+      required: ["analysisType"],
     },
-    required: ["analysisType"],
   },
 };
 
@@ -106,20 +112,32 @@ const getModelAndSystemInstruction = ({
 }) => {
   this.agentLog("modelName", modelName);
   const genAI = new GoogleGenerativeAI(authKey);
-  const model = genAI.getGenerativeModel({
-    model: modelName, // Using the updated model
-    tools: [
-      {
-        functionDeclarations: [
-          sqlQueryFunctionDeclaration,
-          treatmentAnalysisFunctionDeclaration,
-        ],
-      },
-    ],
-    generationConfig: {
-      temperature: 0.1,
-    },
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
   });
+  // The 'model' object is now just a configuration object for the API call
+  const modelConfig = {
+    model: modelName, // e.g., "gpt-4o-mini-2024-07-18"
+    tools: [sqlQueryFunctionDeclaration, treatmentAnalysisFunctionDeclaration], // Use the new tool definitions
+    temperature: 0.1,
+    // NEW: It's good practice to instruct the model to use the tools
+    //system_instruction: generateSystemInstruction(dbType, otherDetails, userId),
+  };
+  // const model = genAI.getGenerativeModel({
+  //   model: modelName, // Using the updated model
+  //   tools: [
+  //     {
+  //       functionDeclarations: [
+  //         sqlQueryFunctionDeclaration,
+  //         treatmentAnalysisFunctionDeclaration,
+  //       ],
+  //     },
+  //   ],
+  //   generationConfig: {
+  //     temperature: 0.1,
+  //   },
+  // });
 
   const systemInstruction = generateSystemInstruction(
     dbType,
@@ -128,7 +146,8 @@ const getModelAndSystemInstruction = ({
   );
 
   return {
-    model,
+    model: openai,
+    config: modelConfig,
     instruction: systemInstruction,
   };
 };
@@ -140,9 +159,11 @@ const processFunctionCall = async (
   toolCallId,
   userId
 ) => {
-  const { name, args } = functionCall;
+  // const { name, args } = functionCall;
+  const { id, function: func } = functionCall; // OpenAI uses id and function
 
-  if (name === "execute_sql_query") {
+  if (func.name === "execute_sql_query") {
+    const args = JSON.parse(func.arguments); //
     this.agentLog(`🔍 Executing SQL query: ${args.query}`);
     this.agentLog(`💭 Reason: ${args.reason}`);
 
@@ -158,28 +179,33 @@ const processFunctionCall = async (
     });
 
     return {
-      tool_call_id: toolCallId,
-      name: name,
-      response: {
-        result: result,
-      },
+      tool_call_id: id,
+      role: "tool",
+      content: JSON.stringify(result),
+      //name: name,
+      // response: {
+      //   result: result,
+      // },
     };
   }
-  if (name === "analyze_treatments") {
+  if (func.name === "analyze_treatments") {
     // here you don't replace executeSQLQuery, you *use* it under the hood
+    const args = JSON.parse(func.arguments);
     const analysis = await analyzeTreatmentsResolver({
       ...args,
       userId,
       executeSQLQuery, // important: reuse your secure executor
     });
     return {
-      tool_call_id: toolCallId,
-      name,
-      response: { result: analysis },
+      tool_call_id: id,
+      // name,
+      // response: { result: analysis },
+      role: "tool",
+      content: JSON.stringify(analysis),
     };
   }
 
-  throw new Error(`Unknown function: ${name}`);
+  throw new Error(`Unknown function: ${func.name}`);
 };
 
 // Helper function to clean text from context messages
@@ -207,16 +233,19 @@ exports.runAIControlledWorkflow = async ({
   userId,
 }) => {
   if (!userQuery) {
-    queryAgentNamespace.to(socketId).emit("response", {
+    // queryAgentNamespace.to(socketId).emit("response", {
+    //   status: "failed",
+    //   message: "User query is required",
+    // });
+    return {
       status: "failed",
       message: "User query is required",
-    });
-    return;
+    };
   }
 
   try {
     // Get model and system instruction
-    const { model, instruction } = getModelAndSystemInstruction({
+    const { model, config, instruction } = getModelAndSystemInstruction({
       dbType,
       otherDetails,
       modelName,
@@ -225,22 +254,20 @@ exports.runAIControlledWorkflow = async ({
     });
 
     // Start conversation with system instruction
-    let contents = [
+    let messages = [
       {
         //role: "user",
-        role: "user",
-        parts: [{ text: instruction }],
+        role: "system",
+        content: instruction,
+        // parts: [{ text: instruction }],
       },
     ];
 
     // Add system acknowledgment (you can skip this if causing issues)
-    contents.push({
-      role: "model",
-      parts: [
-        {
-          text: "I understand. I will help you query the database while ensuring security and proper user scoping.",
-        },
-      ],
+    messages.push({
+      role: "assistant",
+      content:
+        "I understand. I will help you query the database while ensuring security and proper user scoping.",
     });
 
     // ✅ inject previous context (compact text messages)
@@ -250,17 +277,17 @@ exports.runAIControlledWorkflow = async ({
       for (const m of contextMessages) {
         if (!m?.text) continue;
 
-        const role = m.role === "model" ? "model" : "user";
-        contents.push({ role, parts: [{ text: m.text }] });
+        const role = m.role === "model" ? "assistant" : "user";
+        messages.push({ role, content: m.text });
       }
     }
 
     this.agentLog("Step 1: Sending system instruction...");
 
     // Add user query
-    contents.push({
+    messages.push({
       role: "user",
-      parts: [{ text: `User Question: ${userQuery}` }],
+      content: `User Question: ${userQuery}`,
     });
 
     this.agentLog("Step 2: Sending user query:", userQuery);
@@ -273,15 +300,21 @@ exports.runAIControlledWorkflow = async ({
     while (iteration < maxIterations) {
       iteration++;
       this.agentLog(`Iteration ${iteration}`);
-      this.agentLog(contents);
+      this.agentLog(messages);
       //Generate response
-      const result = await model.generateContent({
-        contents: contents,
+      // const result = await model.generateContent({
+      //   contents: contents,
+      // });
+      const result = await model.chat.completions.create({
+        messages: messages, // Pass the entire conversation history
+        ...config, // Spread the model config (model, tools, temperature)
       });
 
-      const response = result.response;
+      const response = result.choices[0].message;
+      const functionCalls = response.tool_calls;
+      messages.push(response);
 
-      const functionCalls = response.functionCalls?.();
+      //const functionCalls = response.functionCalls?.();
 
       // Log function calls for debugging (optional)
       if (functionCalls && functionCalls.length > 0) {
@@ -299,17 +332,18 @@ exports.runAIControlledWorkflow = async ({
             functionCall?.id,
             userId
           );
-          // Add the model's response with function call to conversation
-          contents.push({
-            role: "model",
-            parts: [{ functionCall: functionCall }],
+          // Add tool response to messages
+          messages.push({
+            role: "tool",
+            tool_call_id: functionCall.id,
+            content: functionResponse.content,
           });
 
-          // Add the function response to conversation
-          contents.push({
-            role: "user",
-            parts: [{ functionResponse: functionResponse }],
-          });
+          // // Add the function response to conversation
+          // contents.push({
+          //   role: "user",
+          //   parts: [{ functionResponse: functionResponse }],
+          // });
         }
       } else {
         // Check if this is a greeting or casual conversation
@@ -322,7 +356,7 @@ exports.runAIControlledWorkflow = async ({
         const isGreeting = greetingPatterns.some(pattern =>
           pattern.test(userQuery.trim())
         );
-        let finalText = response.text();
+        let finalText = response.content;
         const isGreetingResponse =
           finalText &&
           (finalText.toLowerCase().includes("hello") ||
@@ -340,13 +374,11 @@ exports.runAIControlledWorkflow = async ({
           );
 
           // Add a message to force query execution
-          contents.push({
+          messages.push({
             role: "user",
-            parts: [
-              {
-                text: "You must execute a database query to answer this question. Do not provide an answer based on conversation history. Use execute_sql_query now.",
-              },
-            ],
+
+            content:
+              "You must execute a database query to answer this question. Do not provide an answer based on conversation history. Use execute_sql_query now.",
           });
           continue; // Continue the loop to force function call
         }
@@ -533,7 +565,7 @@ exports.summarizeConversation = async messages => {
   // You can use Gemini itself to create summaries
 
   const formatted = messages
-    .filter(m => m && (m.role === "user" || m.role === "model"))
+    .filter(m => m && (m.role === "user" || m.role === "assistant"))
     .map(m => `${m.role.toUpperCase()}: ${m.text}`)
     .join("\n");
   const prompt = `
@@ -545,25 +577,39 @@ Conversation:
 ${formatted}
   `;
 
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: analyticsData.modelName, // Using the updated model
+  //const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+  // const model = genAI.getGenerativeModel({
+  //   model: analyticsData.modelName, // Using the updated model
 
-    generationConfig: {
-      temperature: 0.1,
-    },
+  //   generationConfig: {
+  //     temperature: 0.1,
+  //   },
+  // });
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
   });
-
-  const resp = await model.generateContent({
-    contents: [
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
       {
         role: "user",
-        parts: [{ text: prompt }],
+        content: prompt,
       },
     ],
+    temperature: 0.1,
   });
 
-  return resp.response.candidates[0].content.parts[0].text;
+  // const resp = await model.generateContent({
+  //   contents: [
+  //     {
+  //       role: "user",
+  //       parts: [{ text: prompt }],
+  //     },
+  //   ],
+  // });
+
+  //return resp.response.candidates[0].content.parts[0].text;
+  return completion.choices[0].message.content;
 };
 
 exports.extractJsonFromResponse = async aiResponse => {

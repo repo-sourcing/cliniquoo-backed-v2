@@ -5,6 +5,8 @@ const { Op } = require("sequelize");
 const Clinic = require("../clinic/model");
 const Patient = require("../patient/model");
 const { sendWhatsAppPaymentConfirmation } = require("../../utils/msg91");
+const User = require("../user/model");
+const UserSubscription = require("../userSubscription/model");
 
 exports.sendPaymentConfirmtion = async () => {
   try {
@@ -33,6 +35,18 @@ exports.sendPaymentConfirmtion = async () => {
           model: Clinic,
           attributes: ["name", "mobile"],
           required: true, // only these fields from clinic table
+          include: [
+            {
+              model: User,
+              required: true,
+              include: [
+                {
+                  model: UserSubscription,
+                  where: { status: "active", subscriptionId: { [Op.ne]: 6 } }, //for exclude basic plan user
+                },
+              ],
+            },
+          ],
         },
         {
           model: Patient,
