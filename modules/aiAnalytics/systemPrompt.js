@@ -1,23 +1,95 @@
 const fs = require("fs");
 const path = require("path");
 const Handlebars = require("handlebars");
-const now = new Date();
-const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
-const currentMonth = now.getMonth() + 1;
-const currentYear = now.getFullYear();
-const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
 
-// Previous month
-const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-const prevYear = prevMonthDate.getFullYear();
-const prevMonth = String(prevMonthDate.getMonth() + 1).padStart(2, "0");
-const lastDayPrevMonth = new Date(
-  prevYear,
-  prevMonthDate.getMonth() + 1,
-  0
-).getDate();
+// const now = new Date();
+// const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+// const currentMonth = now.getMonth() + 1;
+// const currentYear = now.getFullYear();
+// const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
 
-exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
+// // Previous month
+// const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+// const prevYear = prevMonthDate.getFullYear();
+// const prevMonth = String(prevMonthDate.getMonth() + 1).padStart(2, "0");
+// const lastDayPrevMonth = new Date(
+//   prevYear,
+//   prevMonthDate.getMonth() + 1,
+//   0
+// ).getDate();
+
+function calculateDateContext() {
+  const now = new Date();
+  const currentDate = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
+
+  // Previous month
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevYear = prevMonthDate.getFullYear();
+  const prevMonth = String(prevMonthDate.getMonth() + 1).padStart(2, "0");
+  const lastDayPrevMonth = new Date(
+    prevYear,
+    prevMonthDate.getMonth() + 1,
+    0
+  ).getDate();
+
+  return {
+    currentDate,
+    currentMonth,
+    currentYear,
+    lastDayOfMonth,
+    prevYear,
+    prevMonth,
+    lastDayPrevMonth,
+  };
+}
+
+// exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
+//   // 1. Load .md file
+//   const templateSource = fs.readFileSync(
+//     path.join(__dirname, "systemPrompt.md"),
+//     "utf-8"
+//   );
+
+//   const schemaDoc = fs.readFileSync(
+//     path.join(__dirname, "databaseInfo.md"),
+//     "utf-8"
+//   );
+
+//   // 2. Compile with Handlebars
+//   const template = Handlebars.compile(templateSource);
+
+//   const schemaPrefix = otherDetails
+//     ? `${otherDetails.replace("schema is ", "")}.table_name`
+//     : "schema.table_name";
+
+//   // 4. Render with values
+//   const systemInstruction = template({
+//     dbType,
+//     otherDetails,
+//     schemaDoc,
+//     userId,
+//     currentDate,
+//     currentMonth,
+//     currentYear,
+//     lastDayOfMonth,
+//     prevYear,
+//     prevMonth, // already padded
+//     lastDayPrevMonth,
+//     schemaPrefix,
+//   });
+
+//   return systemInstruction;
+// };
+
+exports.generateSystemInstructionPrompt = (
+  dbType,
+  otherDetails,
+  userId,
+  dateContext = null
+) => {
   // 1. Load .md file
   const templateSource = fs.readFileSync(
     path.join(__dirname, "systemPrompt.md"),
@@ -36,19 +108,16 @@ exports.generateSystemInstructionPrompt = (dbType, otherDetails, userId) => {
     ? `${otherDetails.replace("schema is ", "")}.table_name`
     : "schema.table_name";
 
+  // ✅ NEW: Calculate dates fresh if not provided
+  const dates = dateContext || calculateDateContext();
+
   // 4. Render with values
   const systemInstruction = template({
     dbType,
     otherDetails,
     schemaDoc,
     userId,
-    currentDate,
-    currentMonth,
-    currentYear,
-    lastDayOfMonth,
-    prevYear,
-    prevMonth, // already padded
-    lastDayPrevMonth,
+    ...dates, // ✅ Spread the date values
     schemaPrefix,
   });
 
@@ -737,3 +806,5 @@ exports.analyticsData = {
 // 3. Must provide pure json output format.
 // 4. Don't add any comment in the json output.
 // 5. No extra space or any other text in the json and outside the json output.
+
+exports.calculateDateContext = calculateDateContext;

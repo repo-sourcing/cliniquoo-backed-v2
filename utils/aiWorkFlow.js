@@ -97,10 +97,20 @@ const treatmentAnalysisFunctionDeclaration = {
 };
 
 // Generate system instruction based on database type
-const generateSystemInstruction = (dbType, otherDetails, userId) => {
-  return generateSystemInstructionPrompt(dbType, otherDetails, userId);
+// Generate system instruction based on database type
+const generateSystemInstruction = (
+  dbType,
+  otherDetails,
+  userId,
+  dateContext
+) => {
+  return generateSystemInstructionPrompt(
+    dbType,
+    otherDetails,
+    userId,
+    dateContext
+  );
 };
-
 // Get model and system instruction (simplified approach)
 //
 const getModelAndSystemInstruction = ({
@@ -109,6 +119,7 @@ const getModelAndSystemInstruction = ({
   modelName,
   authKey,
   userId,
+  dateContext, // ✅ NEW: Accept dateContext parameter
 }) => {
   this.agentLog("modelName", modelName);
   const genAI = new GoogleGenerativeAI(authKey);
@@ -142,7 +153,8 @@ const getModelAndSystemInstruction = ({
   const systemInstruction = generateSystemInstruction(
     dbType,
     otherDetails,
-    userId
+    userId,
+    dateContext // ✅ NEW: Pass dateContext to generateSystemInstruction
   );
 
   return {
@@ -231,6 +243,7 @@ exports.runAIControlledWorkflow = async ({
   authKey,
   contextMessages = [], // ✅ NEW
   userId,
+  dateContext, // ✅ NEW: Accept dateContext parameter
 }) => {
   if (!userQuery) {
     // queryAgentNamespace.to(socketId).emit("response", {
@@ -251,6 +264,7 @@ exports.runAIControlledWorkflow = async ({
       modelName,
       authKey,
       userId,
+      dateContext, // ✅ NEW: Pass dateContext
     });
 
     // Start conversation with system instruction
