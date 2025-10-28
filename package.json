@@ -35,6 +35,7 @@
     "mysql2": "^2.3.3",
     "ngrok": "^4.3.3",
     "node-cron": "^4.2.1",
+    "openai": "^6.7.0",
     "puppeteer": "^24.17.0",
     "rate-limit-redis": "^4.2.1",
     "razorpay": "^2.8.4",
