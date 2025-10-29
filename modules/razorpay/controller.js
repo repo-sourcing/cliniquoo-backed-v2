@@ -39,6 +39,7 @@ exports.generatePayment = async (req, res, next) => {
       },
     };
     try {
+      console.log("razor pay key------------->", process.env.RAZORPAY_KEY_ID);
       order = await razorpayInstance.orders.create(options);
     } catch (err) {
       return next(createHttpError(err.statusCode, err.error.description));
