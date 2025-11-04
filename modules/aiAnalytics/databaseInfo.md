@@ -266,7 +266,6 @@ CREATE TABLE visitors (
 
 - timeSlot: 1-hour slots on hour boundaries [start, end]
 
-
 ### 12. MEDICAL HISTORY TABLE (`medicalHistories`)
 
 **Purpose**: Patient medical history records

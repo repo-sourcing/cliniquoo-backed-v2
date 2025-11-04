@@ -42,6 +42,22 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
         message: "User query is required",
       });
     }
+    const rawClinicIds = req.query.clinicIds; // "11,22,33"
+    let clinicIdArray = [];
+
+    if (rawClinicIds) {
+      clinicIdArray = rawClinicIds
+        .split(",") // split by comma
+        .map(id => id.trim()) // remove extra spaces
+        .filter(Boolean) // remove empty values
+        .map(Number); // convert to numbers
+    }
+    const clinicIdArraySQL =
+      Array.isArray(clinicIdArray) && clinicIdArray.length
+        ? clinicIdArray.join(", ")
+        : "NULL";
+
+    console.log("Clinic IDs Array:", clinicIdArray, clinicIdArraySQL);
 
     // ✅ NEW: Calculate fresh dates for this request
     const dateContext = calculateDateContext();
@@ -75,7 +91,8 @@ exports.getqueryAnalyticsByAI = async (req, res, next) => {
       authKey: process.env.GOOGLE_API_KEY,
       contextMessages: prior,
       userId: req.requestor.id,
-      dateContext: dateContext, // ✅ NEW: Pass fresh dates
+      dateContext: dateContext,
+      clinicIdArray: clinicIdArraySQL, // ✅ NEW: Pass fresh dates
     });
 
     // 5) persist assistant final message to Redis
