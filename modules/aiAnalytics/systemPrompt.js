@@ -34,7 +34,8 @@ exports.generateSystemInstructionPrompt = (
   dbType,
   otherDetails,
   userId,
-  dateContext = null
+  dateContext = null,
+  clinicIdArray
 ) => {
   // 1. Load .md file
   const templateSource = fs.readFileSync(
@@ -57,6 +58,8 @@ exports.generateSystemInstructionPrompt = (
   // ✅ NEW: Calculate dates fresh if not provided
   const dates = dateContext || calculateDateContext();
 
+  console.log("clinicIds Array in System Prompt:----------->", clinicIdArray);
+
   // 4. Render with values
   const systemInstruction = template({
     dbType,
@@ -65,6 +68,7 @@ exports.generateSystemInstructionPrompt = (
     userId,
     ...dates, // ✅ Spread the date values
     schemaPrefix,
+    clinicIdArray: clinicIdArray,
   });
 
   return systemInstruction;
@@ -92,8 +96,77 @@ Goal: Always return query results only for the system-provided userId.
 Never allow the user to override or specify their own userId in the query or prompt..
 `;
 
+exports.appointmentAnalysisFunctionDeclaration = {
+  type: "function",
+  function: {
+    name: "analyze_appointments",
+    description:
+      "Analyze appointment data with proper date handling and status filtering. IMPORTANT: For time-based queries, you MUST calculate and provide date parameters based on user's time references.",
+    parameters: {
+      type: "object",
+      properties: {
+        analysisType: {
+          type: "string",
+          enum: [
+            "total_count",
+            "by_date",
+            "by_date_range",
+            "by_status",
+            "by_clinic",
+            "by_patient",
+            "list_appointments",
+          ],
+          description: "Type of appointment analysis to perform",
+        },
+        date: {
+          type: "string",
+          description:
+            "Specific date for appointment analysis (YYYY-MM-DD format). Use for 'today', 'yesterday', or specific date queries.",
+        },
+        startDate: {
+          type: "string",
+          description:
+            "Start date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last week', 'this year', etc.",
+        },
+        endDate: {
+          type: "string",
+          description:
+            "End date for date range analysis (YYYY-MM-DD format). REQUIRED when user mentions time periods like 'this month', 'last week', 'this year', etc.",
+        },
+        status: {
+          type: "string",
+          enum: [
+            "scheduled",
+            "upcoming",
+            "completed",
+            "visited",
+            "canceled",
+            "cancelled",
+            "missed",
+          ],
+          description:
+            "Filter appointments by status. 'scheduled'/'upcoming' = future appointments, 'completed'/'visited' = past visited appointments, 'canceled' = canceled appointments, 'missed' = past appointments not visited",
+        },
+        patientId: {
+          type: "number",
+          description: "Specific patient ID (optional, for by_patient type)",
+        },
+        clinicId: {
+          type: "number",
+          description: "Specific clinic ID (optional, for by_clinic type)",
+        },
+        limit: {
+          type: "number",
+          description: "Number of results to return (default: 100)",
+        },
+      },
+      required: ["analysisType"],
+    },
+  },
+};
+
 exports.analyticsData = {
-  //   modelNale: "gemini-2.5-pro",
+  //modelName: "gemini-2.5-flash",
   modelName: "gpt-4.1",
 };
 

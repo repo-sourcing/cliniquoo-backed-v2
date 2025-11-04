@@ -294,7 +294,14 @@ exports.analyzeTreatmentsResolver = async ({
       ${startDate ? `AND DATE(t.createdAt) >= '${startDate}'` : ""}
       ${endDate ? `AND DATE(t.createdAt) <= '${endDate}'` : ""}
       ${patientId ? `AND p.id = ${patientId}` : ""}
-      ${clinicId ? `AND c.id = ${clinicId}` : ""}
+      
+      ${
+        clinicId
+          ? clinicId.includes(",")
+            ? `AND c.id IN (${clinicId})`
+            : `AND c.id = ${clinicId}`
+          : ""
+      }
       ORDER BY t.createdAt DESC
     `;
 

@@ -4,10 +4,14 @@ const sequelize = require("../config/db");
 const {
   generateSystemInstructionPrompt,
   analyticsData,
+  appointmentAnalysisFunctionDeclaration,
 } = require("../modules/aiAnalytics/systemPrompt");
 const {
   analyzeTreatmentsResolver,
 } = require("../modules/aiAnalytics/anlayzeTreatmentResolver");
+const {
+  analyzeAppointmentsResolver,
+} = require("../modules/aiAnalytics/analyzeAppointmentResolver");
 
 // Logging function that only prints when this.agentLog=1
 exports.agentLog = (message, ...args) => {
@@ -102,13 +106,15 @@ const generateSystemInstruction = (
   dbType,
   otherDetails,
   userId,
-  dateContext
+  dateContext,
+  clinicIdArray
 ) => {
   return generateSystemInstructionPrompt(
     dbType,
     otherDetails,
     userId,
-    dateContext
+    dateContext,
+    clinicIdArray
   );
 };
 // Get model and system instruction (simplified approach)
@@ -120,17 +126,25 @@ const getModelAndSystemInstruction = ({
   authKey,
   userId,
   dateContext, // ✅ NEW: Accept dateContext parameter
+  clinicIdArray,
 }) => {
   this.agentLog("modelName", modelName);
-  const genAI = new GoogleGenerativeAI(authKey);
+  //const genAI = new GoogleGenerativeAI(authKey);
+  //console.log("authKey", authKey, process.env.GOOGLE_API_KEY);
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    //apiKey: process.env.GOOGLE_API_KEY,
+    //baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
   });
   // The 'model' object is now just a configuration object for the API call
   const modelConfig = {
     model: modelName, // e.g., "gpt-4o-mini-2024-07-18"
-    tools: [sqlQueryFunctionDeclaration, treatmentAnalysisFunctionDeclaration], // Use the new tool definitions
+    tools: [
+      sqlQueryFunctionDeclaration,
+      treatmentAnalysisFunctionDeclaration,
+      appointmentAnalysisFunctionDeclaration,
+    ], // Use the new tool definitions
     temperature: 0.1,
   };
 
@@ -138,7 +152,8 @@ const getModelAndSystemInstruction = ({
     dbType,
     otherDetails,
     userId,
-    dateContext // ✅ NEW: Pass dateContext to generateSystemInstruction
+    dateContext, // ✅ NEW: Pass dateContext to generateSystemInstruction
+    clinicIdArray // ✅ NEW: Pass fresh clinic IDs
   );
 
   return {
@@ -153,7 +168,8 @@ const processFunctionCall = async (
   functionCall,
   executeSQLQuery,
   toolCallId,
-  userId
+  userId,
+  clinicId
 ) => {
   const { id, function: func } = functionCall; // OpenAI uses id and function
 
@@ -185,11 +201,27 @@ const processFunctionCall = async (
     const analysis = await analyzeTreatmentsResolver({
       ...args,
       userId,
-      executeSQLQuery, // important: reuse your secure executor
+      executeSQLQuery,
+      clinicId, // important: reuse your secure executor
     });
     return {
       tool_call_id: id,
 
+      role: "tool",
+      content: JSON.stringify(analysis),
+    };
+  }
+
+  if (func.name === "analyze_appointments") {
+    const args = JSON.parse(func.arguments);
+    const analysis = await analyzeAppointmentsResolver({
+      ...args,
+      userId,
+      executeSQLQuery,
+      clinicId, // important: reuse your secure executor
+    });
+    return {
+      tool_call_id: id,
       role: "tool",
       content: JSON.stringify(analysis),
     };
@@ -222,6 +254,7 @@ exports.runAIControlledWorkflow = async ({
   contextMessages = [], // ✅ NEW
   userId,
   dateContext, // ✅ NEW: Accept dateContext parameter
+  clinicIdArray, // ✅ NEW: Pass fresh clinic IDs
 }) => {
   if (!userQuery) {
     return {
@@ -238,7 +271,8 @@ exports.runAIControlledWorkflow = async ({
       modelName,
       authKey,
       userId,
-      dateContext, // ✅ NEW: Pass dateContext
+      dateContext,
+      clinicIdArray, // ✅ NEW: Pass dateContext
     });
 
     // Start conversation with system instruction
@@ -286,14 +320,19 @@ exports.runAIControlledWorkflow = async ({
     while (iteration < maxIterations) {
       iteration++;
       this.agentLog(`Iteration ${iteration}`);
-      this.agentLog(messages);
+      //this.agentLog(messages);
 
       const result = await model.chat.completions.create({
         messages: messages, // Pass the entire conversation history
-        ...config, // Spread the model config (model, tools, temperature)
+        // ...config, // Spread the model config (model, tools, temperature)
+        tools: config.tools,
+        model: config.model,
+        temperature: config.temperature,
+        // tool_choice: "auto",
       });
 
       const response = result.choices[0].message;
+      // console.log("response", response);
       const functionCalls = response.tool_calls;
       messages.push(response);
 
@@ -311,7 +350,8 @@ exports.runAIControlledWorkflow = async ({
             functionCall,
             executeSQLQuery,
             functionCall?.id,
-            userId
+            userId,
+            (clinicId = clinicIdArray)
           );
           // Add tool response to messages
           messages.push({
@@ -385,6 +425,7 @@ exports.runAIControlledWorkflow = async ({
         }
 
         const parsedResponse = await this.parseUnifiedResponse(finalText);
+        // console.log("parsedResponse", parsedResponse);
 
         // Parse the unified response
 
@@ -508,9 +549,12 @@ ${formatted}
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    //apiKey: process.env.GOOGLE_API_KEY,
+    //baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
   });
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
+    //model: "gemini-2.5-flash",
     messages: [
       {
         role: "user",
