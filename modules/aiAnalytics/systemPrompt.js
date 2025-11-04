@@ -167,7 +167,8 @@ exports.appointmentAnalysisFunctionDeclaration = {
 
 exports.analyticsData = {
   //modelName: "gemini-2.5-flash",
-  modelName: "gpt-4.1",
+  //modelName: "gpt-4.1",
+  modelName: "gpt-4o-mini",
 };
 
 exports.calculateDateContext = calculateDateContext;
