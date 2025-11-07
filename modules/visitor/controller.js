@@ -70,9 +70,23 @@ exports.schedule = async (req, res, next) => {
     //   return next(
     //     createError(200, "You can not schedule patient in past date")
     //   );
+
+    //centralize clinic: remove from all clinic future schedules for same patient
+
+    // first find all clinicId for this user
+    const clinics = await ClinicService.get({
+      where: {
+        userId: req.requestor.id,
+      },
+      attributes: ["id"],
+    });
+
+    const clinicIds = clinics.map(clinic => clinic.id);
+
     await service.remove({
       where: {
-        clinicId,
+        // clinicId,
+        clinicId: { [Op.in]: clinicIds },
         patientId,
         date: {
           [Op.gt]: new Date(moment().utcOffset("+05:30")),
@@ -541,10 +555,19 @@ exports.reschedule = async (req, res, next) => {
     const { date, clinicId, patientId, previousScheduleDate, timeSlot } =
       req.body;
 
+    const clinics = await ClinicService.get({
+      where: {
+        userId: req.requestor.id,
+      },
+      attributes: ["id"],
+    });
+
+    const clinicIds = clinics.map(clinic => clinic.id);
+
     const [visitor] = await service.get({
       where: {
         date,
-        clinicId,
+        clinicId: { [Op.in]: clinicIds },
         patientId,
       },
     });
@@ -557,7 +580,7 @@ exports.reschedule = async (req, res, next) => {
     const [findData] = await service.get({
       where: {
         date: previousScheduleDate,
-        clinicId,
+        clinicId: { [Op.in]: clinicIds },
         patientId,
       },
     });
@@ -599,25 +622,37 @@ exports.reschedule = async (req, res, next) => {
       });
 
       //if notification already sent and data is schedule cron is deleted
-      if (!findScheduleCronData && diffMinutes > 10) {
-        // If no scheduleCron exists, create a new one
-        await scheduleCronService.create({
-          visitorId: findData.id,
-          time: moment().add(10, "minutes"),
-          status: "rescheduled",
-        });
+      if (!findScheduleCronData) {
+        if (diffMinutes <= 10) {
+          // Within 10 minutes → create schedule only
+          await scheduleCronService.create({
+            visitorId: findData.id,
+            time: moment().add(10, "minutes"),
+            status: "scheduled",
+          });
+        } else {
+          // If no scheduleCron exists, create a new one
+          await scheduleCronService.create({
+            visitorId: findData.id,
+            time: moment().add(10, "minutes"),
+            status: "rescheduled",
+          });
+        }
       } else {
         if (diffMinutes <= 10) {
           // Within 10 minutes → update schedule only
-          let status =
-            findScheduleCronData.status == "scheduled"
-              ? "scheduled"
-              : "rescheduled";
 
-          await scheduleCronService.update(
-            { status: status, time: moment().add(10, "minutes") },
-            { where: { visitorId: findData.id } }
-          );
+          if (findScheduleCronData) {
+            let status =
+              findScheduleCronData?.status == "scheduled"
+                ? "scheduled"
+                : "rescheduled";
+
+            await scheduleCronService.update(
+              { status: status, time: moment().add(10, "minutes") },
+              { where: { visitorId: findData.id } }
+            );
+          }
         } else {
           // More than 10 minutes → update schedule and status to 'reschedule'
           await scheduleCronService.update(
@@ -632,11 +667,12 @@ exports.reschedule = async (req, res, next) => {
       {
         date,
         timeSlot: typeof timeSlot !== "undefined" ? timeSlot : null,
+        clinicId,
       },
       {
         where: {
           patientId,
-          clinicId,
+          clinicId: { [Op.in]: clinicIds },
           date: previousScheduleDate,
         },
       }
