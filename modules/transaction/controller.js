@@ -10,6 +10,7 @@ const Visitor = require("../visitor/model");
 const visitorService = require("../visitor/service");
 const createError = require("http-errors");
 const { createVisitorWithSlot } = require("../../utils/commonFunction");
+const Clinic = require("../clinic/model");
 
 exports.create = async (req, res, next) => {
   try {
@@ -292,6 +293,77 @@ exports.edit = async (req, res, next) => {
             patientId,
           },
         });
+      }
+
+      // Now, create or update the visitor entry for the new createdAt date
+      const [newVisitorEntry, created] = await visitorService.findOrCreate({
+        where: {
+          date: moment(createdAt).format("YYYY-MM-DD"),
+          clinicId,
+          patientId,
+        },
+        defaults: { isVisited: true, isSchedule: true },
+      });
+
+      const clinicData = await Clinic.findOne({
+        where: {
+          id: clinicId,
+        },
+      });
+      if (clinicData.timeRanges && clinicData.timeRanges.length > 0) {
+        //get clinic time slot
+        //find last time slot of clinic
+        const clinicTimeSlot =
+          clinicData.timeRanges[clinicData.timeRanges.length - 1]; //assuming last time range
+
+        //in if end-1 need to restructure because my end is like this 22:00
+        if (created) {
+          const endTime = moment(clinicTimeSlot.end, "HH:mm");
+          const startTime = moment(endTime).subtract(1, "hour");
+
+          // Update the timeSlot for the new visitor entry
+          await visitorService.update(
+            {
+              timeSlot: [startTime.format("HH:mm"), endTime.format("HH:mm")],
+            },
+            {
+              where: {
+                id: newVisitorEntry.id,
+              },
+            }
+          );
+        }
+      }
+
+      //if createdAt is less than today then update messageStatus to 1
+      //just check the date part
+
+      if (
+        moment(createdAt)
+          .utcOffset("+05:30")
+          .isBefore(moment().utcOffset("+05:30"), "day")
+      ) {
+        await service.update(
+          {
+            messageStatus: 1,
+          },
+          {
+            where: {
+              id,
+            },
+          }
+        );
+      } else {
+        await service.update(
+          {
+            messageStatus: 0,
+          },
+          {
+            where: {
+              id,
+            },
+          }
+        );
       }
     }
 

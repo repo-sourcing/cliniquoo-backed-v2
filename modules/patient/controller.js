@@ -54,7 +54,7 @@ exports.create = async (req, res, next) => {
       subscriptionData &&
       subscriptionData.planType === commonData.supscriptionPlanData.FREE
     ) {
-      if (subscriptionData.patientCount > subscriptionData.patientLimit) {
+      if (subscriptionData.patientCount >= subscriptionData.patientLimit) {
         return next(
           createError(
             200,
