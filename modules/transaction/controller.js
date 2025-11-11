@@ -319,7 +319,7 @@ exports.edit = async (req, res, next) => {
         //in if end-1 need to restructure because my end is like this 22:00
         if (created) {
           const endTime = moment(clinicTimeSlot.end, "HH:mm");
-          const startTime = moment(endTime).subtract(1, "hour");
+          const startTime = moment(endTime).subtract(30, "minutes");
 
           // Update the timeSlot for the new visitor entry
           await visitorService.update(

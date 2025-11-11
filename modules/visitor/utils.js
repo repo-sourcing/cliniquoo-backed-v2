@@ -11,6 +11,7 @@ const {
   sendWhatsAppAppointmentRescheduleConfirmation,
 } = require("../../utils/msg91");
 const UserSubscription = require("../userSubscription/model");
+const visitorService = require("./service");
 
 exports.runWhatsAppAppointmentReminderJob = async () => {
   try {
@@ -256,5 +257,69 @@ exports.runWhatsAppAppointmentReschedule = async visitorId => {
   } catch (err) {
     console.error("[CRON] Appointment rescheduled failed:", err?.stack || err);
     return 0;
+  }
+};
+
+exports.transferSlotToHourTo30Minutes = async () => {
+  try {
+    // 1️⃣ Get all visitors where timeSlot exists and is not null
+    const allVisitors = await visitorService.get({
+      where: {
+        timeSlot: {
+          [Op.ne]: null,
+        },
+      },
+    });
+
+    console.log(`🔍 Found ${allVisitors.length} visitors with timeSlot`);
+
+    for (const visitor of allVisitors) {
+      const timeSlot = visitor.timeSlot;
+
+      // Ensure it's a valid array like ["10:00", "11:00"]
+      if (!Array.isArray(timeSlot) || timeSlot.length !== 2) continue;
+
+      const [start, end] = timeSlot;
+      const startTime = moment(start, "HH:mm");
+      const endTime = moment(end, "HH:mm");
+
+      if (!startTime.isValid() || !endTime.isValid()) continue;
+
+      // 2️⃣ Calculate duration
+      const duration = endTime.diff(startTime, "minutes");
+
+      // 3️⃣ Only process if it's a 1-hour (60 min) slot
+      if (duration === 60) {
+        const newEnd = moment(endTime).subtract(30, "minutes");
+        const newTimeSlot = [startTime.format("HH:mm"), newEnd.format("HH:mm")];
+
+        // Ensure start < end (otherwise skip)
+        if (
+          moment(newTimeSlot[0], "HH:mm").isSameOrAfter(
+            moment(newTimeSlot[1], "HH:mm")
+          )
+        ) {
+          console.warn(
+            `⚠️ Skipping invalid slot for visitor ${visitor.id}:`,
+            newTimeSlot
+          );
+          continue;
+        }
+
+        console.log(
+          `⏰ Updating visitor ${visitor.id} from [${timeSlot}] → [${newTimeSlot}]`
+        );
+
+        // 4️⃣ Update DB
+        await visitorService.update(
+          { timeSlot: newTimeSlot },
+          { where: { id: visitor.id } }
+        );
+      }
+    }
+
+    console.log("✅ Conversion completed successfully!");
+  } catch (error) {
+    console.error("Error in transferring 1 hour slot to 30 minutes", error);
   }
 };

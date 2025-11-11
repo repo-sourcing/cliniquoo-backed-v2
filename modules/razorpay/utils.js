@@ -170,13 +170,18 @@ exports.assignTimeSlotsAfterUpgrade = async usersArray => {
           for (const range of timeRanges) {
             let start = moment(range.start, "HH:mm");
             const end = moment(range.end, "HH:mm");
+            console.log(
+              `⏰ Generating slots from ${range.start} to ${range.end}`
+            );
 
-            while (start.add(1, "hour").isSameOrBefore(end)) {
+            while (start.add(30, "minutes").isSameOrBefore(end)) {
               const slotStart = start
                 .clone()
-                .subtract(1, "hour")
+                .subtract(30, "minutes")
                 .format("HH:mm");
+
               const slotEnd = start.format("HH:mm");
+              console.log(`⏰ Generated slot from ${slotStart} to ${slotEnd}`);
               allSlots.push({ start: slotStart, end: slotEnd });
             }
           }
