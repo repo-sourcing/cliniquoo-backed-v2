@@ -21,9 +21,10 @@ function normalizeTimeSlot(val) {
   // accept only 1-hour range on hour boundaries
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
-  if (sm !== 0 || em !== 0) return [];
+  //if (sm !== 0 || em !== 0) return [];
+  if (!([0, 30].includes(sm) && [0, 30].includes(em))) return [];
   const duration = eh * 60 + em - (sh * 60 + sm);
-  if (duration !== 60) return [];
+  if (duration !== 30) return [];
   return [start, end];
 }
 
