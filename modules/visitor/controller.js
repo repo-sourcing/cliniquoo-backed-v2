@@ -188,13 +188,24 @@ exports.getAll = async (req, res, next) => {
           attributes: {
             include: [
               // Add treatment totals as virtual attributes using subqueries
+              // [
+              //   sequelize.literal(`(
+              //   SELECT COALESCE(SUM(amount), 0)
+              //   FROM treatments
+              //   WHERE treatments.patientId = patient.id
+              //   AND treatments.deletedAt IS NULL
+              // )`),
+              //   "totalTreatmentAmount",
+              // ],
               [
                 sequelize.literal(`(
-                SELECT COALESCE(SUM(amount), 0) 
-                FROM treatments 
-                WHERE treatments.patientId = patient.id 
-                AND treatments.deletedAt IS NULL
-              )`),
+              SELECT COALESCE(SUM(t.amount), 0)
+              FROM treatmentPlans tp
+              JOIN treatments t ON t.treatmentPlanId = tp.id
+              WHERE tp.patientId = patient.id
+              AND tp.deletedAt IS NULL
+              AND t.deletedAt IS NULL
+            )`),
                 "totalTreatmentAmount",
               ],
               [

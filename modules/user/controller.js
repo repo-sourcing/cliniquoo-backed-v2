@@ -147,6 +147,20 @@ exports.getOne = async (req, res, next) => {
       where: {
         id: req.params.id,
       },
+      include: [
+        {
+          model: UserSubscription,
+          where: { status: commonData.SubscriptionStatus.ACTIVE },
+          attributes: ["patientLimit", "status", "subscriptionId"],
+          required: false,
+          include: [
+            {
+              model: Subscription,
+              attributes: ["name", "planType"],
+            },
+          ],
+        },
+      ],
     });
 
     res.status(200).send({

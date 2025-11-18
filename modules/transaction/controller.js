@@ -164,6 +164,11 @@ exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
       ...sqquery(req.query),
+      include: [
+        {
+          model: Patient,
+        },
+      ],
     });
 
     res.status(200).send({
