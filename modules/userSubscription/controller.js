@@ -1,6 +1,7 @@
 const service = require("./service");
 const { Op, Sequelize } = require("sequelize");
 const { sqquery, usersqquery } = require("../../utils/query");
+const { commonData } = require("../user/constant");
 
 exports.create = async (req, res, next) => {
   try {
@@ -89,6 +90,38 @@ exports.remove = async (req, res, next) => {
     res.status(200).send({
       status: "success",
       message: "delete user subscription successfully",
+      data,
+    });
+  } catch (error) {
+    next(error || createError(404, "Data not found"));
+  }
+};
+exports.editPatientLimit = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const [getData] = await service.get({
+      where: {
+        userId: id,
+        subscriptionId: 10, // Free plan subscription id
+        status: commonData.SubscriptionStatus.ACTIVE,
+      },
+    });
+    if (!getData) {
+      return res.status(404).send({
+        status: 404,
+        message: "No active free plan subscription found for this user",
+      });
+    }
+    const data = await service.update(req.body, {
+      where: {
+        userId: id,
+        subscriptionId: 10, // Free plan subscription id
+      },
+    });
+
+    res.status(200).send({
+      status: 200,
+      message: "edit patient limit successfully",
       data,
     });
   } catch (error) {

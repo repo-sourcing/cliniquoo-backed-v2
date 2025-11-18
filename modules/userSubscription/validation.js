@@ -31,3 +31,18 @@ exports.updateSubscriptionValidation = async (req, res, next) => {
     });
   }
 };
+
+exports.updatePatientLimitValidation = async (req, res, next) => {
+  try {
+    const subscriptionSchema = yup.object().shape({
+      patientLimit: yup.number().required("patient limit is required"),
+    });
+    await subscriptionSchema.validate(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+};

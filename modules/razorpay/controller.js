@@ -11,6 +11,7 @@ const { commonData } = require("../user/constant");
 const Subscription = require("../subscription/model");
 const { Op } = require("sequelize");
 const { assignTimeSlotsAfterUpgrade } = require("./utils");
+const createHttpError = require("http-errors");
 
 exports.generatePayment = async (req, res, next) => {
   try {
@@ -39,7 +40,6 @@ exports.generatePayment = async (req, res, next) => {
       },
     };
     try {
-      console.log("razor pay key------------->", process.env.RAZORPAY_KEY_ID);
       order = await razorpayInstance.orders.create(options);
     } catch (err) {
       return next(createHttpError(err.statusCode, err.error.description));
