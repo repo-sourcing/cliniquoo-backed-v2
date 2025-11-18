@@ -19,6 +19,7 @@ const subscriptionService = require("../subscription/service");
 const UserTransaction = require("../userTransaction/model");
 const { commonData } = require("./constant");
 const moment = require("moment");
+const UserSubscription = require("../userSubscription/model");
 exports.create = async (req, res, next) => {
   try {
     // Find user with same phone number and email
@@ -62,6 +63,20 @@ exports.getAll = async (req, res, next) => {
   try {
     const data = await service.get({
       ...sqquery(req.query),
+      include: [
+        {
+          model: UserSubscription,
+          where: { status: commonData.SubscriptionStatus.ACTIVE },
+          attributes: ["patientLimit", "status", "subscriptionId"],
+          required: false,
+          include: [
+            {
+              model: Subscription,
+              attributes: ["name", "planType"],
+            },
+          ],
+        },
+      ],
     });
 
     res.status(200).send({
