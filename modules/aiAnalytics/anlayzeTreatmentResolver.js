@@ -6,7 +6,6 @@ const treatmentSynonyms = {
     "endodontic treatment",
     "endodontic",
     "rct treatment",
-    "ract",
   ],
 
   extraction: ["extract", "tooth extraction", "exo"],
@@ -92,12 +91,16 @@ const normalizeTreatmentName = treatmentName => {
   }
 
   // Special handling for specific patterns
-  if (name.includes("ract") || name.includes("rct") || name.includes("root")) {
+  if (name.includes("rct") || name.includes("root")) {
     return "Root Canal Treatment";
   }
 
   // Check for wisdom tooth patterns - should be extraction
-  if (name.includes("impaction") || name.includes("disimpaction")) {
+  if (
+    name.includes("impaction") ||
+    name.includes("disimpaction") ||
+    name.includes("extraction")
+  ) {
     return "Extraction";
   }
 
@@ -274,6 +277,7 @@ exports.analyzeTreatmentsResolver = async ({
           "Try asking with specific dates like 'treatments this month' or 'RCT treatments in January 2025'",
       };
     }
+    console.log("treatmentNAme", treatmentName);
     // Get all treatments
     const baseQuery = `
       SELECT 
@@ -402,7 +406,7 @@ exports.analyzeTreatmentsResolver = async ({
             summary: `No ${treatmentName} treatments found in your records.`,
             userFriendlyResponse: true,
             simpleResponse: true,
-            suggestion: getSuggestionForNoResults(treatmentName),
+            //suggestion: getSuggestionForNoResults(treatmentName),
           };
         }
 
