@@ -264,11 +264,6 @@ exports.getOne = async (req, res, next) => {
 };
 exports.getAllVisitorByDate = async (req, res, next) => {
   try {
-    console.log(
-      "------------->",
-      moment(req.query.date).subtract(330, "minutes").toDate(),
-      moment(req.query.date).add(1, "day").subtract(330, "minutes").toDate()
-    );
     const data = await service.findAndCountAll({
       where: {
         date: req.query.date,
