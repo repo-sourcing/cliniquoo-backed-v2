@@ -232,6 +232,10 @@ exports.getOne = async (req, res, next) => {
     const discountAmount = totalDiscount;
     //totalDiscount=
     const finalPayment = safeTotalPayment - totalDiscount;
+    let pendingPayment = Number(finalPayment) - Number(safeReceivedPayment);
+    if (pendingPayment < 0) {
+      pendingPayment = 0;
+    }
 
     res.status(200).send({
       status: "success",
@@ -239,7 +243,7 @@ exports.getOne = async (req, res, next) => {
       receivedPayment: safeReceivedPayment,
       discountAmount,
       totalPayment: safeTotalPayment,
-      pendingPayment: finalPayment - safeReceivedPayment,
+      pendingPayment,
       finalPayment,
       nextSchedule: nextSchedule[0],
     });

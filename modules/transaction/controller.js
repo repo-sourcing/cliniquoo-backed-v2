@@ -309,6 +309,18 @@ exports.edit = async (req, res, next) => {
         },
         defaults: { isVisited: true, isSchedule: true },
       });
+      if (created) {
+        visitorService.update(
+          { isVisited: true },
+          {
+            where: {
+              date: moment(createdAt).format("YYYY-MM-DD"),
+              clinicId,
+              patientId,
+            },
+          }
+        );
+      }
 
       const clinicData = await Clinic.findOne({
         where: {

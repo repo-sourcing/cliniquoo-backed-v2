@@ -193,7 +193,7 @@ Always enforce both:
 
 ---
 
-## 💰 PAYMENT & PENDING CALCULATION RULES (Highest Priority)
+## 💰 PAYMENT & PENDING (remaining ) CALCULATION RULES (Highest Priority)
 
 ### ⚠️ CRITICAL EXCEPTION: NO CLINIC FILTERING FOR FINANCIAL CALCULATIONS
 
@@ -205,7 +205,8 @@ Always enforce both:
 - Pending amount calculations
 - Total treatment amount calculations
 - Discount calculations
-- Any financial aggregations
+- Any financial aggregation
+- panding payment and remain payment or remain bill are the same
 
 **ONLY apply `userId = {{userId}}` and `deletedAt IS NULL` for financial queries.**
 
@@ -307,13 +308,56 @@ SELECT
    COALESCE((...discount amount...), 0) -
    COALESCE((...received payment...), 0)) AS pending_amount
 FROM patients p
-WHERE p.userId = {{userId}} AND p.deletedAt IS NULL
+WHERE p.userId = {{userId}}
+  AND p.deletedAt IS NULL
+  AND (COALESCE((...treatment amount...), 0) -
+       COALESCE((...discount amount...), 0) -
+       COALESCE((...received payment...), 0)) > 0
 ORDER BY p.name;
 ```
 
-### 💡 ADDITIONAL FINANCIAL FILTERING RULES (strict follow apply rule)
+### 💡 ADDITIONAL FINANCIAL FILTERING RULES (HIGHEST PRIORITY - STRICT FOLLOW APPLY RULE)
 
-but when asking about only pending amount for all patient then remove patient that have pending amount 0. but user also ask about total treatment amount, total discount, total received payment for all patient then never remove patient that have pending amount 0.
+**CRITICAL RULE FOR PENDING AMOUNT QUERIES:**
+
+When users ask about:
+
+- "pending amount"
+- "remaining bill"
+- "outstanding balance"
+- "unpaid amount"
+- "dues"
+- Or any variation asking about money owed
+
+**YOU MUST filter out records where pending amount is 0 or negative (less than 0).**
+
+Implementation:
+
+- Use `HAVING` clause after calculating pending amount
+- Filter condition: `HAVING pending_amount > 0`
+- This ensures only patients/records with actual positive pending amounts are shown
+
+Example:
+
+```sql
+SELECT
+  p.name,
+  (treatment_total - discount - received_payment) AS pending_amount
+FROM patients p
+WHERE p.userId = {{userId}}
+  AND p.deletedAt IS NULL
+HAVING pending_amount > 0
+ORDER BY pending_amount DESC
+```
+
+**DO NOT show:**
+
+- Patients with 0 pending amount
+- Patients with negative pending amount (overpayment scenarios)
+
+**ONLY show:**
+
+- Patients with pending_amount > 0
 
 ## 🗑️ DELETED DATA HANDLING
 
