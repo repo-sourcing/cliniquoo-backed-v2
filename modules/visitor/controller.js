@@ -1,7 +1,7 @@
 const service = require("./service");
 const scheduleCronService = require("../scheduleCronTable/service");
 const Visitor = require("./model");
-const { Op, Sequelize } = require("sequelize");
+const { Op, Sequelize, literal } = require("sequelize");
 const Patient = require("../patient/model");
 const Transaction = require("../transaction/model");
 const transactionService = require("../transaction/service");
@@ -14,8 +14,7 @@ const TreatmentPlan = require("../treatmentPlan/model");
 const ClinicService = require("../clinic/service");
 const createError = require("http-errors");
 const { commonData } = require("../user/constant");
-
-exports.create = async (req, res, next) => {
+const db = (exports.create = async (req, res, next) => {
   try {
     const { date, clinicId, patientId, timeSlot } = req.body;
     // let previousScheduleData;
@@ -60,7 +59,7 @@ exports.create = async (req, res, next) => {
   } catch (error) {
     next(error || createError(404, "Data not found"));
   }
-};
+});
 
 exports.schedule = async (req, res, next) => {
   try {
@@ -395,7 +394,14 @@ exports.getAllVisitorByDate = async (req, res, next) => {
 
           // Corrected formula: totalRemainBill = totalTreatmentAmount - totalTransactionAmount - discountAmount
           rowData.patient.totalRemainBill =
-            totalTreatmentAmount - totalTransactionAmount - discountAmount;
+            Number(totalTreatmentAmount) -
+            Number(totalTransactionAmount) -
+            Number(discountAmount);
+
+          //add a condition if totalRemainBill is <0 then show 0
+          if (rowData.patient.totalRemainBill < 0) {
+            rowData.patient.totalRemainBill = 0;
+          }
         }
         return rowData;
       }),
@@ -503,17 +509,49 @@ exports.countOfvisitorForAllDates = async (req, res, next) => {
       },
       group: [Sequelize.fn("date", Sequelize.col("date"))],
     });
-    const missPatientCount = await Visitor.count({
-      where: {
-        date: {
-          [Op.lte]: new Date(moment().utcOffset("+05:30").subtract(1, "days")),
-          [Op.gte]: moment(startDate),
+
+    // const missPatientCount = await Visitor.count({
+    //   where: {
+    //     date: {
+    //       [Op.lte]: new Date(moment().utcOffset("+05:30").subtract(1, "days")),
+    //       [Op.gte]: moment(startDate),
+    //     },
+    //     isVisited: false,
+    //     clinicId: req.query.clinicId,
+    //   },
+    //   group: [Sequelize.fn("date", Sequelize.col("date"))],
+    // });
+
+    const missPatientCount = await sequelize.query(
+      `
+    SELECT
+      DATE(v.date) AS 'date(\`date\`)',
+      COUNT(v.id) AS count
+    FROM visitors v
+    INNER JOIN patients p
+        ON v.patientId = p.id
+        AND p.deletedAt IS NULL
+    LEFT JOIN transactions t
+        ON t.patientId = p.id
+       AND DATE(DATE_ADD(t.createdAt, INTERVAL 330 MINUTE)) = DATE(v.date)
+       AND t.deletedAt IS NULL
+    WHERE
+        v.clinicId = :clinicId
+        AND v.date BETWEEN :startDate AND :endDate
+        AND v.deletedAt IS NULL
+        AND t.id IS NULL
+    GROUP BY DATE(v.date)
+    ORDER BY DATE(v.date);
+    `,
+      {
+        replacements: {
+          clinicId: req.query.clinicId,
+          startDate: moment().subtract(14, "days").format("YYYY-MM-DD"),
+          endDate: moment().subtract(1, "days").format("YYYY-MM-DD"),
         },
-        isVisited: false,
-        clinicId: req.query.clinicId,
-      },
-      group: [Sequelize.fn("date", Sequelize.col("date"))],
-    });
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
     res.status(200).send({
       status: "success",
       featurePatientCount,
