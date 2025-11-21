@@ -231,10 +231,16 @@ exports.getOne = async (req, res, next) => {
     // const discountAmount = data?.discountAmount || 0;
     const discountAmount = totalDiscount;
     //totalDiscount=
-    const finalPayment = safeTotalPayment - totalDiscount;
+
+    let finalPayment = safeTotalPayment - totalDiscount;
+
     let pendingPayment = Number(finalPayment) - Number(safeReceivedPayment);
     if (pendingPayment < 0) {
       pendingPayment = 0;
+    }
+
+    if (Number(safeTotalPayment) == 0) {
+      finalPayment = 0;
     }
 
     res.status(200).send({

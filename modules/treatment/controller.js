@@ -32,11 +32,11 @@ exports.create = async (req, res, next) => {
     let subscriptionData = req.requestor.subscription;
 
     //create visitor slot
-    await createVisitorWithSlot({
-      clinicId,
-      patientId,
-      planType: subscriptionData.planType,
-    });
+    // await createVisitorWithSlot({
+    //   clinicId,
+    //   patientId,
+    //   planType: subscriptionData.planType,
+    // });
 
     await Patient.increment("remainBill", {
       by: req.body.amount,
