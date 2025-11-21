@@ -293,6 +293,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           ],
         },
       ],
+      distinct: true,
     });
 
     // Extract unique patient IDs from the data
@@ -434,13 +435,39 @@ exports.getAllVisitorByDate = async (req, res, next) => {
           },
         },
       }),
-      service.count({
-        where: {
-          date: req.query.date,
-          clinicId: req.query.clinicId,
-          isVisited: true,
-        },
-      }),
+      //  service.count({
+      //     where: {
+      //       date: req.query.date,
+      //       clinicId: req.query.clinicId,
+      //       isVisited: true,
+      //     },
+      //   }),
+      sequelize.query(
+        `
+  SELECT
+    COUNT(DISTINCT v.id) AS count  -- Added DISTINCT
+  FROM visitors v
+  INNER JOIN patients p
+      ON v.patientId = p.id
+     AND p.deletedAt IS NULL
+  INNER JOIN transactions t
+      ON t.patientId = p.id
+     AND DATE(DATE_ADD(t.createdAt, INTERVAL 330 MINUTE)) = DATE(v.date)
+     AND t.deletedAt IS NULL
+  WHERE
+      v.clinicId = :clinicId
+      AND DATE(v.date) = :date
+      AND v.deletedAt IS NULL
+  GROUP BY DATE(v.date);
+  `,
+        {
+          replacements: {
+            clinicId: req.query.clinicId,
+            date: req.query.date,
+          },
+          type: sequelize.QueryTypes.SELECT,
+        }
+      ),
       service.count({
         where: {
           date: req.query.date,
@@ -453,9 +480,9 @@ exports.getAllVisitorByDate = async (req, res, next) => {
       status: "success",
       totalAmount: totalAmount ? totalAmount : 0,
       cashAmount: cashAmount ? cashAmount : 0,
-      visited: visited ? visited : 0,
+      visited: visited.length > 0 ? visited[0]?.count : 0,
       totalVisitor: totalVisitor ? totalVisitor : 0,
-      pendingVisitor: totalVisitor - visited,
+      pendingVisitor: totalVisitor - (visited[0]?.count || 0),
       data: enrichedData,
     });
   } catch (error) {

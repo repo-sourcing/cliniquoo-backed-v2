@@ -397,6 +397,49 @@ exports.remove = async (req, res, next) => {
   try {
     const id = req.params.id;
 
+    const [deleteTransaction] = await service.get({
+      where: {
+        id,
+        clinicId: req.body.clinicId,
+      },
+    });
+    if (!deleteTransaction) {
+      return next(
+        createError(
+          404,
+          "This transaction is linked to another clinic. Please delete it from that clinic."
+        )
+      );
+    }
+
+    // Check if there are any other transactions on the previous date
+    const otherTransactionsOnPreviousDate = await service.get({
+      where: {
+        clinicId: deleteTransaction.clinicId,
+        patientId: deleteTransaction.patientId,
+        createdAt: {
+          [Op.between]: [
+            moment(deleteTransaction.createdAt).startOf("day").toDate(),
+            moment(deleteTransaction.createdAt).endOf("day").toDate(),
+          ],
+        },
+        id: {
+          [Op.ne]: id, // Exclude the current transaction
+        },
+      },
+    });
+
+    // If no other transactions exist on the previous date, delete the visitor entry
+    if (otherTransactionsOnPreviousDate.length === 0) {
+      await visitorService.remove({
+        where: {
+          date: moment(deleteTransaction.createdAt).utcOffset("+05:30"),
+          clinicId: deleteTransaction.clinicId,
+          patientId: deleteTransaction.patientId,
+        },
+      });
+    }
+
     const data = await service.remove({
       where: {
         id,

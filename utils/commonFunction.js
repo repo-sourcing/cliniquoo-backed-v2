@@ -22,14 +22,25 @@ exports.createVisitorWithSlot = async function ({
     dataClinic.timeRanges.length === 0 ||
     planType == commonData.supscriptionPlanData.BASIC
   ) {
-    return visitorService.findOrCreate({
+    const [visitor, created] = await visitorService.findOrCreate({
       where: {
-        date: now.startOf("day"), // date only
+        date: now.startOf("day"),
         clinicId,
         patientId,
       },
-      defaults: { isVisited: true },
+      defaults: {
+        isVisited: true,
+      },
     });
+
+    // If already exists, update fields
+    if (created) {
+      await visitor.update({
+        isVisited: true,
+      });
+    }
+
+    return visitor;
   }
 
   // Step 4: If timeRanges exist → calculate slot
@@ -62,7 +73,7 @@ exports.createVisitorWithSlot = async function ({
 
   console.log("🕒 Assigned time slot:", timeSlot);
 
-  return visitorService.findOrCreate({
+  const [visitor, created] = await visitorService.findOrCreate({
     where: {
       date: now.startOf("day"),
       clinicId,
@@ -73,4 +84,13 @@ exports.createVisitorWithSlot = async function ({
       timeSlot,
     },
   });
+
+  // If already exists, update fields
+  if (created) {
+    await visitor.update({
+      isVisited: true,
+    });
+  }
+
+  return visitor;
 };
