@@ -137,6 +137,7 @@ exports.analyzeAppointmentsResolver = async ({
     // Add soft delete conditions
     whereConditions.push("p.deletedAt IS NULL");
     whereConditions.push("c.deletedAt IS NULL");
+    whereConditions.push("v.deletedAt IS NULL");
 
     // Build the query based on analysis type
     let query = "";
