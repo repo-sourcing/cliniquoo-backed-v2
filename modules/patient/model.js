@@ -41,6 +41,10 @@ const Patient = sequelize.define(
     //   type: Sequelize.INTEGER,
     //   defaultValue: 0,
     // },
+    notes: {
+      type: Sequelize.TEXT,
+      allowNull: true,
+    },
     isActive: {
       type: Sequelize.BOOLEAN,
       defaultValue: true,
