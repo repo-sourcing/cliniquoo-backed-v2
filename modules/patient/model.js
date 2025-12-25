@@ -45,6 +45,17 @@ const Patient = sequelize.define(
       type: Sequelize.TEXT,
       allowNull: true,
     },
+    files: {
+      type: Sequelize.TEXT,
+      allowNull: true,
+      get() {
+        const rawValue = this.getDataValue("files");
+        return rawValue ? JSON.parse(rawValue) : [];
+      },
+      set(value) {
+        this.setDataValue("files", JSON.stringify(value));
+      },
+    },
     isActive: {
       type: Sequelize.BOOLEAN,
       defaultValue: true,

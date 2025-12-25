@@ -577,3 +577,36 @@ exports.deletePatientAndPatientRelation = async (userId, patientId) => {
     throw error;
   }
 };
+
+exports.uploadFiles = async (req, res, next) => {
+  try {
+    const mediaData = req.files.map(file => {
+      return {
+        link: file.location,
+        type: file.mimetype,
+        originalname: file.originalname,
+      };
+    });
+
+    res.status(200).json({ status: "success", data: mediaData });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const { deleteFromS3 } = require("../../utils/s3Utils");
+
+exports.deleteFile = async (req, res, next) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      throw createError(400, "Url is required");
+    }
+    await deleteFromS3(url);
+    res
+      .status(200)
+      .json({ status: "success", message: "File deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
