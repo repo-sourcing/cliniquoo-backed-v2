@@ -17,6 +17,13 @@ exports.patientValidation = async (req, res, next) => {
       remainBill: yup.number(),
       lastVisitedDate: yup.date(),
       notes: yup.string(),
+      files: yup.array().of(
+        yup.object().shape({
+          link: yup.string(),
+          type: yup.string(),
+          originalname: yup.string(),
+        })
+      ),
     });
     await patientSchema.validate(req.body);
     next();
@@ -46,6 +53,13 @@ exports.updatePatientValidation = async (req, res, next) => {
       notes: yup.string(),
 
       isActive: yup.boolean(),
+      files: yup.array().of(
+        yup.object().shape({
+          link: yup.string(),
+          type: yup.string(),
+          originalname: yup.string(),
+        })
+      ),
     });
     await patientSchema.validate(req.body);
     next();
