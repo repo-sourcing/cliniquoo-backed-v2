@@ -70,3 +70,18 @@ exports.updatePatientValidation = async (req, res, next) => {
     });
   }
 };
+exports.fileValidation = async (req, res, next) => {
+  try {
+    const patientSchema = yup.object().shape({
+      patientId: yup.number().required("patientId is required"),
+    })
+    await patientSchema.validate(req.body);
+    next();
+
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      errors: error.errors[0],
+    });
+  }
+} 
