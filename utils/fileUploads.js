@@ -13,11 +13,14 @@ const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.Bucket,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    contentDisposition: "inline",
     metadata: function (req, file, cb) {
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-      cb(null, Date.now().toString() + path.extname(file.originalname));
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
     },
   }),
 });

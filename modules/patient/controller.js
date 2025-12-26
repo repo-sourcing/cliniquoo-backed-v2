@@ -597,7 +597,7 @@ exports.uploadFiles = async (req, res, next) => {
       if (patient && patient.length > 0) {
         const currentPatient = patient[0];
         const currentFiles = currentPatient.files || [];
-        const newFiles = [...currentFiles, ...mediaData];
+        const newFiles = [...mediaData, ...currentFiles];
 
         await service.update({ files: newFiles }, { where: { id: patientId } });
 
