@@ -588,6 +588,24 @@ exports.uploadFiles = async (req, res, next) => {
       };
     });
 
+    if (req.body.patientId) {
+      const patientId = Number(req.body.patientId);
+      const patient = await service.get({
+        where: { id: patientId, userId: req.requestor.id },
+      });
+
+      if (patient && patient.length > 0) {
+        const currentPatient = patient[0];
+        const currentFiles = currentPatient.files || [];
+        const newFiles = [...currentFiles, ...mediaData];
+
+        await service.update({ files: newFiles }, { where: { id: patientId } });
+
+        // Invalidate cache
+        redisClient.DEL(`patient?userId=${req.requestor.id}`);
+      }
+    }
+
     res.status(200).json({ status: "success", data: mediaData });
   } catch (err) {
     next(err);
@@ -598,11 +616,29 @@ const { deleteFromS3 } = require("../../utils/s3Utils");
 
 exports.deleteFile = async (req, res, next) => {
   try {
-    const { url } = req.query;
+    const { url, patientId } = req.query;
     if (!url) {
       throw createError(400, "Url is required");
     }
+    if (!patientId) {
+      throw createError(400, "patientId is required");
+    }
     await deleteFromS3(url);
+
+    // Update patient record
+    const patient = await service.get({
+      where: { id: patientId, userId: req.requestor.id },
+    });
+
+    if (patient && patient.length > 0) {
+      const currentPatient = patient[0];
+      const currentFiles = currentPatient.files || [];
+      const newFiles = currentFiles.filter(file => file.link !== url);
+
+      await service.update({ files: newFiles }, { where: { id: patientId } });
+      redisClient.DEL(`patient?userId=${req.requestor.id}`);
+    }
+
     res
       .status(200)
       .json({ status: "success", message: "File deleted successfully" });
