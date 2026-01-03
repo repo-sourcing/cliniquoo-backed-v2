@@ -25,7 +25,7 @@ router
   .post(patientValidation, subscriptionData, create);
 router.route("/pending-amounts").get(getPatientsWithPendingAmount);
 
-router.post("/files", upload.array("file"), uploadFiles);
+router.post("/files", upload.array("file"), subscriptionData, uploadFiles);
 router.delete("/files", deleteFile);
 router
   .route("/:id")
