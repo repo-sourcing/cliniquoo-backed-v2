@@ -24,6 +24,7 @@ exports.getAll = async (req, res, next) => {
         planType: { [Op.ne]: ["Free Plan"] },
       },
       //  ...sqquery(req.query),
+      order: [["day", "ASC"]],
     });
 
     res.status(200).send({
