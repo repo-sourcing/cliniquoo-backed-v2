@@ -580,6 +580,26 @@ exports.deletePatientAndPatientRelation = async (userId, patientId) => {
 
 exports.uploadFiles = async (req, res, next) => {
   try {
+    let subscriptionData = req.requestor.subscription;
+    //check patient limit with patient count
+
+    if (!subscriptionData) {
+      return next(
+        createError(200, "Something went wrong please try again later")
+      );
+    }
+    if (
+      (subscriptionData &&
+        subscriptionData.planType === commonData.supscriptionPlanData.FREE) ||
+      subscriptionData.planType === commonData.supscriptionPlanData.BASIC
+    ) {
+      return next(
+        createError(
+          200,
+          `You Can't add a files in this plan, Please upgrade your plan to add more files`
+        )
+      );
+    }
     const mediaData = req.files.map(file => {
       return {
         link: file.location,
