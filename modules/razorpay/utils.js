@@ -127,14 +127,19 @@ exports.subscriptionActivationCron = async () => {
     console.error("❌ Error running subscription status cron:", error);
   }
 };
-exports.assignTimeSlotsAfterUpgrade = async usersArray => {
+exports.assignTimeSlotsAfterUpgrade = async (usersArray, clinicId = null) => {
   try {
     for (const userId of usersArray) {
       console.log(`🎯 Running time slot assignment for user ${userId}`);
+      whereCondition = { userId };
+
+      if (clinicId) {
+        whereCondition["id"] = clinicId;
+      }
 
       // 1️⃣ Get all clinics for this user
       const clinics = await clinicService.get({
-        where: { userId },
+        where: whereCondition,
         attributes: ["id", "timeRanges"],
       });
 
