@@ -8,6 +8,7 @@ const Transaction = require("../transaction/model");
 const Visitor = require("../visitor/model");
 const PatientBill = require("../patientBill/model");
 const { commonData } = require("../user/constant");
+const { assignTimeSlotsAfterUpgrade } = require("../razorpay/utils");
 
 function normalizeTimeRangesInput(input) {
   if (!input) return undefined; // don't set if absent
@@ -121,6 +122,12 @@ exports.edit = async (req, res, next) => {
       message: "edit clinic successfully",
       data,
     });
+
+    //for update a time slot when clinic is edites by time
+
+    if (req?.body?.scheduleByTime) {
+      assignTimeSlotsAfterUpgrade([req.requestor.id], id);
+    }
   } catch (error) {
     next(error || createError(404, "Data not found"));
   }
