@@ -1,5 +1,5 @@
 exports.commonData = {
-  patientLimit: 20,
+  patientLimit: 50,
 
   subscriptionPlans: [
     {
