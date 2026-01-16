@@ -269,6 +269,7 @@ exports.edit = async (req, res, next) => {
     // Check if createdAt has changed
     if (
       previousCreatedAt &&
+      createdAt &&
       moment(previousCreatedAt).format("YYYY-MM-DD") !==
         moment(createdAt).format("YYYY-MM-DD")
     ) {
