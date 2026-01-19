@@ -94,6 +94,11 @@ exports.getDashboardAnalytics = async (req, res, next) => {
         [Op.between]: [startDate, endDate],
       },
     };
+    const visitCountFilter = {
+      date: {
+        [Op.between]: [startDate, endDate],
+      },
+    };
 
     console.log("startDate:", startDate, "endDate:", endDate);
 
@@ -105,6 +110,8 @@ exports.getDashboardAnalytics = async (req, res, next) => {
       filteredRevenue,
       filteredPayment,
       filteredFilteredPatient,
+      allTimeVisitor,
+      filterdVisitor,
     ] = await Promise.all([
       // 1. Total Revenue (All Time)
       treatmentPlanIds.length > 0
@@ -150,6 +157,21 @@ exports.getDashboardAnalytics = async (req, res, next) => {
           ...dateFilter,
         },
       }),
+      //8. total Visitor All time
+      Visitor.count({
+        where: {
+          clinicId: { [Op.in]: clinicIds },
+          isVisited: true,
+        },
+      }),
+      //9. Filtered Visitor
+      Visitor.count({
+        where: {
+          clinicId: { [Op.in]: clinicIds },
+          isVisited: true,
+          ...visitCountFilter,
+        },
+      }),
     ]);
 
     // Handle null results from sums
@@ -159,6 +181,8 @@ exports.getDashboardAnalytics = async (req, res, next) => {
     const currentRevenue = filteredRevenue || 0;
     const currentPayment = filteredPayment || 0;
     const currentPatientCount = filteredFilteredPatient || 0;
+    const totalVisitor = allTimeVisitor || 0;
+    const filteredVisitor = filterdVisitor || 0;
 
     // 4. Total Pending Amount
     const totalPendingAmount = totalRevenue - totalPayment;
@@ -170,6 +194,8 @@ exports.getDashboardAnalytics = async (req, res, next) => {
         totalPayment,
         totalPatients,
         totalPendingAmount,
+        totalVisitor,
+        filteredVisitor,
         filteredRevenue: currentRevenue,
         filteredPayment: currentPayment,
         filteredPatientCount: currentPatientCount,
