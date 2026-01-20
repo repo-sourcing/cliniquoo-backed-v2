@@ -34,7 +34,7 @@ exports.createVisitorWithSlot = async function ({
     });
 
     // If already exists, update fields
-    if (created) {
+    if (visitor) {
       await visitor.update({
         isVisited: true,
       });
@@ -86,7 +86,7 @@ exports.createVisitorWithSlot = async function ({
   });
 
   // If already exists, update fields
-  if (created) {
+  if (visitor) {
     await visitor.update({
       isVisited: true,
     });
