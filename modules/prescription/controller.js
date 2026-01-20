@@ -25,7 +25,7 @@ exports.create = async (req, res, next) => {
 
   if (!subscriptionData) {
     return next(
-      createError(404, "Something went wrong please try again later")
+      createError(404, "Something went wrong please try again later"),
     );
   }
   if (
@@ -218,7 +218,7 @@ exports.sendPrescription = async (req, res, next) => {
 
     if (!subscriptionData) {
       return next(
-        createError(404, "Something went wrong please try again later")
+        createError(404, "Something went wrong please try again later"),
       );
     }
     if (
@@ -226,7 +226,7 @@ exports.sendPrescription = async (req, res, next) => {
       subscriptionData.planType === commonData.supscriptionPlanData.BASIC
     ) {
       return next(
-        createError(404, `Please upgrade a plan to use this feature`)
+        createError(404, `Please upgrade a plan to use this feature`),
       );
     }
     const [data] = await service.get({
@@ -237,7 +237,7 @@ exports.sendPrescription = async (req, res, next) => {
       include: [
         {
           model: Transaction,
-          attributes: ["id"],
+          attributes: ["id", "createdAt"],
           include: [
             {
               model: Patient,
@@ -279,10 +279,13 @@ exports.sendPrescription = async (req, res, next) => {
     const doctor = patient.user;
     const visitor = patient.visitors[0];
 
-    const visitorDate =
-      visitor?.timeSlot?.length && visitor?.timeSlot
-        ? `${visitor.date} ${visitor.timeSlot[0]} to ${visitor.timeSlot[1]}`
-        : `${visitor.date}`;
+    //find date from createdAt
+    const visitorDate = transaction.createdAt.toISOString().split("T")[0];
+
+    // const visitorDate =
+    //   visitor?.timeSlot?.length && visitor?.timeSlot
+    //     ? `${visitor.date} ${visitor.timeSlot[0]} to ${visitor.timeSlot[1]}`
+    //     : `${visitor.date}`;
 
     let degree =
       doctor.degree == "MDS" && doctor.specialization !== null
