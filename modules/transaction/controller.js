@@ -11,6 +11,7 @@ const visitorService = require("../visitor/service");
 const createError = require("http-errors");
 const { createVisitorWithSlot } = require("../../utils/commonFunction");
 const Clinic = require("../clinic/model");
+const { commonData } = require("../user/constant");
 
 exports.create = async (req, res, next) => {
   try {
@@ -58,7 +59,9 @@ exports.create = async (req, res, next) => {
 
     //add 10 minutes in current time
 
-    req.body.messageTime = moment().utc().add(10, "minutes");
+    req.body.messageTime = moment()
+      .utc()
+      .add(commonData.NotificationConditon.AFTERMINUTE, "minutes");
     req.body.messageStatus = 0;
     const data = await service.create(req.body);
 
@@ -84,7 +87,7 @@ exports.create = async (req, res, next) => {
         where: {
           id: req.body.patientId,
         },
-      }
+      },
     );
 
     if (req.body?.isComplete === true) {
@@ -96,7 +99,7 @@ exports.create = async (req, res, next) => {
           where: {
             patientId: req.body.patientId,
           },
-        }
+        },
       );
 
       //remove feature appointment
@@ -244,7 +247,9 @@ exports.edit = async (req, res, next) => {
         online,
         amount, // Explicitly set the calculated amount
         createdAt,
-        messageTime: moment().utc().add(10, "minutes"),
+        messageTime: moment()
+          .utc()
+          .add(commonData.NotificationConditon.AFTERMINUTE, "minutes"),
         messageStatus: 0,
       },
       {
@@ -253,7 +258,7 @@ exports.edit = async (req, res, next) => {
           clinicId,
           patientId,
         },
-      }
+      },
     );
 
     // // Create visitor entry for the new createdAt date
@@ -319,7 +324,7 @@ exports.edit = async (req, res, next) => {
               clinicId,
               patientId,
             },
-          }
+          },
         );
       }
 
@@ -348,7 +353,7 @@ exports.edit = async (req, res, next) => {
               where: {
                 id: newVisitorEntry.id,
               },
-            }
+            },
           );
         }
       }
@@ -369,7 +374,7 @@ exports.edit = async (req, res, next) => {
             where: {
               id,
             },
-          }
+          },
         );
       } else {
         await service.update(
@@ -380,7 +385,7 @@ exports.edit = async (req, res, next) => {
             where: {
               id,
             },
-          }
+          },
         );
       }
     }
@@ -408,8 +413,8 @@ exports.remove = async (req, res, next) => {
       return next(
         createError(
           404,
-          "This transaction is linked to another clinic. Please delete it from that clinic."
-        )
+          "This transaction is linked to another clinic. Please delete it from that clinic.",
+        ),
       );
     }
 
