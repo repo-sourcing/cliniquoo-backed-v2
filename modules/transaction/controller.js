@@ -315,7 +315,7 @@ exports.edit = async (req, res, next) => {
         },
         defaults: { isVisited: true, isSchedule: true },
       });
-      if (created) {
+      if (newVisitorEntry) {
         visitorService.update(
           { isVisited: true },
           {

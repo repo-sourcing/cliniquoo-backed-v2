@@ -166,7 +166,10 @@ exports.schedule = async (req, res, next) => {
       await scheduleCronService.remove({ where: { visitorId: data[0].id } });
       await scheduleCronService.create({
         visitorId: data[0].id,
-        time: moment(data[0].createdAt).add(10, "minutes"),
+        time: moment(data[0].createdAt).add(
+          commonData.NotificationConditon.AFTERMINUTE,
+          "minutes",
+        ),
         status: "scheduled",
       });
     }
