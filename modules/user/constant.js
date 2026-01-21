@@ -75,4 +75,7 @@ exports.commonData = {
     BASIC: "Basic Plan",
     PRO: "Pro Plan",
   },
+  NotificationConditon: {
+    AFTERMINUTE: 1,
+  },
 };

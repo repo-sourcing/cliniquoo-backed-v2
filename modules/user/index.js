@@ -21,11 +21,11 @@ const {
   updateUserValidation,
   verifyOTPValidation,
 } = require("./validation");
-const {
-  otpSendLimit,
-  otpVerificationLimit,
-  resendOTPLimit,
-} = require("../../middleware/rateLimiter");
+// const {
+//   otpSendLimit,
+//   otpVerificationLimit,
+//   resendOTPLimit,
+// } = require("../../middleware/rateLimiter");
 
 router.route("/").patch(
   auth.authMiddleware,
@@ -37,12 +37,22 @@ router.route("/").patch(
   update
 );
 router.get("/getMe", auth.authMiddleware, getMe);
-router.post("/sendOTP", otpSendLimit, sendOTPValidation, sendOTP);
-router.post("/resendOTP", resendOTPLimit, sendOTPValidation, resendOTP);
+router.post(
+  "/sendOTP",
+  // otpSendLimit,
+  sendOTPValidation,
+  sendOTP
+);
+router.post(
+  "/resendOTP",
+  //resendOTPLimit,
+  sendOTPValidation,
+  resendOTP
+);
 
 router.post(
   "/verifyOTP",
-  otpVerificationLimit,
+  // otpVerificationLimit,
   verifyOTPValidation,
   auth.mobileProtected,
   verifyOTP

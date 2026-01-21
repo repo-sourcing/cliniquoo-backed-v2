@@ -41,7 +41,7 @@ const db = (exports.create = async (req, res, next) => {
 
     if (visitor)
       return next(
-        createError(200, "this patient already schedule on this date")
+        createError(200, "this patient already schedule on this date"),
       );
 
     const data = await service.create({
@@ -124,7 +124,7 @@ exports.schedule = async (req, res, next) => {
     if (!data[1] && typeof timeSlot !== "undefined") {
       await service.update(
         { timeSlot: timeSlot ?? null },
-        { where: { id: data[0].id } }
+        { where: { id: data[0].id } },
       );
     }
 
@@ -137,7 +137,7 @@ exports.schedule = async (req, res, next) => {
           patientId,
           clinicId,
         },
-      }
+      },
     );
 
     res.status(201).json({
@@ -155,7 +155,7 @@ exports.schedule = async (req, res, next) => {
     let subscriptionData = req.requestor.subscription;
     if (!subscriptionData) {
       return next(
-        createError(404, "Something went wrong please try again later")
+        createError(404, "Something went wrong please try again later"),
       );
     }
 
@@ -466,7 +466,7 @@ exports.getAllVisitorByDate = async (req, res, next) => {
             date: req.query.date,
           },
           type: sequelize.QueryTypes.SELECT,
-        }
+        },
       ),
       service.count({
         where: {
@@ -577,7 +577,7 @@ exports.countOfvisitorForAllDates = async (req, res, next) => {
           endDate: moment().subtract(1, "days").format("YYYY-MM-DD"),
         },
         type: sequelize.QueryTypes.SELECT,
-      }
+      },
     );
     res.status(200).send({
       status: "success",
@@ -650,7 +650,7 @@ exports.reschedule = async (req, res, next) => {
 
     if (visitor && !timeSlot)
       return next(
-        createError(200, "this patient already schedule on this date")
+        createError(200, "this patient already schedule on this date"),
       );
 
     const [findData] = await service.get({
@@ -699,23 +699,29 @@ exports.reschedule = async (req, res, next) => {
 
       //if notification already sent and data is schedule cron is deleted
       if (!findScheduleCronData) {
-        if (diffMinutes <= 10) {
+        if (diffMinutes <= commonData.NotificationConditon.AFTERMINUTE) {
           // Within 10 minutes → create schedule only
           await scheduleCronService.create({
             visitorId: findData.id,
-            time: moment().add(10, "minutes"),
+            time: moment().add(
+              commonData.NotificationConditon.AFTERMINUTE,
+              "minutes",
+            ),
             status: "scheduled",
           });
         } else {
           // If no scheduleCron exists, create a new one
           await scheduleCronService.create({
             visitorId: findData.id,
-            time: moment().add(10, "minutes"),
+            time: moment().add(
+              commonData.NotificationConditon.AFTERMINUTE,
+              "minutes",
+            ),
             status: "rescheduled",
           });
         }
       } else {
-        if (diffMinutes <= 10) {
+        if (diffMinutes <= commonData.NotificationConditon.AFTERMINUTE) {
           // Within 10 minutes → update schedule only
 
           if (findScheduleCronData) {
@@ -725,15 +731,27 @@ exports.reschedule = async (req, res, next) => {
                 : "rescheduled";
 
             await scheduleCronService.update(
-              { status: status, time: moment().add(10, "minutes") },
-              { where: { visitorId: findData.id } }
+              {
+                status: status,
+                time: moment().add(
+                  commonData.NotificationConditon.AFTERMINUTE,
+                  "minutes",
+                ),
+              },
+              { where: { visitorId: findData.id } },
             );
           }
         } else {
           // More than 10 minutes → update schedule and status to 'reschedule'
           await scheduleCronService.update(
-            { status: "rescheduled", time: moment().add(10, "minutes") },
-            { where: { visitorId: findData.id } }
+            {
+              status: "rescheduled",
+              time: moment().add(
+                commonData.NotificationConditon.AFTERMINUTE,
+                "minutes",
+              ),
+            },
+            { where: { visitorId: findData.id } },
           );
         }
       }
@@ -751,7 +769,7 @@ exports.reschedule = async (req, res, next) => {
           clinicId: { [Op.in]: clinicIds },
           date: previousScheduleDate,
         },
-      }
+      },
     );
 
     res.status(200).json({
