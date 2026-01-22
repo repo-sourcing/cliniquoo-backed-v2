@@ -267,3 +267,242 @@ describe("GET /revenueAnalytics/trend", () => {
     expect(res.body.data.growthTrend).toBe("up");
   });
 });
+
+// ─── Additional Service Tests ────────────────────────────────────────────────
+
+describe("RevenueAnalyticsService.getBreakdown()", () => {
+  it("returns cash, online, total and percentages", async () => {
+    Transaction.findOne.mockResolvedValue({
+      cashAmount: 800,
+      onlineAmount: 200,
+    });
+
+    const result = await service.getBreakdown(1, "2024-01-01", "2024-01-31");
+
+    expect(Transaction.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ clinicId: 1 }),
+      })
+    );
+    expect(result.cash).toBe(800);
+    expect(result.online).toBe(200);
+    expect(result.total).toBe(1000);
+    expect(result.cashPercentage).toBe(80);
+    expect(result.onlinePercentage).toBe(20);
+  });
+
+  it("returns all zeros when no transactions found", async () => {
+    Transaction.findOne.mockResolvedValue(null);
+
+    const result = await service.getBreakdown(1, "2024-01-01", "2024-01-31");
+
+    expect(result.total).toBe(0);
+    expect(result.cashPercentage).toBe(0);
+    expect(result.onlinePercentage).toBe(0);
+  });
+
+  it("throws wrapped error on DB failure", async () => {
+    Transaction.findOne.mockRejectedValue(new Error("DB error"));
+
+    await expect(service.getBreakdown(1, "2024-01-01", "2024-01-31")).rejects.toThrow(
+      "Failed to fetch revenue breakdown"
+    );
+  });
+});
+
+describe("RevenueAnalyticsService.getOutstanding()", () => {
+  it("returns only transactions where paid < amount", async () => {
+    Transaction.findAll.mockResolvedValue([
+      { id: 1, amount: 500, cash: 200, online: 100, createdAt: new Date(), notes: "partial" },
+      { id: 2, amount: 300, cash: 300, online: 0, createdAt: new Date(), notes: "paid" },
+    ]);
+
+    const result = await service.getOutstanding(1, "2024-01-01", "2024-01-31");
+
+    expect(Transaction.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ clinicId: 1 }),
+        order: [["createdAt", "DESC"]],
+        limit: 100,
+      })
+    );
+    // Only the first tx is outstanding (paid 300 < amount 500)
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(1);
+    expect(result[0].outstanding).toBe(200);
+  });
+
+  it("returns empty array when all transactions are fully paid", async () => {
+    Transaction.findAll.mockResolvedValue([
+      { id: 1, amount: 100, cash: 100, online: 0, createdAt: new Date(), notes: null },
+    ]);
+
+    const result = await service.getOutstanding(1, "2024-01-01", "2024-01-31");
+
+    expect(result).toHaveLength(0);
+  });
+
+  it("includes outstandingPercentage in each result", async () => {
+    Transaction.findAll.mockResolvedValue([
+      { id: 3, amount: 400, cash: 100, online: 0, createdAt: new Date(), notes: "test" },
+    ]);
+
+    const result = await service.getOutstanding(1, "2024-01-01", "2024-01-31");
+
+    expect(result[0].outstandingPercentage).toBe(75);
+    expect(result[0].paid).toBe(100);
+  });
+
+  it("throws wrapped error on DB failure", async () => {
+    Transaction.findAll.mockRejectedValue(new Error("connection lost"));
+
+    await expect(service.getOutstanding(1, "2024-01-01", "2024-01-31")).rejects.toThrow(
+      "Failed to fetch outstanding revenue"
+    );
+  });
+});
+
+// ─── Additional Controller Tests ─────────────────────────────────────────────
+
+const requestB = require("supertest");
+jest.mock("../service");
+const mockedServiceB = require("../service");
+
+function buildAppB() {
+  const express = require("express");
+  const app = express();
+  app.use(express.json());
+
+  const controller = require("../controller");
+  app.get("/revenueAnalytics/breakdown", controller.getBreakdown);
+  app.get("/revenueAnalytics/outstanding", controller.getOutstanding);
+  return app;
+}
+
+describe("GET /revenueAnalytics/breakdown", () => {
+  let app;
+  beforeEach(() => {
+    app = buildAppB();
+    jest.clearAllMocks();
+  });
+
+  it("returns 200 with breakdown data", async () => {
+    mockedServiceB.getBreakdown.mockResolvedValue({
+      cash: 800,
+      online: 200,
+      total: 1000,
+      cashPercentage: 80,
+      onlinePercentage: 20,
+    });
+
+    const res = await requestB(app).get(
+      "/revenueAnalytics/breakdown?clinicId=1&from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.total).toBe(1000);
+    expect(res.body.data.cashPercentage).toBe(80);
+  });
+
+  it("returns 400 when clinicId is missing", async () => {
+    const res = await requestB(app).get(
+      "/revenueAnalytics/breakdown?from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 500 on service error", async () => {
+    mockedServiceB.getBreakdown.mockRejectedValue(new Error("DB error"));
+
+    const res = await requestB(app).get(
+      "/revenueAnalytics/breakdown?clinicId=1&from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe("GET /revenueAnalytics/outstanding", () => {
+  let app;
+  beforeEach(() => {
+    app = buildAppB();
+    jest.clearAllMocks();
+  });
+
+  it("returns 200 with list of outstanding transactions", async () => {
+    mockedServiceB.getOutstanding.mockResolvedValue([
+      { id: 1, amount: 500, paid: 200, outstanding: 300, outstandingPercentage: 60 },
+    ]);
+
+    const res = await requestB(app).get(
+      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].outstanding).toBe(300);
+  });
+
+  it("returns 200 with empty array when no outstanding transactions", async () => {
+    mockedServiceB.getOutstanding.mockResolvedValue([]);
+
+    const res = await requestB(app).get(
+      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  it("returns 400 when clinicId is missing", async () => {
+    const res = await requestB(app).get(
+      "/revenueAnalytics/outstanding?from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 500 on service error", async () => {
+    mockedServiceB.getOutstanding.mockRejectedValue(new Error("query failed"));
+
+    const res = await requestB(app).get(
+      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    );
+
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── Additional Validation Tests ─────────────────────────────────────────────
+
+const validation = require("../validation");
+
+describe("validateBreakdown()", () => {
+  it("accepts valid clinicId, from, and to", () => {
+    const { error } = validation.validateBreakdown({ clinicId: 1, from: "2024-01-01", to: "2024-01-31" });
+    expect(error).toBeUndefined();
+  });
+
+  it("rejects missing clinicId", () => {
+    const { error } = validation.validateBreakdown({ from: "2024-01-01", to: "2024-01-31" });
+    expect(error).toBeDefined();
+  });
+
+  it("rejects missing from date", () => {
+    const { error } = validation.validateBreakdown({ clinicId: 1, to: "2024-01-31" });
+    expect(error).toBeDefined();
+  });
+});
+
+describe("validateOutstanding()", () => {
+  it("accepts valid clinicId, from, and to", () => {
+    const { error } = validation.validateOutstanding({ clinicId: 1, from: "2024-01-01", to: "2024-01-31" });
+    expect(error).toBeUndefined();
+  });
+
+  it("rejects missing clinicId", () => {
+    const { error } = validation.validateOutstanding({ from: "2024-01-01", to: "2024-01-31" });
+    expect(error).toBeDefined();
+  });
+});
