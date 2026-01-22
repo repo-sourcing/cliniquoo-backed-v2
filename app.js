@@ -15,6 +15,12 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
+
+// Health check endpoint for Docker
+app.get("/api/v1/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.use("/", indexRouter);
 
 // Start cron jobs (daily WhatsApp reminders, etc.)

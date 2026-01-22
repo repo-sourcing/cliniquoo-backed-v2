@@ -1,5 +1,5 @@
 const service = require("./service");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.login = async (req, res, next) => {
