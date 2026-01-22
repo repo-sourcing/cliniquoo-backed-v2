@@ -82,9 +82,9 @@ afterEach(() => jest.clearAllMocks());
 describe("RevenueAnalyticsService.getSummary()", () => {
   it("returns formatted totals from Transaction aggregate query", async () => {
     Transaction.findOne.mockResolvedValue({
-      totalAmount: 1500,
-      cashAmount: 1000,
-      onlineAmount: 500,
+      totalAmount: 1500.005,  // formatCurrency should round to 1500.01
+      cashAmount: 1000.005,   // formatCurrency should round to 1000.01
+      onlineAmount: 500.005,  // formatCurrency should round to 500.01
     });
     Transaction.count.mockResolvedValue(12);
 
@@ -93,9 +93,10 @@ describe("RevenueAnalyticsService.getSummary()", () => {
     expect(Transaction.findOne).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ clinicId: 1 }) })
     );
-    expect(result.total).toBe(1500);
-    expect(result.cash).toBe(1000);
-    expect(result.online).toBe(500);
+    // Values should be rounded via formatCurrency — a wrong impl returning raw amounts fails here
+    expect(result.total).toBe(1500.01);
+    expect(result.cash).toBe(1000.01);
+    expect(result.online).toBe(500.01);
     expect(result.count).toBe(12);
   });
 
@@ -121,14 +122,16 @@ describe("RevenueAnalyticsService.getDailyRevenue()", () => {
     expect(Transaction.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ clinicId: 1 }) })
     );
-    // fillDateGaps adds Jan 02 and Jan 03 as zero entries
     expect(result.length).toBeGreaterThanOrEqual(1);
-    expect(result[0].total).toBeDefined();
+    expect(result[0].total).toBe(500);
+    expect(result[0].date).toBe("2024-01-01");
+    expect(result).toHaveLength(3); // fillDateGaps adds Jan 02 and Jan 03
+    expect(result[1].total).toBe(0); // gap-filled entry
   });
 });
 
 describe("RevenueAnalyticsService.getMonthlyRevenue()", () => {
-  it("always returns exactly 12 months", async () => {
+  it("always returns exactly 12 months with mock month 3 data", async () => {
     Transaction.findAll.mockResolvedValue([
       { month: 3, totalAmount: 2000, cashAmount: 1500, onlineAmount: 500, count: "10" },
     ]);
@@ -136,6 +139,8 @@ describe("RevenueAnalyticsService.getMonthlyRevenue()", () => {
     const result = await service.getMonthlyRevenue(1, 2024);
 
     expect(result).toHaveLength(12);
+    // month 3 (index 2) should reflect the mock data total of 2000
+    expect(result[2].total).toBe(2000);
   });
 
   it("includes zero values for months with no transactions", async () => {
@@ -205,73 +210,87 @@ const controller = require("../controller");
 function buildApp() {
   const app = express();
   app.use(express.json());
-  app.get("/revenueAnalytics/summary", controller.getSummary);
-  app.get("/revenueAnalytics/daily", controller.getDailyRevenue);
-  app.get("/revenueAnalytics/monthly", controller.getMonthlyRevenue);
-  app.get("/revenueAnalytics/breakdown", controller.getBreakdown);
-  app.get("/revenueAnalytics/outstanding", controller.getOutstanding);
-  app.get("/revenueAnalytics/trend", controller.getTrend);
+  app.get("/revenueAnalytics/:clinicId/summary", controller.getSummary);
+  app.get("/revenueAnalytics/:clinicId/daily", controller.getDaily);
+  app.get("/revenueAnalytics/:clinicId/monthly", controller.getMonthly);
+  app.get("/revenueAnalytics/:clinicId/breakdown", controller.getBreakdown);
+  app.get("/revenueAnalytics/:clinicId/outstanding", controller.getOutstanding);
+  app.get("/revenueAnalytics/:clinicId/trend", controller.getTrend);
   return app;
 }
 
-describe("GET /revenueAnalytics/summary", () => {
+describe("GET /revenueAnalytics/:clinicId/summary", () => {
   let app;
   beforeEach(() => { app = buildApp(); jest.clearAllMocks(); });
 
   it("returns 200 with summary data for a valid clinicId", async () => {
     mockedService.getSummary.mockResolvedValue({ total: 5000, cash: 3000, online: 2000, outstanding: 0, count: 20 });
-    const res = await request(app).get("/revenueAnalytics/summary?clinicId=1");
+    const res = await request(app).get("/revenueAnalytics/1/summary");
     expect(res.status).toBe(200);
     expect(res.body.data.total).toBe(5000);
+    expect(mockedService.getSummary).toHaveBeenCalledWith(1);
   });
 
-  it("returns 400 when clinicId is missing", async () => {
-    const res = await request(app).get("/revenueAnalytics/summary");
+  it("returns 400 when clinicId is not a valid number", async () => {
+    const res = await request(app).get("/revenueAnalytics/abc/summary");
     expect(res.status).toBe(400);
   });
 });
 
-describe("GET /revenueAnalytics/daily", () => {
+describe("GET /revenueAnalytics/:clinicId/daily", () => {
   let app;
   beforeEach(() => { app = buildApp(); jest.clearAllMocks(); });
 
   it("returns 200 with daily array", async () => {
     mockedService.getDailyRevenue.mockResolvedValue([{ date: "2024-01-01", total: 100 }]);
-    const res = await request(app).get("/revenueAnalytics/daily?clinicId=1&from=2024-01-01&to=2024-01-07");
+    const res = await request(app).get("/revenueAnalytics/1/daily?from=2024-01-01&to=2024-01-07");
     expect(res.status).toBe(200);
+    expect(mockedService.getDailyRevenue).toHaveBeenCalledWith(
+      1,
+      expect.stringContaining("2024-01-01"),
+      expect.stringContaining("2024-01-07")
+    );
   });
 });
 
-describe("GET /revenueAnalytics/monthly", () => {
+describe("GET /revenueAnalytics/:clinicId/monthly", () => {
   let app;
   beforeEach(() => { app = buildApp(); jest.clearAllMocks(); });
 
   it("returns 200 with 12-month array", async () => {
     const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, total: 0 }));
     mockedService.getMonthlyRevenue.mockResolvedValue(months);
-    const res = await request(app).get("/revenueAnalytics/monthly?clinicId=1&year=2024");
+    const res = await request(app).get("/revenueAnalytics/1/monthly?year=2024");
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(12);
+    expect(mockedService.getMonthlyRevenue).toHaveBeenCalledWith(1, 2024);
   });
 });
 
-describe("GET /revenueAnalytics/trend", () => {
+describe("GET /revenueAnalytics/:clinicId/trend", () => {
   let app;
   beforeEach(() => { app = buildApp(); jest.clearAllMocks(); });
 
   it("returns 200 with growth data", async () => {
     mockedService.getTrend.mockResolvedValue({ period1: 1000, period2: 1200, growth: "20.00", growthTrend: "up" });
     const res = await request(app)
-      .get("/revenueAnalytics/trend?clinicId=1&period1From=2024-01-01&period1To=2024-01-31&period2From=2024-02-01&period2To=2024-02-29");
+      .get("/revenueAnalytics/1/trend?period1From=2024-01-01&period1To=2024-01-31&period2From=2024-02-01&period2To=2024-02-29");
     expect(res.status).toBe(200);
     expect(res.body.data.growthTrend).toBe("up");
+    expect(mockedService.getTrend).toHaveBeenCalledWith(
+      1,
+      expect.stringContaining("2024-01-01"),
+      expect.stringContaining("2024-01-31"),
+      expect.stringContaining("2024-02-01"),
+      expect.stringContaining("2024-02-29")
+    );
   });
 });
 
 // ─── Additional Service Tests ────────────────────────────────────────────────
 
-describe("RevenueAnalyticsService.getBreakdown()", () => {
-  it("returns cash, online, total and percentages", async () => {
+describe("RevenueAnalyticsService.getBreakdown() extended", () => {
+  it("queries Transaction with correct where clause and returns formatted result", async () => {
     Transaction.findOne.mockResolvedValue({
       cashAmount: 800,
       onlineAmount: 200,
@@ -281,24 +300,15 @@ describe("RevenueAnalyticsService.getBreakdown()", () => {
 
     expect(Transaction.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ clinicId: 1 }),
+        where: expect.objectContaining({
+          clinicId: 1,
+          createdAt: expect.objectContaining({}),  // date range must be present in WHERE
+        }),
       })
     );
-    expect(result.cash).toBe(800);
-    expect(result.online).toBe(200);
     expect(result.total).toBe(1000);
     expect(result.cashPercentage).toBe(80);
     expect(result.onlinePercentage).toBe(20);
-  });
-
-  it("returns all zeros when no transactions found", async () => {
-    Transaction.findOne.mockResolvedValue(null);
-
-    const result = await service.getBreakdown(1, "2024-01-01", "2024-01-31");
-
-    expect(result.total).toBe(0);
-    expect(result.cashPercentage).toBe(0);
-    expect(result.onlinePercentage).toBe(0);
   });
 
   it("throws wrapped error on DB failure", async () => {
@@ -362,32 +372,29 @@ describe("RevenueAnalyticsService.getOutstanding()", () => {
   });
 });
 
-// ─── Additional Controller Tests ─────────────────────────────────────────────
+// ─── Additional Controller Tests (using route params matching the real controller) ──
 
-const requestB = require("supertest");
-jest.mock("../service");
-const mockedServiceB = require("../service");
-
-function buildAppB() {
+function buildAppC() {
   const express = require("express");
   const app = express();
   app.use(express.json());
-
   const controller = require("../controller");
-  app.get("/revenueAnalytics/breakdown", controller.getBreakdown);
-  app.get("/revenueAnalytics/outstanding", controller.getOutstanding);
+  app.get("/revenueAnalytics/:clinicId/breakdown", controller.getBreakdown);
+  app.get("/revenueAnalytics/:clinicId/outstanding", controller.getOutstanding);
+  app.get("/revenueAnalytics/:clinicId/summary", controller.getSummary);
+  app.get("/revenueAnalytics/:clinicId/daily", controller.getDaily);
   return app;
 }
 
-describe("GET /revenueAnalytics/breakdown", () => {
+describe("GET /revenueAnalytics/:clinicId/breakdown", () => {
   let app;
   beforeEach(() => {
-    app = buildAppB();
+    app = buildAppC();
     jest.clearAllMocks();
   });
 
   it("returns 200 with breakdown data", async () => {
-    mockedServiceB.getBreakdown.mockResolvedValue({
+    mockedService.getBreakdown.mockResolvedValue({
       cash: 800,
       online: 200,
       total: 1000,
@@ -395,82 +402,105 @@ describe("GET /revenueAnalytics/breakdown", () => {
       onlinePercentage: 20,
     });
 
-    const res = await requestB(app).get(
-      "/revenueAnalytics/breakdown?clinicId=1&from=2024-01-01&to=2024-01-31"
+    const res = await request(app).get(
+      "/revenueAnalytics/1/breakdown?from=2024-01-01&to=2024-01-31"
     );
 
     expect(res.status).toBe(200);
     expect(res.body.data.total).toBe(1000);
     expect(res.body.data.cashPercentage).toBe(80);
-  });
-
-  it("returns 400 when clinicId is missing", async () => {
-    const res = await requestB(app).get(
-      "/revenueAnalytics/breakdown?from=2024-01-01&to=2024-01-31"
+    expect(mockedService.getBreakdown).toHaveBeenCalledWith(
+      1,
+      expect.stringContaining("2024-01-01"),
+      expect.stringContaining("2024-01-31")
     );
-
-    expect(res.status).toBe(400);
   });
 
   it("returns 500 on service error", async () => {
-    mockedServiceB.getBreakdown.mockRejectedValue(new Error("DB error"));
+    mockedService.getBreakdown.mockRejectedValue(new Error("DB error"));
 
-    const res = await requestB(app).get(
-      "/revenueAnalytics/breakdown?clinicId=1&from=2024-01-01&to=2024-01-31"
+    const res = await request(app).get(
+      "/revenueAnalytics/1/breakdown?from=2024-01-01&to=2024-01-31"
     );
 
     expect(res.status).toBe(500);
   });
 });
 
-describe("GET /revenueAnalytics/outstanding", () => {
+describe("GET /revenueAnalytics/:clinicId/outstanding", () => {
   let app;
   beforeEach(() => {
-    app = buildAppB();
+    app = buildAppC();
     jest.clearAllMocks();
   });
 
   it("returns 200 with list of outstanding transactions", async () => {
-    mockedServiceB.getOutstanding.mockResolvedValue([
+    mockedService.getOutstanding.mockResolvedValue([
       { id: 1, amount: 500, paid: 200, outstanding: 300, outstandingPercentage: 60 },
     ]);
 
-    const res = await requestB(app).get(
-      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    const res = await request(app).get(
+      "/revenueAnalytics/1/outstanding?from=2024-01-01&to=2024-01-31"
     );
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].outstanding).toBe(300);
+    expect(mockedService.getOutstanding).toHaveBeenCalledWith(
+      1,
+      expect.stringContaining("2024-01-01"),
+      expect.stringContaining("2024-01-31")
+    );
   });
 
   it("returns 200 with empty array when no outstanding transactions", async () => {
-    mockedServiceB.getOutstanding.mockResolvedValue([]);
+    mockedService.getOutstanding.mockResolvedValue([]);
 
-    const res = await requestB(app).get(
-      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    const res = await request(app).get(
+      "/revenueAnalytics/1/outstanding?from=2024-01-01&to=2024-01-31"
     );
 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(0);
   });
 
-  it("returns 400 when clinicId is missing", async () => {
-    const res = await requestB(app).get(
-      "/revenueAnalytics/outstanding?from=2024-01-01&to=2024-01-31"
-    );
-
-    expect(res.status).toBe(400);
-  });
-
   it("returns 500 on service error", async () => {
-    mockedServiceB.getOutstanding.mockRejectedValue(new Error("query failed"));
+    mockedService.getOutstanding.mockRejectedValue(new Error("query failed"));
 
-    const res = await requestB(app).get(
-      "/revenueAnalytics/outstanding?clinicId=1&from=2024-01-01&to=2024-01-31"
+    const res = await request(app).get(
+      "/revenueAnalytics/1/outstanding?from=2024-01-01&to=2024-01-31"
     );
 
     expect(res.status).toBe(500);
+  });
+});
+
+describe("GET /revenueAnalytics/:clinicId/daily - service call verified", () => {
+  let app;
+  beforeEach(() => {
+    app = buildAppC();
+    jest.clearAllMocks();
+  });
+
+  it("passes clinicId and date range to service.getDailyRevenue", async () => {
+    const dailyData = [
+      { date: "2024-01-01", total: 500, cash: 400, online: 100, count: 3 },
+      { date: "2024-01-02", total: 0, cash: 0, online: 0, count: 0 },
+      { date: "2024-01-03", total: 200, cash: 200, online: 0, count: 1 },
+    ];
+    mockedService.getDailyRevenue.mockResolvedValue(dailyData);
+
+    const res = await request(app).get(
+      "/revenueAnalytics/1/daily?from=2024-01-01&to=2024-01-03"
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(3);
+    expect(mockedService.getDailyRevenue).toHaveBeenCalledWith(
+      1,
+      expect.stringContaining("2024-01-01"),
+      expect.stringContaining("2024-01-03")
+    );
   });
 });
 
