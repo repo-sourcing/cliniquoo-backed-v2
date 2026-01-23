@@ -67,7 +67,7 @@ const AppointmentReminder = sequelize.define(
       { fields: ["isEnabled"] },
       { fields: ["clinicId", "isEnabled"] },
     ],
-  }
+  },
 );
 
 module.exports = AppointmentReminder;

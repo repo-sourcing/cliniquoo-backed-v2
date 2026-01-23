@@ -15,16 +15,13 @@ exports.createReminderSchema = joi.object().keys({
     .string()
     .valid("SMS", "Email", "WhatsApp")
     .required()
-    .messages({ "string.valid": "reminderType must be SMS, Email, or WhatsApp" }),
-  timeBeforeAppointment: joi
-    .number()
-    .integer()
-    .min(1)
-    .required()
     .messages({
-      "number.base": "timeBeforeAppointment must be a number",
-      "number.min": "timeBeforeAppointment must be at least 1 minute",
+      "string.valid": "reminderType must be SMS, Email, or WhatsApp",
     }),
+  timeBeforeAppointment: joi.number().integer().min(1).required().messages({
+    "number.base": "timeBeforeAppointment must be a number",
+    "number.min": "timeBeforeAppointment must be at least 1 minute",
+  }),
   isEnabled: joi.boolean().optional().default(true),
 });
 
@@ -33,13 +30,17 @@ exports.updateReminderSchema = joi.object().keys({
     .string()
     .valid("SMS", "Email", "WhatsApp")
     .optional()
-    .messages({ "string.valid": "reminderType must be SMS, Email, or WhatsApp" }),
+    .messages({
+      "string.valid": "reminderType must be SMS, Email, or WhatsApp",
+    }),
   timeBeforeAppointment: joi
     .number()
     .integer()
     .min(1)
     .optional()
-    .messages({ "number.min": "timeBeforeAppointment must be at least 1 minute" }),
+    .messages({
+      "number.min": "timeBeforeAppointment must be at least 1 minute",
+    }),
   isEnabled: joi.boolean().optional(),
   isActive: joi.boolean().optional(),
 });

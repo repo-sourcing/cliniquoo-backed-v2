@@ -96,8 +96,12 @@ class AppointmentReminderService {
         reminderType: updates.reminderType || reminder.reminderType,
         timeBeforeAppointment:
           updates.timeBeforeAppointment || reminder.timeBeforeAppointment,
-        isEnabled: updates.isEnabled !== undefined ? updates.isEnabled : reminder.isEnabled,
-        isActive: updates.isActive !== undefined ? updates.isActive : reminder.isActive,
+        isEnabled:
+          updates.isEnabled !== undefined
+            ? updates.isEnabled
+            : reminder.isEnabled,
+        isActive:
+          updates.isActive !== undefined ? updates.isActive : reminder.isActive,
       });
 
       return updated;

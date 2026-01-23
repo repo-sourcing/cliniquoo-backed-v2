@@ -20,7 +20,7 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
     it("should enforce timeBeforeAppointment minimum value of 1", () => {
       const validTiming = 60;
       const invalidTiming = 0;
-      
+
       expect(validTiming).toBeGreaterThanOrEqual(1);
       expect(invalidTiming).toBeLessThan(1);
     });
@@ -87,7 +87,7 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
 
     it("should support all three reminder types: SMS, Email, WhatsApp", () => {
       const types = ["SMS", "Email", "WhatsApp"];
-      
+
       types.forEach((type) => {
         const reminder = {
           reminderType: type,
@@ -101,7 +101,7 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
 
     it("should validate timeBeforeAppointment with various durations", () => {
       const timings = [15, 30, 60, 120, 240];
-      
+
       timings.forEach((timing) => {
         expect(timing).toBeGreaterThanOrEqual(1);
       });
@@ -146,7 +146,7 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
             clinicId: i + 10,
             reminderType: "SMS",
             timeBeforeAppointment: 60 + i * 10,
-          })
+          }),
         );
       }
 
@@ -206,7 +206,9 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
         },
       ];
 
-      const filtered = mockReminders.filter((r) => r.isEnabled === true && r.clinicId === 40);
+      const filtered = mockReminders.filter(
+        (r) => r.isEnabled === true && r.clinicId === 40,
+      );
       expect(filtered.every((r) => r.isEnabled === true)).toBe(true);
     });
 
@@ -424,7 +426,8 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
       ];
 
       const filtered = reminders.filter(
-        (r) => r.clinicId === 100 && r.isEnabled === true && r.isActive === true
+        (r) =>
+          r.clinicId === 100 && r.isEnabled === true && r.isActive === true,
       );
 
       expect(filtered.length).toBeGreaterThanOrEqual(1);
@@ -438,23 +441,21 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
         { id: 3, clinicId: 102, timeBeforeAppointment: 60 },
       ];
 
-      const sorted = reminders.sort((a, b) => a.timeBeforeAppointment - b.timeBeforeAppointment);
+      const sorted = reminders.sort(
+        (a, b) => a.timeBeforeAppointment - b.timeBeforeAppointment,
+      );
 
       for (let i = 1; i < sorted.length; i++) {
         expect(sorted[i].timeBeforeAppointment).toBeGreaterThanOrEqual(
-          sorted[i - 1].timeBeforeAppointment
+          sorted[i - 1].timeBeforeAppointment,
         );
       }
     });
 
     it("should prevent clinic data leakage across clinics", () => {
-      const clinic110Reminders = [
-        { id: 1, clinicId: 110, userId: 110 },
-      ];
+      const clinic110Reminders = [{ id: 1, clinicId: 110, userId: 110 }];
 
-      const clinic111Reminders = [
-        { id: 2, clinicId: 111, userId: 111 },
-      ];
+      const clinic111Reminders = [{ id: 2, clinicId: 111, userId: 111 }];
 
       clinic110Reminders.forEach((r) => expect(r.clinicId).toBe(110));
       clinic111Reminders.forEach((r) => expect(r.clinicId).toBe(111));
@@ -505,4 +506,3 @@ describe("Appointment Reminders Feature - Behavioral Tests", () => {
     });
   });
 });
-

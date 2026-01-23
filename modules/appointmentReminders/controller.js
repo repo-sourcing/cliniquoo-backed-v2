@@ -92,7 +92,9 @@ exports.getOne = async (req, res, next) => {
   try {
     const { reminderId } = req.params;
 
-    const { error, value } = reminderIdSchema.validate({ reminderId: parseInt(reminderId) });
+    const { error, value } = reminderIdSchema.validate({
+      reminderId: parseInt(reminderId),
+    });
 
     if (error) {
       return res.status(400).json({
@@ -126,7 +128,9 @@ exports.getOne = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const { reminderId } = req.params;
-    const { error: idError } = reminderIdSchema.validate({ reminderId: parseInt(reminderId) });
+    const { error: idError } = reminderIdSchema.validate({
+      reminderId: parseInt(reminderId),
+    });
 
     if (idError) {
       return res.status(400).json({
@@ -174,7 +178,9 @@ exports.update = async (req, res, next) => {
 exports.delete = async (req, res, next) => {
   try {
     const { reminderId } = req.params;
-    const { error: idError } = reminderIdSchema.validate({ reminderId: parseInt(reminderId) });
+    const { error: idError } = reminderIdSchema.validate({
+      reminderId: parseInt(reminderId),
+    });
 
     if (idError) {
       return res.status(400).json({
