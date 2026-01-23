@@ -85,5 +85,10 @@ router.use(
   auth.authMiddleware,
   require("../modules/aiAnalytics")
 );
+router.use(
+  "/appointmentReminders",
+  auth.authMiddleware,
+  require("../modules/appointmentReminders")
+);
 
 module.exports = router;
