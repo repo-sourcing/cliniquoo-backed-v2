@@ -92,4 +92,10 @@ router.use(
   require("../modules/appointmentReminders")
 );
 
+router.use(
+  "/revenueAnalytics",
+  auth.authMiddleware,
+  require("../modules/revenueAnalytics")
+);
+
 module.exports = router;
