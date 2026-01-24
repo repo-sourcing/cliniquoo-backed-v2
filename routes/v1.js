@@ -84,6 +84,9 @@ router.use(
   "/aiAnalytics",
   auth.authMiddleware,
   require("../modules/aiAnalytics")
+);router.use(
+  "/revenueAnalytics",
+  auth.authMiddleware,
+  require("../modules/revenueAnalytics"),
 );
-
 module.exports = router;
