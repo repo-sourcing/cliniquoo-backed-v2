@@ -98,4 +98,10 @@ router.use(
   require("../modules/revenueAnalytics")
 );
 
+router.use(
+  "/bulkPatientImport",
+  auth.authMiddleware,
+  require("../modules/bulkPatientImport")
+);
+
 module.exports = router;
