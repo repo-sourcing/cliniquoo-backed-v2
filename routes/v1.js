@@ -104,4 +104,10 @@ router.use(
   require("../modules/bulkPatientImport")
 );
 
+router.use(
+  "/medicineInteractionChecker",
+  auth.authMiddleware,
+  require("../modules/medicineInteractionChecker")
+);
+
 module.exports = router;
