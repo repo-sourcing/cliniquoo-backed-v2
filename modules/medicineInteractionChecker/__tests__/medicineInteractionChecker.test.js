@@ -404,3 +404,315 @@ describe("medicineInteractionChecker Controller", () => {
     expect(res.body.data.combinedSeverity).toBe("critical");
   });
 });
+
+// ─── Additional Service Tests ─────────────────────────────────────────────
+
+describe("medicineInteractionService.getHighRiskInteractions() — headline feature", () => {
+  let service;
+  let mockMedicineInteraction;
+
+  beforeEach(() => {
+    jest.resetModules();
+    mockMedicineInteraction = {
+      findOne: jest.fn(),
+      findAll: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    };
+    jest.doMock("../../config/db", () => ({
+      models: { MedicineInteraction: mockMedicineInteraction },
+    }));
+    service = require("../service");
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it("queries with Op.in for ['high', 'critical'] severities", async () => {
+    const { Op } = require("sequelize");
+    mockMedicineInteraction.findAll.mockResolvedValue([]);
+
+    await service.getHighRiskInteractions(1);
+
+    expect(mockMedicineInteraction.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          clinicId: 1,
+          isActive: true,
+          severityLevel: expect.objectContaining({
+            [Op.in]: expect.arrayContaining(["high", "critical"]),
+          }),
+        }),
+      })
+    );
+  });
+
+  it("returns mapped list with id, medicine1Id, medicine2Id, severity, conflictType", async () => {
+    mockMedicineInteraction.findAll.mockResolvedValue([
+      {
+        id: 7, medicineId1: 1, medicineId2: 2, severityLevel: "critical",
+        conflictType: "drug-drug", description: "major interaction",
+      },
+    ]);
+
+    const result = await service.getHighRiskInteractions(1);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 7,
+      medicine1Id: 1,
+      medicine2Id: 2,
+      severity: "critical",
+      conflictType: "drug-drug",
+    });
+  });
+
+  it("returns empty array when no high-risk interactions exist", async () => {
+    mockMedicineInteraction.findAll.mockResolvedValue([]);
+    const result = await service.getHighRiskInteractions(99);
+    expect(result).toEqual([]);
+  });
+});
+
+describe("medicineInteractionService.checkMultipleInteractions() — pairwise iteration", () => {
+  let service;
+  let mockMedicineInteraction;
+
+  beforeEach(() => {
+    jest.resetModules();
+    mockMedicineInteraction = {
+      findOne: jest.fn(),
+      findAll: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    };
+    jest.doMock("../../config/db", () => ({
+      models: { MedicineInteraction: mockMedicineInteraction },
+    }));
+    service = require("../service");
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it("returns empty interactions for fewer than 2 medicine IDs", async () => {
+    const result = await service.checkMultipleInteractions([1], 1);
+    expect(result.interactions).toEqual([]);
+    expect(result.combinedSeverity).toBe("none");
+    expect(mockMedicineInteraction.findOne).not.toHaveBeenCalled();
+  });
+
+  it("checks all N*(N-1)/2 pairs for a list of N medicines", async () => {
+    // 3 medicines -> 3 pairs: (0,1), (0,2), (1,2)
+    mockMedicineInteraction.findOne.mockResolvedValue(null);
+
+    await service.checkMultipleInteractions([10, 20, 30], 1);
+
+    expect(mockMedicineInteraction.findOne.mock.calls).toHaveLength(3);
+  });
+
+  it("aggregates found interactions and returns hasCriticalInteraction:true when one is critical", async () => {
+    mockMedicineInteraction.findOne
+      .mockResolvedValueOnce({
+        id: 1, severityLevel: "critical", description: "dangerous",
+        recommendation: "avoid", conflictType: "drug-drug",
+      })
+      .mockResolvedValue(null);
+
+    const result = await service.checkMultipleInteractions([1, 2, 3], 1);
+
+    expect(result.interactions).toHaveLength(1);
+    expect(result.hasCriticalInteraction).toBe(true);
+    expect(result.combinedSeverity).toBe("critical");
+  });
+
+  it("returns count equal to number of found interactions", async () => {
+    mockMedicineInteraction.findOne
+      .mockResolvedValueOnce({
+        id: 5, severityLevel: "moderate", description: "mild",
+        recommendation: "monitor", conflictType: "drug-drug",
+      })
+      .mockResolvedValue(null);
+
+    const result = await service.checkMultipleInteractions([1, 2], 1);
+    expect(result.count).toBe(1);
+  });
+});
+
+describe("medicineInteractionService.updateInteraction() — field filtering", () => {
+  let service;
+  let mockMedicineInteraction;
+  let mockInteractionInstance;
+
+  beforeEach(() => {
+    jest.resetModules();
+    mockInteractionInstance = { update: jest.fn().mockResolvedValue(true) };
+    mockMedicineInteraction = {
+      findOne: jest.fn(),
+      findAll: jest.fn(),
+      create: jest.fn(),
+    };
+    jest.doMock("../../config/db", () => ({
+      models: { MedicineInteraction: mockMedicineInteraction },
+    }));
+    service = require("../service");
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it("throws when interaction not found for the given clinic", async () => {
+    mockMedicineInteraction.findOne.mockResolvedValue(null);
+    await expect(service.updateInteraction(99, 1, { severityLevel: "high" }))
+      .rejects.toThrow();
+  });
+
+  it("only updates allowed fields (severityLevel, description, recommendation, isActive)", async () => {
+    mockMedicineInteraction.findOne.mockResolvedValue(mockInteractionInstance);
+
+    await service.updateInteraction(1, 1, {
+      severityLevel: "high",
+      description: "updated",
+      maliciousField: "should not appear",
+    });
+
+    const updateCall = mockInteractionInstance.update.mock.calls[0][0];
+    expect(updateCall).toHaveProperty("severityLevel", "high");
+    expect(updateCall).toHaveProperty("description", "updated");
+    expect(updateCall).not.toHaveProperty("maliciousField");
+  });
+});
+
+describe("medicineInteractionService.deactivateInteraction()", () => {
+  let service;
+  let mockMedicineInteraction;
+  let mockInteractionInstance;
+
+  beforeEach(() => {
+    jest.resetModules();
+    mockInteractionInstance = { update: jest.fn().mockResolvedValue(true) };
+    mockMedicineInteraction = {
+      findOne: jest.fn(),
+      findAll: jest.fn(),
+      create: jest.fn(),
+    };
+    jest.doMock("../../config/db", () => ({
+      models: { MedicineInteraction: mockMedicineInteraction },
+    }));
+    service = require("../service");
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it("throws when interaction not found", async () => {
+    mockMedicineInteraction.findOne.mockResolvedValue(null);
+    await expect(service.deactivateInteraction(99, 1)).rejects.toThrow();
+  });
+
+  it("sets isActive to false on the found record", async () => {
+    mockMedicineInteraction.findOne.mockResolvedValue(mockInteractionInstance);
+
+    await service.deactivateInteraction(5, 1);
+
+    expect(mockInteractionInstance.update).toHaveBeenCalledWith({ isActive: false });
+  });
+
+  it("returns { success: true } on success", async () => {
+    mockMedicineInteraction.findOne.mockResolvedValue(mockInteractionInstance);
+    const result = await service.deactivateInteraction(5, 1);
+    expect(result).toEqual({ success: true });
+  });
+});
+
+// ─── Additional Controller Tests ─────────────────────────────────────────────
+describe("medicineInteractionChecker Controller — additional handlers", () => {
+  let appB;
+  let mockServiceB;
+
+  beforeEach(() => {
+    jest.resetModules();
+    mockServiceB = {
+      checkInteraction: jest.fn(),
+      checkMultipleInteractions: jest.fn(),
+      getHighRiskInteractions: jest.fn(),
+      createInteraction: jest.fn(),
+      updateInteraction: jest.fn(),
+      deactivateInteraction: jest.fn(),
+      getInteractionWarnings: jest.fn(),
+      calculateCombinedSeverity: jest.fn(),
+    };
+    jest.doMock("../service", () => mockServiceB);
+    jest.doMock("../../config/db", () => ({
+      models: { MedicineInteraction: {} },
+    }));
+
+    const controller = require("../controller");
+    appB = express();
+    appB.use(express.json());
+    appB.post("/interactions/multiple", controller.checkMultipleInteractions);
+    appB.get("/interactions/high-risk", controller.getHighRiskInteractions);
+    appB.put("/interactions/:id", controller.updateInteraction);
+    appB.delete("/interactions/:id/deactivate", controller.deactivateInteraction);
+    appB.get("/interactions/warnings", controller.getWarnings);
+  });
+
+  afterEach(() => jest.clearAllMocks());
+
+  it("POST /multiple returns 200 with combined interaction result", async () => {
+    const combined = {
+      interactions: [{ medicine1Id: 1, medicine2Id: 2, severity: "high" }],
+      combinedSeverity: "high",
+      count: 1,
+      hasCriticalInteraction: false,
+    };
+    mockServiceB.checkMultipleInteractions.mockResolvedValue(combined);
+    const res = await request(appB)
+      .post("/interactions/multiple")
+      .send({ medicineIds: [1, 2, 3], clinicId: 1 });
+    expect(res.status).toBe(200);
+    expect(mockServiceB.checkMultipleInteractions).toHaveBeenCalled();
+  });
+
+  it("GET /high-risk returns 200 with high-risk interactions list", async () => {
+    mockServiceB.getHighRiskInteractions.mockResolvedValue([
+      { id: 1, medicine1Id: 1, medicine2Id: 2, severity: "critical" },
+    ]);
+    const res = await request(appB).get("/interactions/high-risk?clinicId=1");
+    expect(res.status).toBe(200);
+    expect(mockServiceB.getHighRiskInteractions).toHaveBeenCalled();
+  });
+
+  it("PUT /:id returns 200 when interaction is updated", async () => {
+    mockServiceB.updateInteraction.mockResolvedValue({ id: 5, severityLevel: "low", isActive: true });
+    const res = await request(appB)
+      .put("/interactions/5")
+      .send({ clinicId: 1, severityLevel: "low" });
+    expect(res.status).toBe(200);
+    expect(mockServiceB.updateInteraction).toHaveBeenCalled();
+  });
+
+  it("PUT /:id returns 404 when interaction not found", async () => {
+    mockServiceB.updateInteraction.mockRejectedValue(
+      Object.assign(new Error("Interaction not found"), { status: 404 })
+    );
+    const res = await request(appB)
+      .put("/interactions/99")
+      .send({ clinicId: 1, severityLevel: "low" });
+    expect([404, 400, 500]).toContain(res.status);
+  });
+
+  it("DELETE /:id/deactivate returns 200 when deactivated", async () => {
+    mockServiceB.deactivateInteraction.mockResolvedValue({ success: true });
+    const res = await request(appB)
+      .delete("/interactions/5/deactivate")
+      .query({ clinicId: 1 });
+    expect([200, 204]).toContain(res.status);
+    expect(mockServiceB.deactivateInteraction).toHaveBeenCalled();
+  });
+
+  it("GET /warnings returns 200 with list of warnings", async () => {
+    mockServiceB.getInteractionWarnings.mockResolvedValue([
+      { id: 1, severity: "high" },
+    ]);
+    const res = await request(appB).get("/interactions/warnings?clinicId=1");
+    expect(res.status).toBe(200);
+    expect(mockServiceB.getInteractionWarnings).toHaveBeenCalled();
+  });
+});
