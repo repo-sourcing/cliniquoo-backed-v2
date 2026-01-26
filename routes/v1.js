@@ -85,5 +85,10 @@ router.use(
   auth.authMiddleware,
   require("../modules/aiAnalytics")
 );
+router.use(
+  "/medicineInteractionChecker",
+  auth.authMiddleware,
+  require("../modules/medicineInteractionChecker")
+);
 
 module.exports = router;
