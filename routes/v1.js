@@ -110,4 +110,10 @@ router.use(
   require("../modules/medicineInteractionChecker")
 );
 
+router.use(
+  "/subscriptionFeatureGates",
+  auth.authMiddleware,
+  require("../modules/subscriptionFeatureGates")
+);
+
 module.exports = router;
