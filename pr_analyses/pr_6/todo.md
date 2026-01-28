@@ -4,9 +4,9 @@
 
 - [ ] Test to Issue Alignment
 - [x] Test Discriminative Power
-- [x] Gold Patch Clarity
-- [x] Gold Patch to Issue Alignment
-- [x] Test Clarity
+- [ ] Gold Patch Clarity
+- [ ] Gold Patch to Issue Alignment
+- [ ] Test Clarity
 
 ## Files
 
@@ -17,7 +17,7 @@
 | Category | Score | Status |
 |----------|-------|--------|
 | Test to Issue Alignment | - | pending |
-| Test Discriminative Power | 2 | done |
-| Gold Patch Clarity | 1 | done |
-| Gold Patch to Issue Alignment | 2 | done |
-| Test Clarity | 0 | done |
+| Test Discriminative Power | 3 | done |
+| Gold Patch Clarity | - | pending |
+| Gold Patch to Issue Alignment | - | pending |
+| Test Clarity | - | pending |
