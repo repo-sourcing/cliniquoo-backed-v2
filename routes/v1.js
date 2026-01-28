@@ -116,4 +116,10 @@ router.use(
   require("../modules/subscriptionFeatureGates")
 );
 
+router.use(
+  "/emailNotificationEngine",
+  auth.authMiddleware,
+  require("../modules/emailNotificationEngine")
+);
+
 module.exports = router;
