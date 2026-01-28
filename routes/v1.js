@@ -85,5 +85,35 @@ router.use(
   auth.authMiddleware,
   require("../modules/aiAnalytics")
 );
+router.use(
+  "/appointmentReminders",
+  auth.authMiddleware,
+  require("../modules/appointmentReminders")
+);
+router.use(
+  "/revenueAnalytics",
+  auth.authMiddleware,
+  require("../modules/revenueAnalytics")
+);
+router.use(
+  "/bulkPatientImport",
+  auth.authMiddleware,
+  require("../modules/bulkPatientImport")
+);
+router.use(
+  "/medicineInteractionChecker",
+  auth.authMiddleware,
+  require("../modules/medicineInteractionChecker")
+);
+router.use(
+  "/subscriptionFeatureGates",
+  auth.authMiddleware,
+  require("../modules/subscriptionFeatureGates")
+);
+router.use(
+  "/emailNotificationEngine",
+  auth.authMiddleware,
+  require("../modules/emailNotificationEngine")
+);
 
 module.exports = router;
