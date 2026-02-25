@@ -119,10 +119,10 @@ describe("helpers.filterBySeverity()", () => {
     { id: 4, severity: "low" },
   ];
 
-  it("returns only interactions matching the given severity", () => {
+  it("returns all interactions at or above the given severity threshold", () => {
     const result = helpers.filterBySeverity(interactions, "high");
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(2);
+    expect(result).toHaveLength(2); // threshold ≥ high: includes critical (id:1) and high (id:2)
+    expect(result.every((i) => ["critical", "high"].includes(i.severity))).toBe(true);
   });
 
   it("returns empty array when no interactions match severity", () => {
@@ -145,30 +145,21 @@ describe("helpers.calculateRiskLevel()", () => {
 
   it("returns 'critical' when average score >= 3.5", () => {
     // Two critical (4) + one high (3) → avg = 3.67
-    const interactions = [
-      { severity: "critical" },
-      { severity: "critical" },
-      { severity: "high" },
-    ];
-    const result = helpers.calculateRiskLevel(interactions);
+    const result = helpers.calculateRiskLevel(["critical", "critical", "high"]);
     expect(result.level).toBe("critical");
   });
 
   it("returns 'high' level at an average around 3", () => {
-    const interactions = [
-      { severity: "high" }, // 3
-      { severity: "high" }, // 3
-      { severity: "moderate" }, // 2
-    ];
-    const result = helpers.calculateRiskLevel(interactions);
-    expect(["high", "critical"]).toContain(result.level);
+    // high(3) + high(3) + moderate(2) → avg = 2.67 → 'high' (avgScore >= 2.5)
+    const result = helpers.calculateRiskLevel(["high", "high", "moderate"]);
+    expect(result.level).toBe("high");
   });
 
-  it("returns 'safe' when only low severity interactions exist", () => {
-    const interactions = [{ severity: "low" }, { severity: "low" }];
-    const result = helpers.calculateRiskLevel(interactions);
-    expect(["safe", "low"]).toContain(result.level);
-    expect(result.score).toBeGreaterThanOrEqual(0);
+  it("returns 'low' when only low severity interactions exist", () => {
+    // low(1) + low(1) → avg = 1.0 → 'low' (avgScore < 1.5)
+    const result = helpers.calculateRiskLevel(["low", "low"]);
+    expect(result.level).toBe("low");
+    expect(result.score).toBe(1);
   });
 });
 
@@ -221,6 +212,13 @@ describe("medicineInteractionService.checkInteraction() — bidirectional query"
     ]);
     // Both orderings must be present
     expect(clauIds.size).toBe(2);
+    // Verify clauses specifically contain the correct medicine IDs in reversed order
+    expect(firstClause).toEqual(
+      expect.objectContaining({ medicineId1: 5, medicineId2: 10 })
+    );
+    expect(secondClause).toEqual(
+      expect.objectContaining({ medicineId1: 10, medicineId2: 5 })
+    );
   });
 });
 
@@ -246,11 +244,11 @@ describe("medicineInteractionService.createInteraction() — id normalization", 
     await service.createInteraction(1, {
       medicineId1: 8,
       medicineId2: 3,
-      severity: "moderate",
+      severityLevel: "moderate",
       description: "test",
     });
     expect(mockMedicineInteraction.create).toHaveBeenCalledWith(
-      expect.objectContaining({ medicineId1: 3, medicineId2: 8 })
+      expect.objectContaining({ medicineId1: 3, medicineId2: 8, severityLevel: "moderate" })
     );
   });
 
@@ -258,11 +256,11 @@ describe("medicineInteractionService.createInteraction() — id normalization", 
     await service.createInteraction(1, {
       medicineId1: 5,
       medicineId2: 12,
-      severity: "high",
+      severityLevel: "high",
       description: "test",
     });
     expect(mockMedicineInteraction.create).toHaveBeenCalledWith(
-      expect.objectContaining({ medicineId1: 5, medicineId2: 12 })
+      expect.objectContaining({ medicineId1: 5, medicineId2: 12, severityLevel: "high" })
     );
   });
 
@@ -317,10 +315,10 @@ describe("medicineInteractionChecker Controller", () => {
     mockService = {
       checkInteraction: jest.fn(),
       createInteraction: jest.fn(),
-      getInteractionsByMedicine: jest.fn(),
-      getInteractionsByClinique: jest.fn(),
+      checkMultipleInteractions: jest.fn(),
+      getHighRiskInteractions: jest.fn(),
       updateInteraction: jest.fn(),
-      deleteInteraction: jest.fn(),
+      deactivateInteraction: jest.fn(),
       calculateCombinedSeverity: jest.fn(),
     };
     jest.doMock("../service", () => mockService);
@@ -333,11 +331,10 @@ describe("medicineInteractionChecker Controller", () => {
     app.use(express.json());
     app.get("/interactions/check", controller.checkInteraction);
     app.post("/interactions", controller.createInteraction);
-    app.get("/interactions/medicine/:medicineId", controller.getByMedicine);
-    app.get("/interactions/clinic/:clinicId", controller.getByClinic);
+    app.get("/interactions/high-risk", controller.getHighRiskInteractions);
+    app.post("/interactions/multiple", controller.checkMultipleInteractions);
     app.put("/interactions/:id", controller.updateInteraction);
-    app.delete("/interactions/:id", controller.deleteInteraction);
-    app.post("/interactions/combined-severity", controller.getCombinedSeverity);
+    app.delete("/interactions/:id", controller.deactivateInteraction);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -379,29 +376,31 @@ describe("medicineInteractionChecker Controller", () => {
     const res = await request(app).post("/interactions").send({
       clinicId: 1, medicineId1: 1, medicineId2: 2, severity: "low", description: "dup",
     });
-    expect([409, 400, 500]).toContain(res.status);
+    expect(res.status).toBe(409);
   });
 
-  it("GET /medicine/:id returns 200 with interactions list", async () => {
-    mockService.getInteractionsByMedicine.mockResolvedValue([{ id: 1 }, { id: 2 }]);
-    const res = await request(app).get("/interactions/medicine/5?clinicId=1");
+  it("GET /high-risk returns 200 with high-risk interactions list", async () => {
+    mockService.getHighRiskInteractions.mockResolvedValue([{ id: 1, severity: "critical" }, { id: 2, severity: "high" }]);
+    const res = await request(app).get("/interactions/high-risk?clinicId=1");
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(2);
   });
 
-  it("DELETE /:id returns 204 on successful deletion", async () => {
-    mockService.deleteInteraction.mockResolvedValue({ success: true });
+  it("DELETE /:id returns 204 on successful deactivation", async () => {
+    mockService.deactivateInteraction.mockResolvedValue({ success: true });
     const res = await request(app).delete("/interactions/1?clinicId=1");
     expect(res.status).toBe(204);
   });
 
-  it("POST /combined-severity returns 200 with combined severity result", async () => {
-    mockService.calculateCombinedSeverity.mockReturnValue("critical");
+  it("POST /multiple returns 200 with combined severity result", async () => {
+    mockService.checkMultipleInteractions.mockResolvedValue({
+      interactions: [],
+      combinedSeverity: "none",
+    });
     const res = await request(app)
-      .post("/interactions/combined-severity")
-      .send({ severities: ["low", "critical", "high"] });
+      .post("/interactions/multiple")
+      .send({ medicineIds: [1, 2, 3], clinicId: 1 });
     expect(res.status).toBe(200);
-    expect(res.body.data.combinedSeverity).toBe("critical");
   });
 });
 
@@ -648,9 +647,9 @@ describe("medicineInteractionChecker Controller — additional handlers", () => 
     appB.use(express.json());
     appB.post("/interactions/multiple", controller.checkMultipleInteractions);
     appB.get("/interactions/high-risk", controller.getHighRiskInteractions);
-    appB.put("/interactions/:id", controller.updateInteraction);
-    appB.delete("/interactions/:id/deactivate", controller.deactivateInteraction);
     appB.get("/interactions/warnings", controller.getWarnings);
+    appB.patch("/interactions/:interactionId", controller.updateInteraction);
+    appB.delete("/interactions/:interactionId", controller.deactivateInteraction);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -667,7 +666,7 @@ describe("medicineInteractionChecker Controller — additional handlers", () => 
       .post("/interactions/multiple")
       .send({ medicineIds: [1, 2, 3], clinicId: 1 });
     expect(res.status).toBe(200);
-    expect(mockServiceB.checkMultipleInteractions).toHaveBeenCalled();
+    expect(mockServiceB.checkMultipleInteractions).toHaveBeenCalledWith([1, 2, 3], 1);
   });
 
   it("GET /high-risk returns 200 with high-risk interactions list", async () => {
@@ -676,35 +675,38 @@ describe("medicineInteractionChecker Controller — additional handlers", () => 
     ]);
     const res = await request(appB).get("/interactions/high-risk?clinicId=1");
     expect(res.status).toBe(200);
-    expect(mockServiceB.getHighRiskInteractions).toHaveBeenCalled();
+    expect(res.body.data).toHaveLength(1);
+    expect(mockServiceB.getHighRiskInteractions).toHaveBeenCalledWith(1);
   });
 
-  it("PUT /:id returns 200 when interaction is updated", async () => {
+  it("PATCH /:interactionId returns 200 when interaction is updated", async () => {
     mockServiceB.updateInteraction.mockResolvedValue({ id: 5, severityLevel: "low", isActive: true });
     const res = await request(appB)
-      .put("/interactions/5")
+      .patch("/interactions/5")
       .send({ clinicId: 1, severityLevel: "low" });
     expect(res.status).toBe(200);
-    expect(mockServiceB.updateInteraction).toHaveBeenCalled();
+    expect(mockServiceB.updateInteraction).toHaveBeenCalledWith(
+      5, 1, expect.objectContaining({ severityLevel: "low" })
+    );
   });
 
-  it("PUT /:id returns 404 when interaction not found", async () => {
+  it("PATCH /:interactionId returns 404 when interaction not found", async () => {
     mockServiceB.updateInteraction.mockRejectedValue(
       Object.assign(new Error("Interaction not found"), { status: 404 })
     );
     const res = await request(appB)
-      .put("/interactions/99")
+      .patch("/interactions/99")
       .send({ clinicId: 1, severityLevel: "low" });
-    expect([404, 400, 500]).toContain(res.status);
+    expect(res.status).toBe(404);
   });
 
-  it("DELETE /:id/deactivate returns 200 when deactivated", async () => {
+  it("DELETE /:interactionId returns 204 when deactivated", async () => {
     mockServiceB.deactivateInteraction.mockResolvedValue({ success: true });
     const res = await request(appB)
-      .delete("/interactions/5/deactivate")
-      .query({ clinicId: 1 });
-    expect([200, 204]).toContain(res.status);
-    expect(mockServiceB.deactivateInteraction).toHaveBeenCalled();
+      .delete("/interactions/5")
+      .send({ clinicId: 1 });
+    expect(res.status).toBe(204);
+    expect(mockServiceB.deactivateInteraction).toHaveBeenCalledWith(5, 1);
   });
 
   it("GET /warnings returns 200 with list of warnings", async () => {
@@ -713,6 +715,7 @@ describe("medicineInteractionChecker Controller — additional handlers", () => 
     ]);
     const res = await request(appB).get("/interactions/warnings?clinicId=1");
     expect(res.status).toBe(200);
-    expect(mockServiceB.getInteractionWarnings).toHaveBeenCalled();
+    expect(res.body.count).toBe(1);
+    expect(mockServiceB.getInteractionWarnings).toHaveBeenCalledWith(1, undefined);
   });
 });
