@@ -1,0 +1,79 @@
+version: 2.1
+
+jobs:
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Define SSH Host
+          command: |
+            echo 'export SSH_HOST="default_IP"' >> $BASH_ENV  # Default IP or error handling
+            if [ "${CIRCLE_BRANCH}" == "production" ]; then
+              echo 'export SSH_HOST="13.235.186.84"' >> $BASH_ENV
+            elif [ "${CIRCLE_BRANCH}" == "development" ]; then
+              echo 'export SSH_HOST="15.206.61.168"' >> $BASH_ENV
+            elif [ "${CIRCLE_BRANCH}" == "new" ]; then
+              echo 'export SSH_HOST="3.111.35.110"' >> $BASH_ENV
+            fi
+      - run:
+          name: Notify Slack - Deployment Started
+          command: |
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+            AUTHOR=$(git log -1 --pretty=format:'%an <%ae>')
+            curl -X POST -H 'Content-type: application/json' --data "{
+              \"attachments\": [
+                {
+                  \"title\": \"🚀 Deployment Started...\",
+                  \"text\": \"Project: cliniquoo Backend\\nBranch: $BRANCH\\nCommit: $COMMIT_MESSAGE\\nAuthor: $AUTHOR\",
+                  \"color\": \"#F7CE46\"
+                }
+              ]
+            }" https://hooks.slack.com/services/REPLACE/WITH/ACTUAL_WEBHOOK
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:X3RD1erbC+w6Iqz/fZoHZUrweUqOIny4BgOT1KAruPM"
+      - run:
+          name: SSH to EC2 and Deploy
+          command: |
+            set +e
+            ssh -o StrictHostKeyChecking=no root@$SSH_HOST "bash /root/cliniquoo-backend/deploy.sh > /root/cliniquoo-backend/deploy_output.txt 2>&1"
+            echo "export EXIT_STATUS=$?" >> $BASH_ENV
+            set -e
+      - run:
+          name: Download deploy_output.txt
+          command: scp -o StrictHostKeyChecking=no root@$SSH_HOST:/root/cliniquoo-backend/deploy_output.txt .
+      - run:
+          name: Notify Slack - Deployment Outcome
+          command: |
+            DEPLOY_OUTPUT=$(cat deploy_output.txt || echo "Deployment failed, no output found.")
+            STATUS_COLOR="#EF4444"
+            if [ "${EXIT_STATUS}" -eq 0 ]; then
+              STATUS_COLOR="#47BC63"
+              TITLE="✅ Deployment Succeeded!"
+            else
+              TITLE="❌ Deployment Failed"
+            fi
+            curl -X POST -H 'Content-type: application/json' --data "{
+              \"attachments\": [
+                {
+                  \"title\": \"$TITLE\",
+                  \"text\": \"Output: $DEPLOY_OUTPUT\",
+                  \"color\": \"$STATUS_COLOR\",
+                  \"mrkdwn_in\": [\"text\"]
+                }
+              ]
+            }" https://hooks.slack.com/services/REPLACE/WITH/ACTUAL_WEBHOOK
+
+workflows:
+  deployment:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only:
+                - production
+                - development
+                - new
