@@ -61,3 +61,17 @@ typings/
 .next
 
 .env
+# Analysis tooling (not part of the application)
+analyze
+analyze_prs.py
+analyze_prs.cpython-*.pyc
+repo_evaluator*.py
+repo_evaluator_helpers.py
+PR_EVALUATION_SUMMARY.md
+PR_QUALITY_EVALUATION_REPORT.md
+pr_analyses/
+pr_analysis_results.csv
+output/
+__pycache__/
+fixed_tests/
+rebuild_history.py
