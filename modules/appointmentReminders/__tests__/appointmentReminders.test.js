@@ -121,7 +121,12 @@ describe("AppointmentReminderService.update()", () => {
       isEnabled: true, isActive: true, update: mockUpdate,
     });
     const result = await service.update(1, { reminderType: "Email" });
-    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith({
+      reminderType: "Email",
+      timeBeforeAppointment: 30,
+      isEnabled: true,
+      isActive: true,
+    });
     expect(result).toBeDefined();
   });
 
@@ -233,17 +238,12 @@ const request = require("supertest");
 jest.mock("../service");
 const mockedService = require("../service");
 
-const controller = require("../controller");
-
+// Use the actual router module so route-ordering bugs are caught
 function buildApp() {
+  const router = require("../index");
   const app = express();
   app.use(express.json());
-  app.post("/appointmentReminders/trigger/send-pending", controller.sendPendingReminders);
-  app.post("/appointmentReminders/:clinicId", controller.create);
-  app.get("/appointmentReminders/:clinicId", controller.getAll);
-  app.get("/appointmentReminders/:clinicId/:reminderId", controller.getOne);
-  app.patch("/appointmentReminders/:clinicId/:reminderId", controller.update);
-  app.delete("/appointmentReminders/:clinicId/:reminderId", controller.delete);
+  app.use("/appointmentReminders", router);
   return app;
 }
 
@@ -283,6 +283,7 @@ describe("GET /appointmentReminders/:clinicId", () => {
     expect(res.status).toBe(200);
     expect(res.body.data.total).toBe(2);
     expect(res.body.data.reminders).toHaveLength(2);
+    expect(mockedService.getAllByClinic).toHaveBeenCalledWith(5, expect.objectContaining({}));
   });
 });
 
@@ -295,6 +296,7 @@ describe("GET /appointmentReminders/:clinicId/:reminderId", () => {
     const res = await request(app).get("/appointmentReminders/5/3");
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(3);
+    expect(mockedService.getOne).toHaveBeenCalledWith(3);
   });
 
   it("returns 404 when reminder does not exist", async () => {
@@ -314,6 +316,7 @@ describe("PATCH /appointmentReminders/:clinicId/:reminderId", () => {
       .patch("/appointmentReminders/5/3")
       .send({ isEnabled: false });
     expect(res.status).toBe(200);
+    expect(mockedService.update).toHaveBeenCalledWith(3, { isEnabled: false });
   });
 
   it("returns 404 when reminder not found", async () => {
@@ -341,6 +344,7 @@ describe("DELETE /appointmentReminders/:clinicId/:reminderId", () => {
     mockedService.delete.mockResolvedValue(true);
     const res = await request(app).delete("/appointmentReminders/5/3");
     expect(res.status).toBe(204);
+    expect(mockedService.delete).toHaveBeenCalledWith(3);
   });
 
   it("returns 404 when reminder not found", async () => {
@@ -358,12 +362,27 @@ describe("POST /appointmentReminders/trigger/send-pending", () => {
     mockedService.getEnabledByClinic.mockResolvedValue([
       { id: 1, reminderType: "SMS" },
       { id: 2, reminderType: "Email" },
+      { id: 7, reminderType: "WhatsApp" },
     ]);
     const res = await request(app)
       .post("/appointmentReminders/trigger/send-pending")
       .send({ clinicId: 5 });
     expect(res.status).toBe(200);
-    expect(res.body.data.remindersSent).toBe(2);
+    expect(res.body.data.remindersSent).toBe(3);
+    expect(mockedService.getEnabledByClinic).toHaveBeenCalledWith(5);
+    expect(res.body.data.results).toHaveLength(3);
+    expect(res.body.data.results[0]).toMatchObject({ id: 1, reminderType: "SMS", status: "sent" });
+    expect(res.body.data.results[2]).toMatchObject({ id: 7, reminderType: "WhatsApp", status: "sent" });
+  });
+
+  it("returns 0 when no reminders are enabled for the clinic", async () => {
+    mockedService.getEnabledByClinic.mockResolvedValue([]);
+    const res = await request(app)
+      .post("/appointmentReminders/trigger/send-pending")
+      .send({ clinicId: 99 });
+    expect(res.status).toBe(200);
+    expect(res.body.data.remindersSent).toBe(0);
+    expect(res.body.data.results).toHaveLength(0);
   });
 
   it("returns 400 when clinicId is missing", async () => {
@@ -371,5 +390,51 @@ describe("POST /appointmentReminders/trigger/send-pending", () => {
       .post("/appointmentReminders/trigger/send-pending")
       .send({});
     expect(res.status).toBe(400);
+  });
+});
+
+describe("queryRemindersSchema", () => {
+  it("accepts valid query with only clinicId", () => {
+    const { error } = queryRemindersSchema.validate({ clinicId: 5 });
+    expect(error).toBeUndefined();
+  });
+
+  it("accepts valid query with all optional fields", () => {
+    const { error } = queryRemindersSchema.validate({
+      clinicId: 5, isEnabled: true, limit: 20, offset: 10,
+    });
+    expect(error).toBeUndefined();
+  });
+
+  it("rejects when clinicId is missing", () => {
+    const { error } = queryRemindersSchema.validate({ isEnabled: true });
+    expect(error).toBeDefined();
+  });
+
+  it("rejects when clinicId is not a number", () => {
+    const { error } = queryRemindersSchema.validate({ clinicId: "abc" });
+    expect(error).toBeDefined();
+  });
+
+  it("rejects limit less than 1", () => {
+    const { error } = queryRemindersSchema.validate({ clinicId: 5, limit: 0 });
+    expect(error).toBeDefined();
+  });
+});
+
+describe("reminderIdSchema", () => {
+  it("accepts valid integer reminderId", () => {
+    const { error } = reminderIdSchema.validate({ reminderId: 7 });
+    expect(error).toBeUndefined();
+  });
+
+  it("rejects non-numeric reminderId string", () => {
+    const { error } = reminderIdSchema.validate({ reminderId: "abc" });
+    expect(error).toBeDefined();
+  });
+
+  it("rejects missing reminderId", () => {
+    const { error } = reminderIdSchema.validate({});
+    expect(error).toBeDefined();
   });
 });

@@ -9,6 +9,9 @@ const router = express.Router();
  * Auth applied at routes/v1.js level
  */
 
+// POST /appointmentReminders/trigger/send-pending  (must be before /:clinicId)
+router.post("/trigger/send-pending", controller.sendPendingReminders);
+
 // POST /appointmentReminders/:clinicId
 router.post("/:clinicId", controller.create);
 
@@ -23,8 +26,5 @@ router.patch("/:clinicId/:reminderId", controller.update);
 
 // DELETE /appointmentReminders/:clinicId/:reminderId
 router.delete("/:clinicId/:reminderId", controller.delete);
-
-// POST /appointmentReminders/trigger/send-pending
-router.post("/trigger/send-pending", controller.sendPendingReminders);
 
 module.exports = router;
