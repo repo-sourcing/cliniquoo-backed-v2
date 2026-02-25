@@ -75,3 +75,13 @@ output/
 __pycache__/
 fixed_tests/
 rebuild_history.py
+
+# Analysis tooling (not part of the application)
+analyze
+analyze_prs.py
+pr_analyses/
+pr_analysis_results.csv
+output/
+__pycache__/
+fixed_tests/
+rebuild_history.py
